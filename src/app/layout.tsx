@@ -1,30 +1,25 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "Spiral Groove Records - Vinyl Records & Music",
-  description: "Discover rare vinyl records, new releases, and music events at Spiral Groove Records. Your local record store for music lovers.",
-  keywords: "vinyl records, music, record store, new releases, used records, music events",
+  title: 'Spiral Groove Records',
+  description: 'A modern e-commerce platform for vinyl record enthusiasts',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased`}>
-        <Header />
-        <main className="min-h-screen">
+      <body className={inter.className}>
+        <div className="min-h-screen bg-dark-900 text-dark-50">
           {children}
-        </main>
-        <Footer />
+        </div>
       </body>
     </html>
   );

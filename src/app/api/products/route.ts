@@ -1,105 +1,126 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { SquareService } from '@/lib/square';
-import { CacheService } from '@/lib/redis';
-import { ProductsResponse, ApiResponse } from '@/types';
+/**
+ * Products API Route
+ */
 
-export async function GET(request: NextRequest) {
+import { NextRequest } from 'next/server';
+import { productQuerySchema } from '@/lib/validations';
+import { 
+  createSuccessResponse, 
+  createPaginatedResponse,
+  validateQueryParams,
+  withErrorHandling,
+  ApiException,
+  ERROR_CODES,
+  HTTP_STATUS
+} from '@/lib/api-utils';
+import { squareClient } from '@/lib/integrations/square';
+
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  // Validate query parameters
+  const { data: query, error } = validateQueryParams(
+    request.nextUrl.searchParams,
+    productQuerySchema
+  );
+  if (error) return error;
+
+  const { page, limit, search, category, condition, priceMin, priceMax, sortBy, sortOrder } = query;
+
   try {
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const category = searchParams.get('category');
-    const search = searchParams.get('search');
-
-    // Try to get cached products first
-    let products = await CacheService.getCachedProducts();
-
-    if (!products) {
-      // Fetch from Square API
-      products = await SquareService.getProducts();
-      
-      // Cache the products
-      await CacheService.cacheProducts(products);
-    }
-
-    // Apply filters
-    let filteredProducts = products;
-
-    if (category) {
-      filteredProducts = filteredProducts.filter(
-        product => product.category === category
-      );
-    }
+    // Get products from Square (if enabled) or mock data
+    const squareProducts = await squareClient.getProducts();
+    
+    // Filter products based on query parameters
+    let filteredProducts = squareProducts;
 
     if (search) {
       const searchLower = search.toLowerCase();
-      filteredProducts = filteredProducts.filter(
-        product => 
-          product.name.toLowerCase().includes(searchLower) ||
-          product.artist?.toLowerCase().includes(searchLower) ||
-          product.album?.toLowerCase().includes(searchLower)
+      filteredProducts = filteredProducts.filter(product =>
+        product.name.toLowerCase().includes(searchLower) ||
+        (product.description && product.description.toLowerCase().includes(searchLower))
       );
     }
 
-    // Apply pagination
+    if (category) {
+      filteredProducts = filteredProducts.filter(product => product.category === category);
+    }
+
+    if (condition) {
+      filteredProducts = filteredProducts.filter(product => product.condition === condition);
+    }
+
+    if (priceMin !== undefined) {
+      filteredProducts = filteredProducts.filter(product => product.price >= priceMin);
+    }
+
+    if (priceMax !== undefined) {
+      filteredProducts = filteredProducts.filter(product => product.price <= priceMax);
+    }
+
+    // Sort products
+    filteredProducts.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortBy) {
+        case 'title':
+          aValue = a.name;
+          bValue = b.name;
+          break;
+        case 'artist':
+          aValue = a.category || '';
+          bValue = b.category || '';
+          break;
+        case 'price':
+          aValue = a.price;
+          bValue = b.price;
+          break;
+        case 'createdAt':
+        default:
+          aValue = new Date().getTime(); // Mock creation date
+          bValue = new Date().getTime();
+          break;
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    // Paginate results
+    const total = filteredProducts.length;
+    const pages = Math.ceil(total / limit);
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
     const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
 
-    const response: ApiResponse<ProductsResponse> = {
-      success: true,
-      data: {
-        products: paginatedProducts,
-        total: filteredProducts.length,
+    // Transform products to match API contract
+    const products = paginatedProducts.map(product => ({
+      id: product.id,
+      title: product.name,
+      artist: product.category,
+      genre: product.category,
+      condition: product.condition,
+      price: product.price,
+      images: product.images || [],
+      description: product.description,
+      inStock: product.inStock,
+      squareId: product.id,
+    }));
+
+    return createPaginatedResponse(
+      products,
+      {
         page,
         limit,
+        total,
+        pages,
       },
-    };
-
-    return NextResponse.json(response);
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    
-    const response: ApiResponse<null> = {
-      success: false,
-      error: 'Failed to fetch products',
-    };
-
-    return NextResponse.json(response, { status: 500 });
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { action, productId } = body;
-
-    if (action === 'refresh') {
-      // Force refresh products from Square
-      const products = await SquareService.getProducts();
-      await CacheService.cacheProducts(products);
-      
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === 'invalidate' && productId) {
-      // Invalidate specific product cache
-      await CacheService.invalidateProductCache(productId);
-      
-      return NextResponse.json({ success: true });
-    }
-
-    return NextResponse.json(
-      { success: false, error: 'Invalid action' },
-      { status: 400 }
+      'Products retrieved successfully'
     );
   } catch (error) {
-    console.error('Error processing product action:', error);
-    
-    return NextResponse.json(
-      { success: false, error: 'Failed to process action' },
-      { status: 500 }
+    throw new ApiException(
+      ERROR_CODES.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve products',
+      HTTP_STATUS.INTERNAL_SERVER_ERROR
     );
   }
-}
-
+});
