@@ -69,12 +69,12 @@ export default function Header() {
             <nav className="flex items-center gap-6 text-sm max-w-4xl">
                 {/* SHOP - Dropdown */}
                 <div className="relative group">
-                  <button className="text-text-dark hover:text-accent-amber font-accent font-bold uppercase transition-150 flex items-center gap-1">
+                  <Link href="/shop" className="text-text-dark hover:text-accent-amber font-accent font-bold uppercase transition-150 flex items-center gap-1">
                     Shop
                     <svg className="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
-                  </button>
+                  </Link>
                   <div className="absolute top-full left-0 mt-2 w-48 bg-primary-cream border border-neutral-200 rounded-large shadow-modal opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="py-2">
                       <Link href="/shop" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">All Vinyl</Link>
