@@ -1,0 +1,34 @@
+{
+  "name": "spiral-groove-records",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@next/font": "^14.2.15",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.546.0",
+    "next": "15.0.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "square": "^43.1.1",
+    "swr": "^2.3.6",
+    "tailwind-merge": "^3.3.1",
+    "zod": "^4.1.12",
+    "zustand": "4.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.7.5",
+    "@types/react": "18.3.8",
+    "autoprefixer": "10.4.20",
+    "eslint": "9.12.0",
+    "eslint-config-next": "15.0.3",
+    "postcss": "8.4.47",
+    "tailwindcss": "3.4.14",
+    "typescript": "5.6.2"
+  }
+}

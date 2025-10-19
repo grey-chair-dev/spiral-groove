@@ -1,0 +1,42 @@
+{
+  "fontFamily": {
+    "display": "Playfair Display",
+    "body": "Inter",
+    "accent": "Poppins"
+  },
+  "fontSize": {
+    "h1": { "desktop": "54px", "mobile": "36px" },
+    "h2": { "desktop": "36px", "mobile": "28px" },
+    "h3": { "desktop": "28px", "mobile": "22px" },
+    "h4": { "desktop": "20px", "mobile": "18px" },
+    "bodyLarge": { "desktop": "18px", "mobile": "16px" },
+    "bodySmall": { "desktop": "16px", "mobile": "14px" },
+    "button": { "desktop": "16px", "mobile": "14px" },
+    "label": { "desktop": "14px", "mobile": "13px" }
+  },
+  "fontWeight": {
+    "display": {
+      "bold": "700",
+      "semibold": "600",
+      "regular": "400"
+    },
+    "body": {
+      "medium": "500",
+      "regular": "400"
+    },
+    "accent": {
+      "bold": "700",
+      "semibold": "600"
+    }
+  },
+  "lineHeight": {
+    "h1": "120%",
+    "h2": "130%",
+    "h3": "135%",
+    "h4": "140%",
+    "bodyLarge": "160%",
+    "bodySmall": "165%",
+    "button": "150%",
+    "label": "150%"
+  }
+}

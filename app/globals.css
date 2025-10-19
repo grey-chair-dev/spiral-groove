@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --radius: 14px;
+  
+      /* Design System Colors */
+      --color-primary-black: #111111;
+      --color-primary-cream: #FFFFFF;
+      --color-accent-teal: #63dbdf;
+      --color-accent-amber: #bd132b;
+      --color-highlight-red: #bd132b;
+      --color-text-dark: #111111;
+      --color-text-light: #FFFFFF;
+      --color-neutral-gray: #7A7A7A;
+  
+  /* Design System Fonts */
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-accent: 'Poppins', sans-serif;
+}
+
+body { 
+  @apply bg-primary-cream text-text-dark font-body; 
+}
+
+.header-brand { 
+  @apply text-2xl font-extrabold tracking-tight font-display; 
+}
+
+.container { 
+  @apply mx-auto px-4 sm:px-6 lg:px-8; 
+}
+
+.section { 
+  @apply container py-12 sm:py-16; 
+}
+
+.grid-cols-responsive { 
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+}
+
+.card { 
+  @apply rounded-large shadow-card border border-neutral-200 bg-primary-cream; 
+}
+
+.badge { 
+  @apply text-xs px-2 py-1 rounded-full border border-neutral-300; 
+}
+
+.btn { 
+  @apply inline-flex items-center justify-center rounded-medium px-7 py-3.5 border border-accent-teal bg-accent-teal text-text-light font-accent font-bold uppercase transition-all duration-150 hover:bg-accent-amber hover:border-accent-amber; 
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-medium px-7 py-3.5 border border-accent-teal text-accent-teal font-accent font-bold uppercase transition-all duration-150 hover:bg-accent-amber hover:border-accent-amber hover:text-text-dark;
+}
+
+.link { 
+  @apply underline underline-offset-4 hover:no-underline text-accent-teal hover:text-accent-amber transition-all duration-150; 
+}
+
+/* Enhanced animations and hover effects */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced card hover effects */
+.card-hover-lift {
+  @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-card-hover;
+}
+
+/* Gradient text */
+.gradient-text {
+  @apply bg-gradient-to-r from-accent-teal to-accent-amber bg-clip-text text-transparent;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-neutral-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-accent-teal rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-accent-amber;
+}
