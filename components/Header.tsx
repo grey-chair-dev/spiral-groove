@@ -31,7 +31,7 @@ export default function Header() {
       <div className="container h-20 flex items-center gap-4">
         <Link href="/" className="flex items-center p-2">
           <Image 
-            src="/logo.svg" 
+            src="/logo.png" 
             alt="Spiral Groove Records" 
             width={240} 
             height={80} 
