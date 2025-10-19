@@ -1,22 +1,72 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Hero() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Dynamic carousel items from /carousel/ directory
+  const carouselItems = [
+    {
+      src: '/carousel/new.png',
+      alt: 'New arrivals collection',
+      link: '/shop/new-arrivals'
+    },
+    {
+      src: '/carousel/events.png',
+      alt: 'Upcoming events and live music',
+      link: '/events'
+    },
+    {
+      src: '/carousel/community.png',
+      alt: 'Community events and gatherings',
+      link: '/community'
+    }
+  ];
+
+  // Auto-advance carousel every 5 seconds (if more images are added)
+  useEffect(() => {
+    if (!mounted || carouselItems.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % carouselItems.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [mounted, carouselItems.length]);
+
+  if (!mounted) {
+    return (
+      <section className="section">
+        <div className="relative overflow-hidden min-h-[600px] rounded-none">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-black to-neutral-800" />
+        </div>
+      </section>
+    );
+  }
+
+  const currentItem = carouselItems[currentSlide];
+
   return (
     <section className="section">
-      <div className="card p-6 md:p-10 relative overflow-hidden min-h-[600px]">
-        {/* Static Hero Collage Background */}
-        <div className="absolute inset-0">
+      <div className="relative overflow-hidden min-h-[600px] rounded-none">
+        {/* Carousel Background */}
+        <Link href={currentItem.link} className="absolute inset-0 block">
           <Image
-            src="/hero-collage.jpg"
-            alt="Recent vinyl arrivals collage"
+            src={currentItem.src}
+            alt={currentItem.alt}
             fill
-            className="object-cover opacity-30"
-            priority
+            className="object-cover transition-all duration-1000 ease-in-out"
+            priority={currentSlide === 0}
             sizes="100vw"
             onError={(e) => {
-              // Fallback to gradient background if image fails to load
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
               const parent = target.parentElement;
@@ -25,74 +75,51 @@ export default function Hero() {
               }
             }}
           />
-        </div>
+        </Link>
         
-        {/* Gradient Overlay for Text Readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary-black/30 via-primary-black/50 to-primary-black/70" />
         
-        {/* Content Layer */}
-        <div className="relative z-10 grid md:grid-cols-2 gap-8 items-center min-h-[500px]">
-          <div>
-            <h1 className="font-display font-bold text-[54px] md:text-[54px] text-[36px] leading-[120%] text-text-light drop-shadow-lg">
-              Discover Your Next Favorite Record
-            </h1>
-            <p className="mt-2 font-accent font-semibold text-accent-teal text-lg drop-shadow-md">
-              Spiral Groove Records
-            </p>
-            <p className="mt-4 font-body font-normal text-[18px] md:text-[18px] text-[16px] leading-[160%] text-neutral-200 max-w-prose drop-shadow-md">
-              Independent record shop and community hub at 215B Main St, Milford, OH. Specializing in new & used vinyl, tapes, CDs, audio gear, and vinyl crafts. Serving Milford, Clermont County, and Greater Cincinnati with nationwide online reach.
-            </p>
-            
-            {/* Trust indicators */}
-            <div className="mt-6 flex flex-wrap gap-6 text-sm text-neutral-300">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-accent-teal rounded-full"></span>
-                <span>15+ Years in Business</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-accent-teal rounded-full"></span>
-                <span>10,000+ Records</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-accent-teal rounded-full"></span>
-                <span>Free Local Delivery</span>
-              </div>
-            </div>
-            
-            <div className="mt-8 flex flex-col sm:flex-row gap-4">
-              <a className="btn text-lg px-8 py-4" href="/shop">Browse Vinyl Collection</a>
-              <a className="btn-secondary text-lg px-8 py-4" href="/events">View Upcoming Events</a>
-            </div>
-            
-            {/* New Arrivals CTA */}
-            <div className="mt-4">
-              <a className="btn-secondary text-base px-6 py-3" href="/shop/new-arrivals">
-                View New Arrivals
-              </a>
-            </div>
+
+        {/* Carousel Indicators - Only show if more than 1 image */}
+        {carouselItems.length > 1 && (
+          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
+            {carouselItems.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+              className={`w-3 h-3 rounded-full transition-all duration-500 ease-in-out ${
+                index === currentSlide 
+                  ? 'bg-accent-teal scale-125' 
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
           </div>
-          
-          {/* Hero Image - Now Smaller and Positioned */}
-          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden group">
-            <Image 
-              src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" 
-              alt="Vinyl records collection at Spiral Groove Records"
-              fill
-              className="object-cover transition-transform group-hover:scale-105"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-primary-black/20 to-transparent" />
-            
-            {/* Floating elements */}
-            <div className="absolute top-4 right-4 bg-accent-teal text-text-light px-3 py-1 rounded-full text-sm font-semibold">
-              New Arrivals
-            </div>
-            <div className="absolute bottom-4 left-4 bg-primary-black/80 text-text-light px-3 py-2 rounded-large">
-              <div className="text-xs text-neutral-300">Now Playing</div>
-              <div className="font-semibold">Miles Davis - Kind of Blue</div>
-            </div>
-          </div>
-        </div>
+        )}
+
+        {/* Navigation Arrows - Only show if more than 1 image */}
+        {carouselItems.length > 1 && (
+          <>
+            <button
+              onClick={() => setCurrentSlide((prev) => prev === 0 ? carouselItems.length - 1 : prev - 1)}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-primary-black/50 text-text-light p-3 rounded-full hover:bg-primary-black/75 transition-all duration-500 ease-in-out z-20"
+              aria-label="Previous slide"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setCurrentSlide((prev) => (prev + 1) % carouselItems.length)}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-primary-black/50 text-text-light p-3 rounded-full hover:bg-primary-black/75 transition-all duration-500 ease-in-out z-20"
+              aria-label="Next slide"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
       </div>
     </section>
   );

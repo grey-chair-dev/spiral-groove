@@ -2,7 +2,7 @@
 import { useStore } from "@/lib/store";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ShoppingCart, Eye, Heart } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export default function ProductCard({ p }: { p: any }) {
   const add = useStore((s) => s.addToCart);
@@ -70,17 +70,14 @@ export default function ProductCard({ p }: { p: any }) {
         <p className="font-bold text-sm text-black">${p.price.toFixed(2)}</p>
       </div>
       
-      {/* Action Buttons */}
-      <div className="flex justify-center gap-2">
+      {/* Add to Cart Button */}
+      <div className="flex justify-center">
         <button 
           className="w-8 h-8 border border-neutral-300 rounded flex items-center justify-center hover:bg-neutral-100 transition-colors text-black bg-white"
           onClick={() => mounted && add({ id: p.id, title: p.title, price: p.price, cover: p.cover })}
           disabled={!mounted || !p.inStock}
         >
-          <ShoppingCart size={14} className="text-black" />
-        </button>
-        <button className="w-8 h-8 border border-neutral-300 rounded flex items-center justify-center hover:bg-neutral-100 transition-colors">
-          <Heart size={14} className="text-black" />
+          <Plus size={14} className="text-black" />
         </button>
       </div>
     </div>
