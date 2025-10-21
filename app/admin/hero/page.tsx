@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import SquareIntegration from "@/components/SquareIntegration";
 
 export default function HeroAdminPage() {
   const [imageUrl, setImageUrl] = useState("/hero-collage.jpg");
@@ -22,7 +23,15 @@ export default function HeroAdminPage() {
     <div className="min-h-screen bg-neutral-100 py-12">
       <div className="container max-w-4xl">
         <div className="card p-8">
-          <h1 className="font-display font-bold text-3xl mb-6">Hero Collage Manager</h1>
+          <h1 className="font-display font-bold text-3xl mb-6">Admin Dashboard</h1>
+          
+          {/* Square Integration */}
+          <div className="mb-8">
+            <SquareIntegration />
+          </div>
+          
+          <div className="border-t border-neutral-200 pt-8">
+            <h2 className="font-display font-bold text-2xl mb-6">Hero Collage Manager</h2>
           
           {/* Instructions */}
           <div className="mb-8 p-6 bg-accent-teal/10 rounded-large">
