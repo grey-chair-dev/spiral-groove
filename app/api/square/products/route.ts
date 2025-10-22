@@ -5,8 +5,11 @@ export async function GET(request: NextRequest) {
   try {
     if (!isSquareConfigured()) {
       return NextResponse.json(
-        { error: 'Square API not configured' },
-        { status: 500 }
+        { 
+          products: [],
+          message: 'Square API not configured. Please add your Square credentials to .env.local'
+        },
+        { status: 200 }
       );
     }
 

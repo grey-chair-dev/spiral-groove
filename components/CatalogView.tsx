@@ -57,6 +57,11 @@ export default function CatalogView({
         }
         
         setProducts(fetchedProducts);
+        
+        // If no products and there's a message about Square not being configured
+        if (fetchedProducts.length === 0 && data.message) {
+          setError(data.message);
+        }
       } else {
         setError(data.error || 'Failed to fetch products');
       }
