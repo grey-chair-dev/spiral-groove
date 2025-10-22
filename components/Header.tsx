@@ -78,6 +78,7 @@ export default function Header() {
                   <div className="absolute top-full left-0 mt-2 w-48 bg-primary-cream border border-neutral-200 rounded-large shadow-modal opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="py-2">
                       <Link href="/shop" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">All Vinyl</Link>
+                      <Link href="/catalog" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Full Catalog</Link>
                       <Link href="/shop/new-arrivals" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">New Arrivals</Link>
                       <Link href="/shop?filter=used" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Used Records</Link>
                       <Link href="/shop?category=equipment" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Turntables & Equipment</Link>
