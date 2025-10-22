@@ -13,7 +13,7 @@ const squareConfig = {
 export const squareClient = new Client(squareConfig);
 
 // Export configuration for use in other files
-export const squareConfig as SquareConfig;
+export { squareConfig };
 
 // Types for Square integration
 export interface SquareConfig {
