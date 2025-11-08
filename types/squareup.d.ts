@@ -1,4 +1,8 @@
-declare module 'squareup' {
+// Type definitions for Square SDK
+// The official 'square' package should have its own types, but we provide minimal
+// type definitions here for the parts we use if needed
+
+declare module 'square' {
   export enum Environment {
     Sandbox = 'sandbox',
     Production = 'production'
@@ -8,13 +12,15 @@ declare module 'squareup' {
     constructor(config: {
       accessToken: string;
       environment: Environment;
-      applicationId: string;
-      locationId: string;
-      webhookSignatureKey: string;
+      applicationId?: string;
+      locationId?: string;
+      webhookSignatureKey?: string;
     });
     
     catalogApi: {
-      listCatalog(): Promise<{ result?: { objects?: any[] } }>;
+      listCatalog(cursor?: string, types?: string): Promise<{ result?: { objects?: any[]; cursor?: string } }>;
+      retrieveCatalogObject(objectId: string, includeRelatedObjects?: boolean): Promise<{ result?: { object?: any } }>;
+      searchCatalogObjects(request: any): Promise<{ result?: { objects?: any[] } }>;
     };
     
     ordersApi: {

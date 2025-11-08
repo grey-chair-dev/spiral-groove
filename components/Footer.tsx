@@ -1,5 +1,7 @@
+"use client";
 import { Facebook, Instagram } from "lucide-react";
 import BusinessHours from "./BusinessHours";
+import { trackNewsletterSignup } from "@/lib/analytics";
 
 export default function Footer() {
   return (
@@ -100,13 +102,24 @@ export default function Footer() {
                 <div>
                   <h3 className="font-semibold mb-2">Stay in the Groove</h3>
                   <p className="mb-4 text-neutral-600 text-sm">Get notified about new arrivals, exclusive events, and special offers. Join 2,500+ music lovers in our community.</p>
-                  <form className="flex flex-col sm:flex-row gap-3">
+                  <form 
+                    className="flex flex-col sm:flex-row gap-3"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      trackNewsletterSignup();
+                      // Form submission logic would go here
+                    }}
+                  >
                     <input 
                       className="flex-1 rounded-medium px-4 py-4 text-text-dark placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-accent-teal border border-neutral-300 text-base" 
                       placeholder="Enter your email address" 
                       type="email"
+                      required
                     />
-                    <button className="btn px-8 py-4 whitespace-nowrap text-base font-semibold">
+                    <button 
+                      type="submit"
+                      className="btn px-8 py-4 whitespace-nowrap text-base font-semibold"
+                    >
                       Subscribe
                     </button>
                   </form>
@@ -114,6 +127,22 @@ export default function Footer() {
                 <div className="text-center md:text-right">
                   <p>&copy; 2025 Spiral Groove Records. Milford, OH</p>
                 </div>
+              </div>
+            </div>
+            {/* Google Maps Embed */}
+            <div className="mt-8 pt-6 border-t border-neutral-200">
+              <h3 className="font-semibold mb-4">Find Us</h3>
+              <div className="w-full h-[300px] rounded-large overflow-hidden">
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3057.540352!2d-84.293!3d39.175!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMznCsDEwJzMwLjAiTiA4NMKwMTcnMzQuOCJX!5e0!3m2!1sen!2sus!4v1234567890123!5m2!1sen!2sus"
+                  width="100%"
+                  height="300"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Spiral Groove Records Location - 215B Main St, Milford, OH 45150"
+                />
               </div>
             </div>
           </div>

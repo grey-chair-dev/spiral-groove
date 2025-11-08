@@ -44,7 +44,11 @@ export default function Header() {
               placeholder="Search records, artists, genres" />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
           </div>
-          <button className="text-white p-2 relative" onClick={toggleCart}>
+          <button 
+            className="text-white p-2 relative" 
+            onClick={toggleCart}
+            aria-label={`Shopping cart${mounted && cartCount > 0 ? ` with ${cartCount} item${cartCount > 1 ? 's' : ''}` : ''}`}
+          >
             <ShoppingCart size={20} />
             {mounted && cartCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -52,7 +56,10 @@ export default function Header() {
               </span>
             )}
           </button>
-          <button className="text-white p-2 relative">
+          <button 
+            className="text-white p-2 relative"
+            aria-label="User account"
+          >
             <User size={20} />
           </button>
         </div>

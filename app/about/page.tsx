@@ -1,5 +1,14 @@
 import Image from "next/image";
 import BusinessHours from "@/components/BusinessHours";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About Us | Spiral Groove Records",
+  description: "Learn about Spiral Groove Records, Milford's premier vinyl shop. Our story, mission, team, and commitment to the music community in Clermont County, OH.",
+  alternates: {
+    canonical: "https://spiralgrooverecords.com/about",
+  },
+};
 
 export default function About() {
   return (
@@ -42,8 +51,8 @@ export default function About() {
           </div>
           <div className="relative">
             <Image 
-              src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-              alt="Spiral Groove Records Store Interior"
+              src="/images/placeholders/vinyl.jpg" 
+              alt="Spiral Groove Records Store Interior at Spiral Groove Records"
               width={600}
               height={400}
               className="rounded-large shadow-card"
@@ -204,8 +213,8 @@ export default function About() {
           
           <div className="relative">
             <Image 
-              src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-              alt="Store Exterior"
+              src="/images/placeholders/vinyl.jpg" 
+              alt="Store Exterior at Spiral Groove Records"
               width={600}
               height={400}
               className="rounded-large shadow-card"

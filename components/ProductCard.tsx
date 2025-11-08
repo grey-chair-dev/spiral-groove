@@ -3,35 +3,50 @@ import { useStore } from "@/lib/store";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Plus } from "lucide-react";
+import { getProductImage, getPlaceholderStyles, getPlaceholderAltText, type PlaceholderSection } from "@/lib/utils/placeholders";
+import { trackAddToCart } from "@/lib/analytics";
+import ProductSchema from "./ProductSchema";
 
-export default function ProductCard({ p }: { p: any }) {
+interface ProductCardProps {
+  p: any;
+  section?: PlaceholderSection;
+}
+
+export default function ProductCard({ p, section }: ProductCardProps) {
   const add = useStore((s) => s.addToCart);
   const [mounted, setMounted] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
   
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Generate placeholder image based on genre or use default
-  const getImageUrl = () => {
-    if (p.cover && p.cover !== '/covers/demo-1.jpg') return p.cover;
-    
-    const genre = p.genre?.toLowerCase() || 'vinyl';
-    const imageMap: { [key: string]: string } = {
-      'jazz': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-      'rock': 'https://images.unsplash.com/photo-1571330735066-03aaa9429d89?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-      'classical': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-      'blues': 'https://images.unsplash.com/photo-1571330735066-03aaa9429d89?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-      'soul': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-      'funk': 'https://images.unsplash.com/photo-1571330735066-03aaa9429d89?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    };
-    
-    return imageMap[genre] || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
+  // Get product image with consistent placeholder handling
+  const category = p.category || p.genre?.toLowerCase() || 'vinyl';
+  const productImage = getProductImage(p.cover, category, section);
+  const placeholderStyles = getPlaceholderStyles(section);
+
+  const handleAddToCart = () => {
+    if (mounted && p.inStock) {
+      add({ id: p.id, title: p.title, price: p.price, cover: p.cover });
+      trackAddToCart(p.title);
+    }
   };
 
   return (
     <div className="bg-white p-4 group">
+      {/* Product Schema */}
+      <ProductSchema
+        title={p.title}
+        artist={p.artist}
+        imageUrl={p.cover}
+        price={p.price}
+        productId={p.id}
+        slug={p.slug || p.id}
+        inStock={p.inStock}
+      />
       {/* Album Cover with Vinyl Record Overlap */}
       <div className="relative mb-12 flex justify-center">
         {/* Vinyl Record Background */}
@@ -48,13 +63,31 @@ export default function ProductCard({ p }: { p: any }) {
         
         {/* Album Cover */}
         <div className="relative z-10 w-28 h-28 shadow-xl transform -rotate-6">
+          {imageLoading && (
+            <div className="absolute inset-0 bg-neutral-200 animate-pulse rounded" />
+          )}
           <Image 
-            src={getImageUrl()}
-            alt={`${p.title} by ${p.artist}`}
+            src={productImage.src}
+            alt={productImage.isPlaceholder 
+              ? getPlaceholderAltText(category, p.title)
+              : `${p.title}${p.artist ? ` by ${p.artist}` : ''} at Spiral Groove Records`}
             width={112}
             height={112}
-            className="object-cover w-full h-full"
+            className={`object-cover w-full h-full transition-opacity duration-300 ${
+              imageLoading ? 'opacity-0' : 'opacity-100'
+            } ${productImage.isPlaceholder ? placeholderStyles : ''}`}
+            onLoad={() => setImageLoading(false)}
+            onError={() => {
+              setImageError(true);
+              setImageLoading(false);
+            }}
+            loading="lazy"
           />
+          {imageError && (
+            <div className="absolute inset-0 bg-neutral-200 flex items-center justify-center">
+              <span className="text-neutral-400 text-xs">No Image</span>
+            </div>
+          )}
         </div>
       </div>
       
@@ -74,8 +107,9 @@ export default function ProductCard({ p }: { p: any }) {
       <div className="flex justify-center">
         <button 
           className="w-8 h-8 border border-neutral-300 rounded flex items-center justify-center hover:bg-neutral-100 transition-colors text-black bg-white"
-          onClick={() => mounted && add({ id: p.id, title: p.title, price: p.price, cover: p.cover })}
+          onClick={handleAddToCart}
           disabled={!mounted || !p.inStock}
+          aria-label={`Add ${p.title}${p.artist ? ` by ${p.artist}` : ''} to cart`}
         >
           <Plus size={14} className="text-black" />
         </button>

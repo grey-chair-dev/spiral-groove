@@ -3,6 +3,7 @@ import { useStore } from "@/lib/store";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Plus, Minus, Trash2 } from "lucide-react";
+import { trackCheckoutDemo } from "@/lib/analytics";
 
 export default function CartDrawer() {
   const open = useStore((s) => s.cartOpen);
@@ -31,8 +32,8 @@ export default function CartDrawer() {
             <div key={i.id} className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg">
               <div className="size-16 rounded-lg overflow-hidden flex-shrink-0">
                 <Image
-                  src={i.cover || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'}
-                  alt={`${i.title} album cover`}
+                  src={i.cover || '/images/placeholders/vinyl.jpg'}
+                  alt={`${i.title} at Spiral Groove Records`}
                   width={64}
                   height={64}
                   className="object-cover w-full h-full"
@@ -49,6 +50,7 @@ export default function CartDrawer() {
                     onClick={() => updateQuantity(i.id, i.qty - 1)}
                     className="w-6 h-6 rounded-full border border-neutral-300 flex items-center justify-center hover:bg-neutral-200 transition-colors"
                     disabled={!mounted}
+                    aria-label={`Decrease quantity of ${i.title}`}
                   >
                     <Minus size={12} className="text-black" />
                   </button>
@@ -57,6 +59,7 @@ export default function CartDrawer() {
                     onClick={() => updateQuantity(i.id, i.qty + 1)}
                     className="w-6 h-6 rounded-full border border-neutral-300 flex items-center justify-center hover:bg-neutral-200 transition-colors"
                     disabled={!mounted}
+                    aria-label={`Increase quantity of ${i.title}`}
                   >
                     <Plus size={12} className="text-black" />
                   </button>
@@ -66,6 +69,7 @@ export default function CartDrawer() {
                   onClick={() => removeFromCart(i.id)}
                   className="w-6 h-6 rounded-full border border-red-300 flex items-center justify-center hover:bg-red-50 transition-colors"
                   disabled={!mounted}
+                  aria-label={`Remove ${i.title} from cart`}
                 >
                   <Trash2 size={12} className="text-red-600" />
                 </button>
@@ -81,7 +85,13 @@ export default function CartDrawer() {
             <span className="text-sm text-black">Subtotal</span>
             <span className="font-semibold text-black">${total.toFixed(2)}</span>
           </div>
-          <button className="btn w-full">Checkout (demo)</button>
+          <button 
+            className="btn w-full"
+            aria-label="Proceed to checkout (demo mode)"
+            onClick={() => trackCheckoutDemo()}
+          >
+            Checkout (demo)
+          </button>
         </div>
       </div>
     </aside>

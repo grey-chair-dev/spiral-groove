@@ -8,9 +8,9 @@ export default function CatalogPage() {
       <div className="container max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="font-display font-bold text-4xl mb-2">Product Catalog</h1>
-          <p className="text-neutral-600">
-            Browse our complete inventory from Square
+          <h1 className="font-display font-bold text-4xl md:text-5xl mb-2 text-text-dark">Product Catalog</h1>
+          <p className="text-lg text-neutral-600">
+            Browse our complete inventory of vinyl records and audio equipment
           </p>
         </div>
 

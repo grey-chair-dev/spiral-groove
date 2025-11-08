@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Search, Grid, List, Loader2 } from 'lucide-react';
+import ProductSchema from './ProductSchema';
 
 interface SquareProduct {
   id: string;
@@ -202,15 +203,27 @@ export default function CatalogView({
                 viewMode === 'list' ? 'flex' : ''
               }`}
             >
+              {/* Product Schema */}
+              <ProductSchema
+                title={product.name}
+                imageUrl={product.imageUrl}
+                price={product.price}
+                productId={product.id}
+                inStock={product.inStock}
+              />
               {/* Product Image */}
-              <div className={`relative ${viewMode === 'list' ? 'w-32 h-32 flex-shrink-0' : 'aspect-square'}`}>
+              <div className={`relative ${viewMode === 'list' ? 'w-32 h-32 flex-shrink-0' : 'aspect-square'} overflow-hidden`}>
                 {product.imageUrl ? (
-                  <Image
-                    src={product.imageUrl}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                  />
+                  <>
+                    <div className="absolute inset-0 bg-neutral-200 animate-pulse" />
+                    <Image
+                      src={product.imageUrl}
+                      alt={`${product.name} at Spiral Groove Records`}
+                      fill
+                      className="object-cover transition-opacity duration-300"
+                      loading="lazy"
+                    />
+                  </>
                 ) : (
                   <div className="w-full h-full bg-neutral-200 flex items-center justify-center">
                     <span className="text-neutral-400 text-sm">No Image</span>

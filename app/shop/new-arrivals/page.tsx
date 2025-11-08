@@ -1,8 +1,40 @@
 import ProductGrid from "@/components/ProductGrid";
+import DemoBanner from "@/components/DemoBanner";
+import BreadcrumbSchema from "@/components/BreadcrumbSchema";
+import type { Metadata } from "next";
+import { isSquareConfigured } from "@/lib/square";
+
+// Add noindex when using placeholder content (before Square is configured)
+export const metadata: Metadata = !isSquareConfigured() ? {
+  title: "New Arrivals | Spiral Groove Records",
+  description: "Fresh vinyl just added to our collection. Discover the latest releases and rare finds that just arrived at Spiral Groove Records.",
+  alternates: {
+    canonical: "https://spiralgrooverecords.com/shop/new-arrivals",
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
+} : {
+  title: "New Arrivals | Spiral Groove Records",
+  description: "Fresh vinyl just added to our collection. Discover the latest releases and rare finds that just arrived at Spiral Groove Records.",
+  alternates: {
+    canonical: "https://spiralgrooverecords.com/shop/new-arrivals",
+  },
+};
 
 export default function NewArrivals() {
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <BreadcrumbSchema
+        items={[
+          { name: "Home", item: "https://spiralgrooverecords.com" },
+          { name: "Shop", item: "https://spiralgrooverecords.com/shop" },
+          { name: "New Arrivals", item: "https://spiralgrooverecords.com/shop/new-arrivals" },
+        ]}
+      />
+      <DemoBanner />
+      <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="section bg-gradient-to-b from-neutral-50 to-white">
         <div className="text-center max-w-3xl mx-auto">
@@ -26,8 +58,9 @@ export default function NewArrivals() {
           </p>
         </div>
         
-        <ProductGrid />
+        <ProductGrid section="new-arrivals" />
       </section>
     </div>
+    </>
   );
 }

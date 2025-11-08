@@ -61,8 +61,8 @@ async function syncProducts() {
 
     if (response.result?.objects) {
       const products = response.result.objects
-        .filter(item => item.type === 'ITEM')
-        .map(item => ({
+        .filter((item: any) => item.type === 'ITEM')
+        .map((item: any) => ({
           id: item.id,
           name: item.itemData?.name || 'Unknown Product',
           description: item.itemData?.description,
@@ -103,7 +103,7 @@ async function syncOrders() {
     });
 
     if (response.result?.orders) {
-      const orders = response.result.orders.map(order => ({
+      const orders = response.result.orders.map((order: any) => ({
         id: order.id,
         lineItems: order.lineItems,
         total: order.totalMoney,
@@ -134,7 +134,7 @@ async function syncInventory() {
     });
 
     if (response.result?.counts) {
-      const inventory = response.result.counts.map(count => ({
+      const inventory = response.result.counts.map((count: any) => ({
         catalogObjectId: count.catalogObjectId,
         quantity: count.quantity,
         state: count.state,

@@ -1,4 +1,13 @@
 import Image from "next/image";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Past Shows | Spiral Groove Records",
+  description: "Browse past performances and events at Spiral Groove Records. See the amazing artists who've graced our stage in Milford, OH.",
+  alternates: {
+    canonical: "https://spiralgrooverecords.com/events/past",
+  },
+};
 
 // Mock data for past shows
 const pastShows = [

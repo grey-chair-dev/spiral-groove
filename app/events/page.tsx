@@ -1,9 +1,36 @@
+"use client";
 import Image from "next/image";
 import Link from "next/link";
+import EventSchema from "@/components/EventSchema";
+import BreadcrumbSchema from "@/components/BreadcrumbSchema";
+import { trackGetTickets } from "@/lib/analytics";
 
 export default function Events() {
   return (
     <div className="min-h-screen bg-white">
+      <BreadcrumbSchema
+        items={[
+          { name: "Home", item: "https://spiralgrooverecords.com" },
+          { name: "Events", item: "https://spiralgrooverecords.com/events" },
+        ]}
+      />
+      {/* Event Schema for Live Jazz Night */}
+      <EventSchema
+        eventTitle="Live Jazz Night"
+        eventDate="2025-03-15T19:00:00-05:00"
+        eventImage="https://spiralgrooverecords.com/images/placeholders/vinyl.jpg"
+        eventDescription="Intimate jazz performance featuring local artists in our basement venue"
+        performerName="Local Jazz Artists"
+        slug="jazz-night"
+      />
+      {/* Event Schema for Record Fair */}
+      <EventSchema
+        eventTitle="Record Fair"
+        eventDate="2025-04-05T10:00:00-05:00"
+        eventImage="https://spiralgrooverecords.com/images/placeholders/vinyl.jpg"
+        eventDescription="Monthly vinyl trading events with collectors, dealers, and music lovers"
+        slug="record-fair"
+      />
       {/* Hero Section */}
       <section className="section bg-gradient-to-b from-neutral-50 to-white">
         <div className="text-center max-w-4xl mx-auto">
@@ -32,7 +59,7 @@ export default function Events() {
             Upcoming Shows
           </h2>
           <p className="text-neutral-600">
-            Don't miss these exciting performances in our intimate basement venue
+            Don't miss these exciting performances in our intimate basement venue. <Link href="/shop" className="text-accent-teal hover:underline">Shop vinyl from featured artists</Link> or <Link href="/events/book" className="text-accent-teal hover:underline">book the space for your event</Link>.
           </p>
         </div>
         
@@ -40,8 +67,8 @@ export default function Events() {
           <div className="card overflow-hidden group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
             <div className="aspect-video relative">
               <Image 
-                src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
-                alt="Live Jazz Night"
+                src="/images/placeholders/vinyl.jpg" 
+                alt="Live Jazz Night event at Spiral Groove Records"
                 fill
                 className="object-cover"
               />
@@ -57,8 +84,14 @@ export default function Events() {
               <p className="text-sm text-neutral-600 mb-3">March 15, 2025 • 7:00 PM</p>
               <p className="text-sm text-neutral-600 mb-4">Intimate jazz performance featuring local artists in our basement venue</p>
               <div className="flex gap-2">
-                <button className="btn flex-1">Get Tickets</button>
-                <button className="btn-secondary">Learn More</button>
+                <button 
+                  className="btn flex-1" 
+                  aria-label="Get tickets for Live Jazz Night"
+                  onClick={() => trackGetTickets("Live Jazz Night")}
+                >
+                  Get Tickets
+                </button>
+                <button className="btn-secondary" aria-label="Learn more about Live Jazz Night">Learn More</button>
               </div>
             </div>
           </div>
@@ -66,8 +99,8 @@ export default function Events() {
           <div className="card overflow-hidden group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
             <div className="aspect-video relative">
               <Image 
-                src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
-                alt="Record Fair"
+                src="/images/placeholders/vinyl.jpg" 
+                alt="Record Fair event at Spiral Groove Records"
                 fill
                 className="object-cover"
               />
@@ -80,8 +113,8 @@ export default function Events() {
               <p className="text-sm text-neutral-600 mb-3">First Saturday of every month</p>
               <p className="text-sm text-neutral-600 mb-4">Monthly vinyl trading events with collectors, dealers, and music lovers</p>
               <div className="flex gap-2">
-                <button className="btn flex-1">Learn More</button>
-                <button className="btn-secondary">Vendor Info</button>
+                <button className="btn flex-1" aria-label="Learn more about Record Fair">Learn More</button>
+                <button className="btn-secondary" aria-label="Vendor information for Record Fair">Vendor Info</button>
               </div>
             </div>
           </div>
@@ -89,8 +122,8 @@ export default function Events() {
           <div className="card overflow-hidden group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
             <div className="aspect-video relative">
               <Image 
-                src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
-                alt="Acoustic Sessions"
+                src="/images/placeholders/vinyl.jpg" 
+                alt="Acoustic Sessions event at Spiral Groove Records"
                 fill
                 className="object-cover"
               />
@@ -103,8 +136,8 @@ export default function Events() {
               <p className="text-sm text-neutral-600 mb-3">Every Wednesday • 6:00 PM</p>
               <p className="text-sm text-neutral-600 mb-4">Open mic and acoustic performances in our cozy basement space</p>
               <div className="flex gap-2">
-                <button className="btn flex-1">Sign Up</button>
-                <button className="btn-secondary">Listen</button>
+                <button className="btn flex-1" aria-label="Sign up for Acoustic Sessions">Sign Up</button>
+                <button className="btn-secondary" aria-label="Listen to Acoustic Sessions">Listen</button>
               </div>
             </div>
           </div>
@@ -146,8 +179,8 @@ export default function Events() {
           </div>
           <div className="relative">
             <Image 
-              src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-              alt="Event Space Interior"
+              src="/images/placeholders/vinyl.jpg" 
+              alt="Event Space Interior at Spiral Groove Records"
               width={600}
               height={400}
               className="rounded-large shadow-card"
@@ -172,8 +205,8 @@ export default function Events() {
           <div className="card overflow-hidden group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
             <div className="aspect-video relative">
               <Image 
-                src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
-                alt="Blues Night"
+                src="/images/placeholders/vinyl.jpg" 
+                alt="Blues Night event at Spiral Groove Records"
                 fill
                 className="object-cover"
               />
@@ -191,8 +224,8 @@ export default function Events() {
           <div className="card overflow-hidden group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
             <div className="aspect-video relative">
               <Image 
-                src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
-                alt="Folk Session"
+                src="/images/placeholders/vinyl.jpg" 
+                alt="Folk Session event at Spiral Groove Records"
                 fill
                 className="object-cover"
               />
@@ -210,8 +243,8 @@ export default function Events() {
           <div className="card overflow-hidden group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
             <div className="aspect-video relative">
               <Image 
-                src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
-                alt="Vinyl Listening Party"
+                src="/images/placeholders/vinyl.jpg" 
+                alt="Vinyl Listening Party event at Spiral Groove Records"
                 fill
                 className="object-cover"
               />

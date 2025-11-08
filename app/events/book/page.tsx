@@ -255,15 +255,15 @@ export default function BookEvent() {
               <h3 className="font-semibold text-lg text-text-dark mb-4">Venue Photos</h3>
               <div className="grid grid-cols-2 gap-4">
                 <Image 
-                  src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" 
-                  alt="Event Space Interior"
+                  src="/images/placeholders/vinyl.jpg" 
+                  alt="Event Space Interior at Spiral Groove Records"
                   width={200}
                   height={150}
                   className="rounded-medium shadow-card"
                 />
                 <Image 
-                  src="https://images.unsplash.com/photo-1571330735066-03aaa9429d89?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" 
-                  alt="Stage Area"
+                  src="/images/placeholders/vinyl.jpg" 
+                  alt="Stage Area at Spiral Groove Records"
                   width={200}
                   height={150}
                   className="rounded-medium shadow-card"

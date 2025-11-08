@@ -60,8 +60,8 @@ export default function AudioPlayer() {
         {/* Album Artwork */}
         <div className="w-24 h-24 rounded-large overflow-hidden flex-shrink-0 relative">
           <Image 
-            src={track.artwork || "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"} 
-            alt={`${track.title} album cover`}
+            src={track.artwork || "/images/placeholders/vinyl.jpg"} 
+            alt={`${track.title} by ${track.artist} at Spiral Groove Records`}
             fill
             className="object-cover"
           />
@@ -88,7 +88,10 @@ export default function AudioPlayer() {
                 <ShoppingCart size={16} className="mr-2" />
                 Add to Cart
               </button>
-              <button className="p-2 text-white hover:text-accent-teal transition-colors">
+              <button 
+                className="p-2 text-white hover:text-accent-teal transition-colors"
+                aria-label="Add to favorites"
+              >
                 <Heart size={20} />
               </button>
             </div>
@@ -99,6 +102,7 @@ export default function AudioPlayer() {
             <button 
               className="btn bg-accent-teal hover:bg-accent-amber text-text-light p-3 rounded-full" 
               onClick={toggle}
+              aria-label={playing ? "Pause track" : "Play track"}
             >
               {playing ? <Pause size={20} /> : <Play size={20} />}
             </button>
@@ -118,7 +122,10 @@ export default function AudioPlayer() {
               <span>{formatTime(duration)}</span>
             </div>
             
-            <button className="p-2 text-white hover:text-accent-teal transition-colors">
+            <button 
+              className="p-2 text-white hover:text-accent-teal transition-colors"
+              aria-label="Adjust volume"
+            >
               <Volume2 size={18} />
             </button>
           </div>

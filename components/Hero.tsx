@@ -16,17 +16,17 @@ export default function Hero() {
   const carouselItems = [
     {
       src: '/carousel/new.png',
-      alt: 'New arrivals collection',
+      alt: 'New arrivals collection at Spiral Groove Records',
       link: '/shop/new-arrivals'
     },
     {
       src: '/carousel/events.png',
-      alt: 'Upcoming events and live music',
+      alt: 'Upcoming events and live music at Spiral Groove Records',
       link: '/events'
     },
     {
       src: '/carousel/community.png',
-      alt: 'Community events and gatherings',
+      alt: 'Community events and gatherings at Spiral Groove Records',
       link: '/community'
     }
   ];
