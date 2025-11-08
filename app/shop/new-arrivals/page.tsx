@@ -34,7 +34,7 @@ export default function NewArrivals() {
         ]}
       />
       <DemoBanner />
-      <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="section bg-gradient-to-b from-neutral-50 to-white">
         <div className="text-center max-w-3xl mx-auto">

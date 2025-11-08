@@ -8,19 +8,30 @@ const config: Config = {
   theme: {
     extend: {
           colors: {
-            'primary-black': '#111111',
-            'primary-cream': '#FFFFFF',
-            'accent-teal': '#63dbdf',
-            'accent-amber': '#bd132b',
-            'highlight-red': '#bd132b',
-            'text-dark': '#111111',
-            'text-light': '#FFFFFF',
-            'neutral-gray': '#7A7A7A'
+            'primary-black': '#1a1a1a',
+            'primary-cream': '#FFF8E7',
+            'accent-orange': '#FF6B35',
+            'accent-yellow': '#FFD23F',
+            'accent-pink': '#FF6B9D',
+            'accent-purple': '#9B59B6',
+            'accent-teal': '#00CED1',
+            'highlight-orange': '#FF6B35',
+            'highlight-pink': '#FF6B9D',
+            'text-dark': '#1a1a1a',
+            'text-light': '#FFF8E7',
+            'neutral-gray': '#8B7D6B',
           },
+      backgroundImage: {
+        'groovy-sunset': 'linear-gradient(135deg, #FF6B35 0%, #FF6B9D 50%, #9B59B6 100%)',
+        'groovy-rainbow': 'linear-gradient(90deg, #FF6B35 0%, #FFD23F 25%, #00CED1 50%, #FF6B9D 75%, #9B59B6 100%)',
+        'groovy-waves': 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,107,53,0.1) 10px, rgba(255,107,53,0.1) 20px)',
+      },
       fontFamily: {
         'display': ['var(--font-display)', 'serif'],
         'body': ['var(--font-body)', 'sans-serif'],
-        'accent': ['var(--font-accent)', 'sans-serif']
+        'accent': ['var(--font-accent)', 'sans-serif'],
+        'groovy': ['var(--font-groovy)', 'cursive'],
+        'groovy-body': ['var(--font-groovy-body)', 'sans-serif']
       },
       spacing: {
         'xxs': '4px',

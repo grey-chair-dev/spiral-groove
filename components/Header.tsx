@@ -19,11 +19,11 @@ export default function Header() {
   const cartCount = mounted ? cartItems.reduce((sum, item) => sum + item.qty, 0) : 0;
   
   return (
-    <header className="sticky top-0 z-50 bg-primary-black text-text-light">
-      {/* We Buy Records Banner */}
-      <div className="bg-accent-teal text-text-dark text-center py-1 text-xs font-medium">
-        <Link href="/contact/buy-records" className="hover:text-accent-amber transition-colors">
-          We Buy Records - Get Cash for Your Vinyl Collection
+    <header className="sticky top-0 z-50 bg-primary-black text-text-light border-b-4 border-accent-orange">
+      {/* We Buy Records Banner - Groovy Style */}
+      <div className="bg-groovy-rainbow text-text-light text-center py-1.5 text-xs font-groovy-body font-bold uppercase tracking-wide">
+        <Link href="/contact/buy-records" className="hover:opacity-80 transition-opacity">
+          ✨ We Buy Records - Get Cash for Your Vinyl Collection ✨
         </Link>
       </div>
       
@@ -76,7 +76,7 @@ export default function Header() {
             <nav className="flex items-center gap-6 text-sm max-w-4xl">
                 {/* SHOP - Dropdown */}
                 <div className="relative group">
-                  <Link href="/shop" className="text-text-dark hover:text-accent-amber font-accent font-bold uppercase transition-150 flex items-center gap-1">
+                  <Link href="/shop" className="text-text-dark hover:text-accent-orange font-groovy-body font-bold uppercase transition-300 flex items-center gap-1">
                     Shop
                     <svg className="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -84,19 +84,19 @@ export default function Header() {
                   </Link>
                   <div className="absolute top-full left-0 mt-2 w-48 bg-primary-cream border border-neutral-200 rounded-large shadow-modal opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="py-2">
-                      <Link href="/shop" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">All Vinyl</Link>
-                      <Link href="/catalog" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Full Catalog</Link>
-                      <Link href="/shop/new-arrivals" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">New Arrivals</Link>
-                      <Link href="/shop?filter=used" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Used Records</Link>
-                      <Link href="/shop?category=equipment" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Turntables & Equipment</Link>
-                      <Link href="/shop?category=crafts" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Vinyl Crafts</Link>
+                      <Link href="/shop" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">All Vinyl</Link>
+                      <Link href="/catalog" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Full Catalog</Link>
+                      <Link href="/shop/new-arrivals" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">New Arrivals</Link>
+                      <Link href="/shop?filter=used" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Used Records</Link>
+                      <Link href="/shop?category=equipment" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Turntables & Equipment</Link>
+                      <Link href="/shop?category=crafts" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Vinyl Crafts</Link>
                     </div>
                   </div>
                 </div>
                 
                 {/* EVENTS - Dropdown */}
                 <div className="relative group">
-                  <Link href="/events" className="text-text-dark hover:text-accent-amber font-accent font-bold uppercase transition-150 flex items-center gap-1">
+                  <Link href="/events" className="text-text-dark hover:text-accent-orange font-groovy-body font-bold uppercase transition-300 flex items-center gap-1">
                     Events
                     <svg className="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -104,16 +104,16 @@ export default function Header() {
                   </Link>
                   <div className="absolute top-full left-0 mt-2 w-48 bg-primary-cream border border-neutral-200 rounded-large shadow-modal opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="py-2">
-                      <Link href="/events" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Upcoming Shows</Link>
-                      <Link href="/events/book" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Book the Space</Link>
-                      <Link href="/events/past" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Past Performances</Link>
+                      <Link href="/events" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Upcoming Shows</Link>
+                      <Link href="/events/book" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Book the Space</Link>
+                      <Link href="/events/past" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Past Performances</Link>
                     </div>
                   </div>
                 </div>
                 
                 {/* COMMUNITY - Dropdown */}
                 <div className="relative group">
-                  <Link href="/community/staff-picks" className="text-text-dark hover:text-accent-amber font-accent font-bold uppercase transition-150 flex items-center gap-1">
+                  <Link href="/community/staff-picks" className="text-text-dark hover:text-accent-orange font-groovy-body font-bold uppercase transition-300 flex items-center gap-1">
                     Community
                     <svg className="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -121,21 +121,21 @@ export default function Header() {
                   </Link>
                   <div className="absolute top-full left-0 mt-2 w-48 bg-primary-cream border border-neutral-200 rounded-large shadow-modal opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="py-2">
-                      <Link href="/community/staff-picks" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Staff Picks</Link>
-                      <Link href="/community/record-of-month" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Record of the Month</Link>
-                      <Link href="/blog" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Blog / News</Link>
-                      <Link href="/community/partnerships" className="block px-4 py-2 text-sm text-text-dark hover:bg-accent-teal hover:text-text-light transition-150">Partnerships</Link>
+                      <Link href="/community/staff-picks" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Staff Picks</Link>
+                      <Link href="/community/record-of-month" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Record of the Month</Link>
+                      <Link href="/blog" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Blog / News</Link>
+                      <Link href="/community/partnerships" className="block px-4 py-2 text-sm text-text-dark hover:bg-groovy-rainbow hover:text-text-light transition-150">Partnerships</Link>
                     </div>
                   </div>
                 </div>
                 
                 {/* ABOUT - Simple Link */}
-                <Link href="/about" className="text-text-dark hover:text-accent-amber font-accent font-bold uppercase transition-150">
+                <Link href="/about" className="text-text-dark hover:text-accent-orange font-groovy-body font-bold uppercase transition-300">
                   About
                 </Link>
                 
                     {/* CONTACT - Simple Link */}
-                    <Link href="/contact" className="text-text-dark hover:text-accent-amber font-accent font-bold uppercase transition-150">
+                    <Link href="/contact" className="text-text-dark hover:text-accent-orange font-groovy-body font-bold uppercase transition-300">
                       Contact
                     </Link>
             </nav>

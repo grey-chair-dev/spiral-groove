@@ -7,6 +7,7 @@ import Image from "next/image";
 import Script from "next/script";
 import type { Metadata } from "next";
 import DemoBanner from "@/components/DemoBanner";
+import { GroovyDivider } from "@/components/GroovyDecorations";
 
 export const metadata: Metadata = {
   title: "Spiral Groove Records | Milford, OH Vinyl Shop",
@@ -55,29 +56,29 @@ export default function Home() {
       {/* Hidden h1 for SEO - main content is in Hero */}
       <h1 className="sr-only">Spiral Groove Records - Milford's Local Vinyl Shop</h1>
       
-      {/* Section Divider */}
-      <div className="border-t border-neutral-200"></div>
+      {/* Groovy Section Divider */}
+      <GroovyDivider />
       
       {/* New Arrivals Section */}
       <section className="section">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h2 className="font-display font-semibold text-[36px] md:text-[36px] text-[28px] leading-[130%] text-text-dark">New Arrivals</h2>
-            <p className="text-neutral-600 mt-2">Fresh vinyl just added to our collection. <a href="/shop/new-arrivals" className="text-accent-teal hover:underline">Browse all new arrivals</a> or <a href="/shop" className="text-accent-teal hover:underline">shop by category</a>.</p>
+            <h2 className="groovy-text text-[36px] md:text-[36px] text-[28px] leading-[130%]">New Arrivals</h2>
+            <p className="text-neutral-600 mt-2">Fresh vinyl just added to our collection. <a href="/shop/new-arrivals" className="text-accent-orange hover:underline">Browse all new arrivals</a> or <a href="/shop" className="text-accent-orange hover:underline">shop by category</a>.</p>
           </div>
           <a className="link" href="/shop/new-arrivals">View all</a>
         </div>
         <ProductGrid limit={6} section="new-arrivals" />
       </section>
 
-      {/* Section Divider */}
-      <div className="border-t border-neutral-200"></div>
+      {/* Groovy Section Divider */}
+      <GroovyDivider />
       
       {/* Featured Products Section */}
       <section className="section bg-white">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h2 className="font-display font-semibold text-[36px] md:text-[36px] text-[28px] leading-[130%] text-text-dark">Staff Picks</h2>
+            <h2 className="groovy-text text-[36px] md:text-[36px] text-[28px] leading-[130%]">Staff Picks</h2>
             <p className="text-neutral-600 mt-2">Hand-picked favorites from our team</p>
           </div>
           <a className="link" href="/shop">View all</a>
@@ -85,14 +86,14 @@ export default function Home() {
         <ProductGrid limit={4} section="staff-picks" />
       </section>
 
-      {/* Section Divider */}
-      <div className="border-t border-neutral-200"></div>
+      {/* Groovy Section Divider */}
+      <GroovyDivider />
 
       {/* New & Used Vinyl Section */}
       <section className="section">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h2 className="font-display font-semibold text-[36px] md:text-[36px] text-[28px] leading-[130%] text-text-dark">New & Used Vinyl</h2>
+            <h2 className="groovy-text text-[36px] md:text-[36px] text-[28px] leading-[130%]">New & Used Vinyl</h2>
             <p className="text-neutral-600 mt-2">Discover your next favorite record</p>
           </div>
           <a className="link" href="/shop">View all</a>
@@ -100,14 +101,14 @@ export default function Home() {
         <ProductGrid limit={8} section="vinyl" />
       </section>
 
-      {/* Section Divider */}
-      <div className="border-t border-neutral-200"></div>
+      {/* Groovy Section Divider */}
+      <GroovyDivider />
 
       {/* Audio Equipment Section */}
       <section className="section bg-white">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h2 className="font-display font-semibold text-[36px] md:text-[36px] text-[28px] leading-[130%] text-text-dark">Audio Equipment & Accessories</h2>
+            <h2 className="groovy-text text-[36px] md:text-[36px] text-[28px] leading-[130%]">Audio Equipment & Accessories</h2>
             <p className="text-neutral-600 mt-2">Everything you need for the perfect listening experience</p>
           </div>
           <a className="link" href="/shop?category=equipment">View all</a>
@@ -122,7 +123,7 @@ export default function Home() {
                 className="object-cover transition-transform group-hover:scale-110"
               />
               <div className="absolute top-4 left-4">
-                <span className="badge bg-accent-teal text-text-light">From $199</span>
+                <span className="badge bg-accent-orange text-text-light font-groovy-body font-bold">From $199</span>
               </div>
             </div>
             <div className="p-6">
@@ -141,7 +142,7 @@ export default function Home() {
                 className="object-cover transition-transform group-hover:scale-110"
               />
               <div className="absolute top-4 left-4">
-                <span className="badge bg-accent-amber text-text-dark">From $299</span>
+                <span className="badge bg-accent-yellow text-text-dark font-groovy-body font-bold">From $299</span>
               </div>
             </div>
             <div className="p-6">
@@ -160,7 +161,7 @@ export default function Home() {
                 className="object-cover transition-transform group-hover:scale-110"
               />
               <div className="absolute top-4 left-4">
-                <span className="badge bg-highlight-red text-text-light">From $15</span>
+                <span className="badge bg-accent-pink text-text-light font-groovy-body font-bold">From $15</span>
               </div>
             </div>
             <div className="p-6">
@@ -172,15 +173,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section Divider */}
-      <div className="border-t border-neutral-200"></div>
+      {/* Groovy Section Divider */}
+      <GroovyDivider />
 
       {/* Events Section */}
       <section className="section">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h2 className="font-display font-semibold text-[36px] md:text-[36px] text-[28px] leading-[130%] text-text-dark">Events & Community</h2>
-            <p className="text-neutral-600 mt-2">Join our vibrant music community. <a href="/events" className="text-accent-teal hover:underline">View upcoming events</a> or <a href="/events/book" className="text-accent-teal hover:underline">book our event space</a>.</p>
+            <h2 className="groovy-text text-[36px] md:text-[36px] text-[28px] leading-[130%]">Events & Community</h2>
+            <p className="text-neutral-600 mt-2">Join our vibrant music community. <a href="/events" className="text-accent-orange hover:underline">View upcoming events</a> or <a href="/events/book" className="text-accent-orange hover:underline">book our event space</a>.</p>
           </div>
           <a className="link" href="/events">View all</a>
         </div>
@@ -191,7 +192,7 @@ export default function Home() {
             title="Live Jazz Night"
             date="March 15, 2025 • Intimate basement venue"
             description="Intimate shows in our basement event space featuring local and touring artists"
-            badge={{ text: "This Saturday", className: "bg-highlight-red text-text-light" }}
+            badge={{ text: "This Saturday", className: "bg-accent-orange text-text-light font-groovy-body font-bold" }}
             timeBadge="7:00 PM"
             href="/events"
             eventTitle="Live Jazz Night"
@@ -206,7 +207,7 @@ export default function Home() {
                 className="object-cover"
               />
               <div className="absolute top-4 left-4">
-                <span className="badge bg-accent-amber text-text-dark">Monthly</span>
+                <span className="badge bg-accent-yellow text-text-dark font-groovy-body font-bold">Monthly</span>
               </div>
             </div>
             <div className="p-6">
@@ -226,7 +227,7 @@ export default function Home() {
                 className="object-cover"
               />
               <div className="absolute top-4 left-4">
-                <span className="badge bg-accent-teal text-text-light">Handmade</span>
+                <span className="badge bg-accent-purple text-text-light font-groovy-body font-bold">Handmade</span>
               </div>
             </div>
             <div className="p-6">

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Inter, Poppins } from "next/font/google";
+import { Playfair_Display, Inter, Poppins, Righteous, Fredoka } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
@@ -22,6 +22,21 @@ const poppins = Poppins({
   subsets: ["latin"],
   variable: "--font-accent",
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+// Groovy retro fonts
+const righteous = Righteous({
+  subsets: ["latin"],
+  variable: "--font-groovy",
+  weight: ["400"],
+  display: "swap",
+});
+
+const fredoka = Fredoka({
+  subsets: ["latin"],
+  variable: "--font-groovy-body",
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -115,7 +130,7 @@ const breadcrumbSchema = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${playfairDisplay.variable} ${inter.variable} ${poppins.variable}`}>
+      <body className={`${playfairDisplay.variable} ${inter.variable} ${poppins.variable} ${righteous.variable} ${fredoka.variable}`}>
         {/* LocalBusiness Schema */}
         <script
           type="application/ld+json"

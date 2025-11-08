@@ -42,7 +42,7 @@ export default function EventCard({
         )}
         {timeBadge && (
           <div className="absolute bottom-4 right-4">
-            <span className="badge bg-accent-teal text-text-light">{timeBadge}</span>
+            <span className="badge bg-accent-yellow text-text-dark font-groovy-body font-bold">{timeBadge}</span>
           </div>
         )}
       </div>

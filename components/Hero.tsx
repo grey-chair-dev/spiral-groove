@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { GroovyDaisy, PeaceSign } from "./GroovyDecorations";
 
 export default function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -57,25 +58,33 @@ export default function Hero() {
   return (
     <section className="section">
       <div className="relative overflow-hidden min-h-[600px] rounded-none">
+        {/* Groovy Background Gradient Overlay */}
+        <div className="absolute inset-0 bg-groovy-rainbow opacity-90 z-10" />
+        
         {/* Carousel Background */}
-        <Link href={currentItem.link} className="absolute inset-0 block">
+        <Link href={currentItem.link} className="absolute inset-0 block z-0">
           <Image
             src={currentItem.src}
             alt={currentItem.alt}
             fill
-            className="object-cover transition-all duration-1000 ease-in-out"
+            className="object-cover transition-all duration-1000 ease-in-out mix-blend-overlay"
             priority={currentSlide === 0}
             sizes="100vw"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
-              const parent = target.parentElement;
-              if (parent) {
-                parent.style.background = 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)';
-              }
             }}
           />
         </Link>
+        
+        {/* Groovy Decorative Elements */}
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+          <div className="flex items-center gap-8 opacity-30">
+            <GroovyDaisy size={80} />
+            <PeaceSign size={60} />
+            <GroovyDaisy size={80} />
+          </div>
+        </div>
         
         
 
@@ -88,8 +97,8 @@ export default function Hero() {
                 onClick={() => setCurrentSlide(index)}
               className={`w-3 h-3 rounded-full transition-all duration-500 ease-in-out ${
                 index === currentSlide 
-                  ? 'bg-accent-teal scale-125' 
-                  : 'bg-white/50 hover:bg-white/75'
+                  ? 'bg-accent-yellow scale-125 shadow-lg' 
+                  : 'bg-white/50 hover:bg-accent-pink/75'
               }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
