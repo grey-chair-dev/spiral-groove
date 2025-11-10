@@ -34,7 +34,7 @@ export default function EventSchema({
         "addressCountry": "US"
       }
     },
-    "image": eventImage || "https://spiralgrooverecords.com/images/placeholders/vinyl.jpg",
+    "image": eventImage || "https://spiralgrooverecords.com/images/placeholders/albums/nas-illmatic.jpg",
     "description": eventDescription || `${eventTitle} at Spiral Groove Records in Milford, OH.`,
     "performer": performerName ? {
       "@type": "MusicGroup",

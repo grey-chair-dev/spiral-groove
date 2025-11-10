@@ -60,7 +60,7 @@ export default function AudioPlayer() {
         {/* Album Artwork */}
         <div className="w-24 h-24 rounded-large overflow-hidden flex-shrink-0 relative">
           <Image 
-            src={track.artwork || "/images/placeholders/vinyl.jpg"} 
+            src={track.artwork || "/images/placeholders/albums/nas-illmatic.jpg"} 
             alt={`${track.title} by ${track.artist} at Spiral Groove Records`}
             fill
             className="object-cover"

@@ -216,13 +216,13 @@ export default function CatalogView({
                 {product.imageUrl ? (
                   <>
                     <div className="absolute inset-0 bg-neutral-200 animate-pulse" />
-                    <Image
-                      src={product.imageUrl}
+                  <Image
+                    src={product.imageUrl}
                       alt={`${product.name} at Spiral Groove Records`}
-                      fill
+                    fill
                       className="object-cover transition-opacity duration-300"
                       loading="lazy"
-                    />
+                  />
                   </>
                 ) : (
                   <div className="w-full h-full bg-neutral-200 flex items-center justify-center">

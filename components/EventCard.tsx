@@ -27,7 +27,7 @@ export default function EventCard({
   eventTitle,
 }: EventCardProps) {
   return (
-    <div className="card overflow-hidden group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
+    <div className="bg-white rounded-lg overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
       <div className="aspect-video relative">
         <Image 
           src={image}
@@ -42,17 +42,17 @@ export default function EventCard({
         )}
         {timeBadge && (
           <div className="absolute bottom-4 right-4">
-            <span className="badge bg-accent-yellow text-text-dark font-groovy-body font-bold">{timeBadge}</span>
+            <span className="badge bg-teal text-white">{timeBadge}</span>
           </div>
         )}
       </div>
       <div className="p-6">
-        <h3 className="font-display font-semibold text-lg mb-1">{title}</h3>
+        <h3 className="font-display font-semibold text-lg mb-1 text-contrast-navy">{title}</h3>
         <p className="text-sm text-neutral-600 mb-3">{date}</p>
         <p className="text-sm text-neutral-600 mb-4">{description}</p>
         <Link 
           href={href}
-          className="btn w-full text-center"
+          className="btn-primary w-full text-center"
           onClick={() => trackGetTickets(eventTitle)}
         >
           Get Tickets

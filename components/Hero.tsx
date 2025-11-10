@@ -1,134 +1,62 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { GroovyDaisy, PeaceSign } from "./GroovyDecorations";
+import Image from "next/image";
 
 export default function Hero() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Dynamic carousel items from /carousel/ directory
-  const carouselItems = [
-    {
-      src: '/carousel/new.png',
-      alt: 'New arrivals collection at Spiral Groove Records',
-      link: '/shop/new-arrivals'
-    },
-    {
-      src: '/carousel/events.png',
-      alt: 'Upcoming events and live music at Spiral Groove Records',
-      link: '/events'
-    },
-    {
-      src: '/carousel/community.png',
-      alt: 'Community events and gatherings at Spiral Groove Records',
-      link: '/community'
-    }
-  ];
-
-  // Auto-advance carousel every 5 seconds (if more images are added)
-  useEffect(() => {
-    if (!mounted || carouselItems.length <= 1) return;
-
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % carouselItems.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [mounted, carouselItems.length]);
-
-  if (!mounted) {
-    return (
-      <section className="section">
-        <div className="relative overflow-hidden min-h-[600px] rounded-none">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary-black to-neutral-800" />
-        </div>
-      </section>
-    );
-  }
-
-  const currentItem = carouselItems[currentSlide];
-
   return (
-    <section className="section">
-      <div className="relative overflow-hidden min-h-[600px] rounded-none">
-        {/* Groovy Background Gradient Overlay */}
-        <div className="absolute inset-0 bg-groovy-rainbow opacity-90 z-10" />
-        
-        {/* Carousel Background */}
-        <Link href={currentItem.link} className="absolute inset-0 block z-0">
+    <section className="relative min-h-[80vh] overflow-hidden bg-texture-vinyl">
+      {/* Full-width background image: real photo of couch + vinyl wall */}
+      <div className="absolute inset-0">
           <Image
-            src={currentItem.src}
-            alt={currentItem.alt}
+          src="/images/store-interior.jpg"
+          alt="Spiral Groove Records interior with couch and vinyl wall"
             fill
-            className="object-cover transition-all duration-1000 ease-in-out mix-blend-overlay"
-            priority={currentSlide === 0}
-            sizes="100vw"
+          className="object-cover"
+          priority
             onError={(e) => {
+            // Fallback to placeholder if image doesn't exist
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
-            }}
-          />
-        </Link>
-        
-        {/* Groovy Decorative Elements */}
-        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-          <div className="flex items-center gap-8 opacity-30">
-            <GroovyDaisy size={80} />
-            <PeaceSign size={60} />
-            <GroovyDaisy size={80} />
+          }}
+        />
+        {/* Warm overlay with vinyl grain texture */}
+        <div className="absolute inset-0 hero-overlay">
+          <div className="absolute inset-0 vinyl-grain-texture"></div>
+        </div>
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 container px-4 py-12 sm:py-16 md:py-32 min-h-[70vh] sm:min-h-[80vh] flex items-center">
+        <div className="max-w-3xl mx-auto text-center">
+          {/* Main Headline */}
+          <h1 className="groovy-text text-3xl sm:text-5xl md:text-7xl lg:text-8xl mb-3 sm:mb-4 text-white animate-fade-in-up drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] leading-tight">
+            Milford's Home for Vinyl Lovers
+          </h1>
+          
+          {/* Sub-heading */}
+          <p className="text-base sm:text-lg md:text-xl text-white/95 mb-6 sm:mb-10 max-w-2xl mx-auto px-4 animate-fade-in-up drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] font-medium" style={{ animationDelay: '0.2s' }}>
+            Dig through new arrivals, chat music, or swing by the shop — we've got something spinning every day.
+          </p>
+          
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+            <Link href="/shop" className="btn-primary text-base sm:text-xl px-6 sm:px-10 py-3 sm:py-5 w-full sm:w-auto">
+              Shop New Vinyl
+            </Link>
+            <Link href="/about" className="btn-secondary text-base sm:text-xl px-6 sm:px-10 py-3 sm:py-5 bg-transparent border-2 border-white text-white hover:bg-white hover:text-contrast-navy w-full sm:w-auto">
+              Visit the Store
+            </Link>
+          </div>
+          
+          {/* Visual cue: floating vinyl icon */}
+          <div className="absolute bottom-20 right-10 animate-bob hidden md:block" style={{ animationDelay: '0.6s' }}>
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="text-white/80">
+              <circle cx="20" cy="20" r="18" stroke="currentColor" strokeWidth="2" fill="none" />
+              <circle cx="20" cy="20" r="6" fill="currentColor" />
+              </svg>
           </div>
         </div>
-        
-        
-
-        {/* Carousel Indicators - Only show if more than 1 image */}
-        {carouselItems.length > 1 && (
-          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
-            {carouselItems.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-500 ease-in-out ${
-                index === currentSlide 
-                  ? 'bg-accent-yellow scale-125 shadow-lg' 
-                  : 'bg-white/50 hover:bg-accent-pink/75'
-              }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Navigation Arrows - Only show if more than 1 image */}
-        {carouselItems.length > 1 && (
-          <>
-            <button
-              onClick={() => setCurrentSlide((prev) => prev === 0 ? carouselItems.length - 1 : prev - 1)}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-primary-black/50 text-text-light p-3 rounded-full hover:bg-primary-black/75 transition-all duration-500 ease-in-out z-20"
-              aria-label="Previous slide"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setCurrentSlide((prev) => (prev + 1) % carouselItems.length)}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-primary-black/50 text-text-light p-3 rounded-full hover:bg-primary-black/75 transition-all duration-500 ease-in-out z-20"
-              aria-label="Next slide"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </>
-        )}
       </div>
     </section>
   );

@@ -16,10 +16,10 @@ export default function About() {
       {/* Hero Section */}
       <section className="section bg-gradient-to-b from-neutral-50 to-white">
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="font-display font-bold text-5xl md:text-6xl text-text-dark mb-6">
-            About Spiral Groove Records
+          <h1 className="groovy-text text-5xl md:text-6xl text-primary-orange mb-6">
+            We're not a chain — just two record nerds keeping Milford loud.
           </h1>
-          <p className="text-xl text-neutral-600 mb-8">
+          <p className="text-xl text-contrast-navy/80 mb-8">
             More than just a record store – we're a community hub for music lovers, 
             vinyl collectors, and anyone who believes in the magic of analog sound.
           </p>

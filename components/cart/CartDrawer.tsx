@@ -32,7 +32,7 @@ export default function CartDrawer() {
             <div key={i.id} className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg">
               <div className="size-16 rounded-lg overflow-hidden flex-shrink-0">
                 <Image
-                  src={i.cover || '/images/placeholders/vinyl.jpg'}
+                  src={i.cover || '/images/placeholders/albums/nas-illmatic.jpg'}
                   alt={`${i.title} at Spiral Groove Records`}
                   width={64}
                   height={64}

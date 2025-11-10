@@ -131,9 +131,9 @@ export default function HeroAdminPage() {
               </div>
             </div>
           </div>
-          </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

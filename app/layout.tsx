@@ -1,42 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Inter, Poppins, Righteous, Fredoka } from "next/font/google";
+import { Shrikhand, Nunito } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-// Configure Google Fonts
-const playfairDisplay = Playfair_Display({
+// Configure 1970s Retro Fonts
+const shrikhand = Shrikhand({
   subsets: ["latin"],
   variable: "--font-display",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap",
-});
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  variable: "--font-accent",
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-// Groovy retro fonts
-const righteous = Righteous({
-  subsets: ["latin"],
-  variable: "--font-groovy",
   weight: ["400"],
   display: "swap",
 });
 
-const fredoka = Fredoka({
+const nunito = Nunito({
   subsets: ["latin"],
-  variable: "--font-groovy-body",
-  weight: ["400", "500", "600"],
+  variable: "--font-body",
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -73,7 +53,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#00B3A4",
+  themeColor: "#E96B3A", // Vintage Orange - brand color
 };
 
 // LocalBusiness Schema
@@ -130,7 +110,7 @@ const breadcrumbSchema = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${playfairDisplay.variable} ${inter.variable} ${poppins.variable} ${righteous.variable} ${fredoka.variable}`}>
+      <body className={`${shrikhand.variable} ${nunito.variable}`}>
         {/* LocalBusiness Schema */}
         <script
           type="application/ld+json"

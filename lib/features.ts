@@ -10,6 +10,10 @@ export const features = {
   ENABLE_REAL_TIME_INVENTORY: process.env.ENABLE_REAL_TIME_INVENTORY === 'true',
   ENABLE_NEW_ARRIVALS: process.env.ENABLE_NEW_ARRIVALS === 'true',
   
+  // Placeholder/Display Features
+  ENABLE_ALBUM_PLACEHOLDERS: process.env.ENABLE_ALBUM_PLACEHOLDERS !== 'false', // Enabled by default, disable with ENABLE_ALBUM_PLACEHOLDERS=false
+  ENABLE_DEMO_PRODUCTS_FALLBACK: process.env.ENABLE_DEMO_PRODUCTS_FALLBACK !== 'false', // Enabled by default, disable with ENABLE_DEMO_PRODUCTS_FALLBACK=false
+  
   // Future features
   ENABLE_BOPIS: process.env.ENABLE_BOPIS === 'true', // Buy Online, Pickup In Store
   ENABLE_LOCAL_DELIVERY: process.env.ENABLE_LOCAL_DELIVERY === 'true',

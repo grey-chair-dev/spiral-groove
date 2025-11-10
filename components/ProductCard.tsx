@@ -24,9 +24,14 @@ export default function ProductCard({ p, section }: ProductCardProps) {
   }, []);
 
   // Get product image with consistent placeholder handling
-  const category = p.category || p.genre?.toLowerCase() || 'vinyl';
-  const productImage = getProductImage(p.cover, category, section);
+  // Force category to 'vinyl' for all products to ensure album placeholders are used
+  const category = 'vinyl'; // Always use vinyl category to get album placeholders
+  const productImage = getProductImage(p.cover, category, section, p.id);
   const placeholderStyles = getPlaceholderStyles(section);
+  
+  // Use album title and artist from the placeholder if available (for consistency with image)
+  const displayTitle = productImage.albumTitle || p.title;
+  const displayArtist = productImage.albumArtist || p.artist;
 
   const handleAddToCart = () => {
     if (mounted && p.inStock) {
@@ -36,7 +41,7 @@ export default function ProductCard({ p, section }: ProductCardProps) {
   };
 
   return (
-    <div className="bg-white p-4 group">
+    <div className="bg-white p-4 group border border-neutral-200 rounded-lg hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
       {/* Product Schema */}
       <ProductSchema
         title={p.title}
@@ -47,71 +52,57 @@ export default function ProductCard({ p, section }: ProductCardProps) {
         slug={p.slug || p.id}
         inStock={p.inStock}
       />
-      {/* Album Cover with Vinyl Record Overlap */}
-      <div className="relative mb-12 flex justify-center">
-        {/* Vinyl Record Background */}
-        <div className="absolute top-2 left-8 w-32 h-32 bg-black rounded-full shadow-lg transform rotate-12">
-          <div className="absolute inset-2 bg-neutral-800 rounded-full"></div>
-          <div className="absolute inset-4 bg-neutral-900 rounded-full"></div>
-          <div className="absolute inset-6 bg-black rounded-full"></div>
-          <div className="absolute inset-8 bg-neutral-900 rounded-full"></div>
-          <div className="absolute inset-10 bg-black rounded-full"></div>
-          <div className="absolute inset-12 bg-neutral-900 rounded-full"></div>
-          <div className="absolute inset-14 bg-black rounded-full"></div>
-          <div className="absolute inset-16 bg-neutral-900 rounded-full"></div>
-        </div>
-        
-        {/* Album Cover */}
-        <div className="relative z-10 w-28 h-28 shadow-xl transform -rotate-6">
-          {imageLoading && (
-            <div className="absolute inset-0 bg-neutral-200 animate-pulse rounded" />
-          )}
-          <Image 
-            src={productImage.src}
-            alt={productImage.isPlaceholder 
-              ? getPlaceholderAltText(category, p.title)
-              : `${p.title}${p.artist ? ` by ${p.artist}` : ''} at Spiral Groove Records`}
-            width={112}
-            height={112}
-            className={`object-cover w-full h-full transition-opacity duration-300 ${
-              imageLoading ? 'opacity-0' : 'opacity-100'
-            } ${productImage.isPlaceholder ? placeholderStyles : ''}`}
-            onLoad={() => setImageLoading(false)}
-            onError={() => {
-              setImageError(true);
-              setImageLoading(false);
-            }}
-            loading="lazy"
-          />
-          {imageError && (
-            <div className="absolute inset-0 bg-neutral-200 flex items-center justify-center">
-              <span className="text-neutral-400 text-xs">No Image</span>
-            </div>
-          )}
-        </div>
+      {/* Album Cover Image */}
+      <div className="relative mb-4 aspect-square w-full overflow-hidden rounded">
+        {imageLoading && (
+          <div className="absolute inset-0 bg-neutral-200 animate-pulse" />
+        )}
+        <Image 
+          src={productImage.src}
+          alt={productImage.isPlaceholder 
+            ? getPlaceholderAltText(category, p.title)
+            : `${p.title}${p.artist ? ` by ${p.artist}` : ''} at Spiral Groove Records`}
+          fill
+          className={`object-cover transition-opacity duration-300 ${
+            imageLoading ? 'opacity-0' : 'opacity-100'
+          } ${productImage.isPlaceholder ? placeholderStyles : ''}`}
+          onLoad={() => setImageLoading(false)}
+          onError={() => {
+            setImageError(true);
+            setImageLoading(false);
+          }}
+          loading="lazy"
+        />
+        {imageError && (
+          <div className="absolute inset-0 bg-neutral-200 flex items-center justify-center">
+            <span className="text-neutral-400 text-xs">No Image</span>
+          </div>
+        )}
       </div>
       
       {/* Product Details */}
       <div className="text-center mb-4">
         <h3 className="font-bold text-sm text-black mb-1 leading-tight">
-          {p.title}
+          {displayTitle}
+          {p.condition && <span className="text-neutral-500 font-normal"> — ({p.condition})</span>}
         </h3>
-        {p.condition && (
-          <p className="text-xs text-neutral-500 mb-1">({p.condition})</p>
-        )}
-        <p className="text-xs text-neutral-500 mb-2">{p.artist}</p>
-        <p className="font-bold text-sm text-black">${p.price.toFixed(2)}</p>
+        <p className="text-xs text-neutral-500 mb-2">{displayArtist}</p>
+        <p className="font-bold text-base text-black mb-2">${p.price.toFixed(2)}</p>
+        {/* Staff Notes - Add personality */}
+        <p className="text-xs italic text-neutral-500 mt-1">
+          {p.staffNote || (section === 'staff-picks' ? "Picked by Steve — plays clean and loud." : section === 'new-arrivals' ? "Just in — grab it while it lasts." : "Fresh from the crates.")}
+        </p>
       </div>
       
       {/* Add to Cart Button */}
-      <div className="flex justify-center">
+      <div className="flex justify-center mt-2">
         <button 
-          className="w-8 h-8 border border-neutral-300 rounded flex items-center justify-center hover:bg-neutral-100 transition-colors text-black bg-white"
+          className="px-4 py-2 bg-mustard text-white rounded-full text-sm font-semibold hover:bg-mustard/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleAddToCart}
           disabled={!mounted || !p.inStock}
           aria-label={`Add ${p.title}${p.artist ? ` by ${p.artist}` : ''} to cart`}
         >
-          <Plus size={14} className="text-black" />
+          Add to Cart
         </button>
       </div>
     </div>

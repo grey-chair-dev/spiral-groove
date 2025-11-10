@@ -16,8 +16,8 @@ export default function DemoBanner() {
   }
 
   return (
-    <div className="bg-yellow-100 border-b border-yellow-300 text-yellow-900 text-center py-2 text-sm font-medium">
-      Demo Mode — Checkout is disabled. Purchases will not be processed.
+    <div className="bg-secondary-yellow/20 border-b border-secondary-yellow/40 text-contrast-navy text-center py-2 text-sm font-medium">
+      Demo mode (for now) — come grab it in person while it lasts.
     </div>
   );
 }
