@@ -5,32 +5,36 @@
 :root {
   --radius: 14px;
   
-      /* Design System Colors */
-      --color-primary-black: #111111;
-      --color-primary-cream: #FFFFFF;
-      --color-accent-teal: #63dbdf;
-      --color-accent-amber: #bd132b;
-      --color-highlight-red: #bd132b;
-      --color-text-dark: #111111;
-      --color-text-light: #FFFFFF;
-      --color-neutral-gray: #7A7A7A;
+      /* Brand Color Palette (from Facebook page) */
+      --color-primary-orange: #E96B3A;      /* Vintage Orange */
+      --color-secondary-yellow: #CBAE88;  /* Warm Vinyl Tan */
+      --color-accent-blue: #3AA6A3;       /* Cyan Accent */
+      --color-supporting-red: #E96B3A;    /* Using Vintage Orange */
+      --color-background-cream: #F5EBDD;  /* Muted Cream */
+      --color-contrast-navy: #1C1C1C;     /* Deep Groove Black */
+      /* Photo-based colors */
+      --color-mustard: #d6a34f;           /* Mustard yellow (sofa) */
+      --color-teal: #00B3A4;              /* Teal/blue (album covers) */
+      --color-warm-red: #C85A4F;         /* Warm red */
+      /* Legacy colors (for compatibility) */
+      --color-primary-black: #1C1C1C;
+      --color-primary-cream: #F5EBDD;
+      --color-accent-teal: #00B3A4;
+      --color-accent-amber: #d6a34f;
+      --color-highlight-red: #C85A4F;
+      --color-text-dark: #1C1C1C;
+      --color-text-light: #F5EBDD;
+      --color-neutral-gray: #9B9B9B;      /* Soft Gray */
   
-  /* Design System Fonts */
-  --font-display: 'Playfair Display', serif;
-  --font-body: 'Inter', sans-serif;
-  --font-accent: 'Poppins', sans-serif;
-}
-
-html {
-  background-color: #000000;
-  overflow-x: hidden;
+  /* 1970s Retro Fonts */
+  --font-display: 'Shrikhand', cursive;
+  --font-body: 'Nunito', sans-serif;
+  --font-accent: 'Nunito', sans-serif;
+  --font-groovy: 'Shrikhand', cursive;
 }
 
 body { 
-  @apply bg-primary-cream text-text-dark font-body;
-  background-color: #000000;
-  min-height: 100vh;
-  overflow-x: hidden;
+  @apply bg-[#fdf9f3] text-contrast-navy font-body; 
 }
 
 .header-brand { 
@@ -38,11 +42,11 @@ body {
 }
 
 .container { 
-  @apply mx-auto px-4 sm:px-6 lg:px-8; 
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; 
 }
 
 .section { 
-  @apply container py-12 sm:py-16; 
+  @apply py-8 sm:py-12 md:py-16;
 }
 
 .grid-cols-responsive { 
@@ -50,7 +54,7 @@ body {
 }
 
 .card { 
-  @apply rounded-large shadow-card border border-neutral-200 bg-primary-cream; 
+  @apply rounded-2xl shadow-card border-2 border-primary-orange/20 bg-background-cream; 
 }
 
 .badge { 
@@ -58,15 +62,23 @@ body {
 }
 
 .btn { 
-  @apply inline-flex items-center justify-center rounded-medium px-7 py-3.5 border border-accent-teal bg-accent-teal text-text-light font-accent font-bold uppercase transition-all duration-150 hover:bg-accent-amber hover:border-accent-amber; 
+  @apply inline-flex items-center justify-center rounded-full px-8 py-4 border-2 border-mustard bg-mustard text-white font-groovy text-lg transition-all duration-300 hover:bg-mustard/90 hover:border-mustard/90 hover:scale-105 hover:shadow-lg; 
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-full px-8 py-4 bg-mustard text-white font-groovy text-lg transition-all duration-300 hover:bg-mustard/90 hover:scale-105 hover:shadow-lg;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center rounded-medium px-7 py-3.5 border border-accent-teal text-accent-teal font-accent font-bold uppercase transition-all duration-150 hover:bg-accent-amber hover:border-accent-amber hover:text-text-dark;
+  @apply inline-flex items-center justify-center rounded-full px-8 py-4 border-2 border-mustard text-mustard font-groovy text-lg transition-all duration-300 hover:bg-mustard hover:text-white hover:scale-105;
 }
 
 .link { 
-  @apply underline underline-offset-4 hover:no-underline text-accent-teal hover:text-accent-amber transition-all duration-150; 
+  @apply underline underline-offset-4 hover:no-underline text-teal hover:text-mustard transition-all duration-150; 
+}
+
+.link-accent {
+  @apply text-teal hover:text-mustard transition-colors duration-150;
 }
 
 /* Enhanced animations and hover effects */
@@ -108,9 +120,48 @@ html {
   @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-card-hover;
 }
 
-/* Gradient text */
+/* Gradient text - 1970s style */
 .gradient-text {
-  @apply bg-gradient-to-r from-accent-teal to-accent-amber bg-clip-text text-transparent;
+  @apply bg-gradient-to-r from-primary-orange via-secondary-yellow to-accent-blue bg-clip-text text-transparent;
+  background-size: 200% 100%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Wavy divider */
+.wavy-divider {
+  position: relative;
+  height: 60px;
+  overflow: hidden;
+}
+
+.wavy-divider svg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Floating illustrations */
+.floating-illustration {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Groovy text effect - retro vinyl-era display font */
+.groovy-text {
+  font-family: var(--font-groovy);
+  text-shadow: 
+    2px 2px 0px rgba(233, 107, 58, 0.3),
+    4px 4px 0px rgba(203, 174, 136, 0.2),
+    0 0 10px rgba(214, 163, 79, 0.1);
+  letter-spacing: 0.05em;
+  font-weight: 400;
+  text-transform: none;
+  /* Add subtle vinyl-era character */
+  transform: perspective(100px) rotateX(1deg);
+  transform-style: preserve-3d;
 }
 
 /* Custom scrollbar */
@@ -123,9 +174,121 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-accent-teal rounded-full;
+  @apply bg-mustard rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-accent-amber;
+  @apply bg-teal;
 }
+
+/* Warm retro tint - subtle texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(203, 174, 136, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(233, 107, 58, 0.02) 0%, transparent 50%);
+  opacity: 0.6;
+}
+
+/* Hero overlay with warm tint */
+.hero-overlay {
+  background: rgba(255, 235, 225, 0.6);
+  mix-blend-mode: multiply;
+}
+
+/* Vinyl grain texture */
+.vinyl-grain-texture {
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.03) 1px,
+      rgba(0, 0, 0, 0.03) 2px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.02) 1px,
+      rgba(0, 0, 0, 0.02) 2px
+    );
+  opacity: 0.4;
+}
+
+/* Vinyl texture for sections */
+.vinyl-texture-bg {
+  position: relative;
+}
+
+.vinyl-texture-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.02) 1px,
+      rgba(0, 0, 0, 0.02) 2px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.015) 1px,
+      rgba(0, 0, 0, 0.015) 2px
+    );
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.vinyl-texture-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Texture layers for sections */
+.bg-texture-vinyl {
+  position: relative;
+}
+
+.bg-texture-vinyl::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/texture-vinyl.png');
+  background-repeat: repeat;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bg-texture-vinyl > * {
+  position: relative;
+  z-index: 1;
+}
+
+.bg-cream {
+  background-color: #fdf9f3;
+}
+
+.text-warm-gray {
+  color: #4a4a4a;
+}
+
+.texture-vinyl {
+  background-image: url('/images/texture-vinyl.png');
+  background-repeat: repeat;
+  opacity: 0.05;
+}
+
