@@ -1,245 +1,166 @@
-import Hero from "@/components/Hero";
-import ProductGrid from "@/components/ProductGrid";
-import EditorialGrid from "@/components/EditorialGrid";
-import AudioPlayer from "@/components/AudioPlayer";
-import EventCard from "@/components/EventCard";
+"use client";
 import Image from "next/image";
-import Script from "next/script";
-import type { Metadata } from "next";
-import DemoBanner from "@/components/DemoBanner";
-
-export const metadata: Metadata = {
-  title: "Spiral Groove Records | Milford, OH Vinyl Shop",
-  description: "Buy vinyl, turntables, and accessories. Join live shows and community events at Milford's local record shop. New & used vinyl, audio gear, events. Serving Clermont County & Greater Cincinnati.",
-  alternates: {
-    canonical: "https://spiralgrooverecords.com/",
-  },
-};
+import { Instagram, Facebook } from "lucide-react";
+import { useState } from "react";
 
 export default function Home() {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": "Spiral Groove Records",
-    "image": "https://spiralgrooverecords.com/images/storefront.jpg",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "215B Main St",
-      "addressLocality": "Milford",
-      "addressRegion": "OH",
-      "postalCode": "45150",
-      "addressCountry": "US"
-    },
-    "telephone": "+1-513-600-8018",
-    "openingHours": "Mo-Su 12:00-21:00",
-    "url": "https://spiralgrooverecords.com",
-    "priceRange": "$$",
-    "sameAs": [
-      "https://www.instagram.com/spiral_groove_records_/",
-      "https://www.facebook.com/spiralgrooverecords/",
-      "https://www.tiktok.com/@spiral_groove"
-    ]
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Handle email submission here
+    console.log("Email submitted:", email);
+    setSubmitted(true);
+    setEmail("");
+    setTimeout(() => setSubmitted(false), 3000);
   };
 
   return (
-    <>
-      <Script
-        id="structured-data"
-        type="application/ld+json"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-      />
-      <DemoBanner />
-      <Hero />
-      
-      {/* Hidden h1 for SEO - main content is in Hero */}
-      <h1 className="sr-only">Spiral Groove Records - Milford's Local Vinyl Shop</h1>
-      
-      {/* Section Divider */}
-      <div className="border-t border-neutral-200"></div>
-      
-      {/* New Arrivals Section */}
-      <section className="section">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="font-display font-semibold text-[36px] md:text-[36px] text-[28px] leading-[130%] text-text-dark">New Arrivals</h2>
-            <p className="text-neutral-600 mt-2">Fresh vinyl just added to our collection. <a href="/shop/new-arrivals" className="text-accent-teal hover:underline">Browse all new arrivals</a> or <a href="/shop" className="text-accent-teal hover:underline">shop by category</a>.</p>
-          </div>
-          <a className="link" href="/shop/new-arrivals">View all</a>
-        </div>
-        <ProductGrid limit={6} section="new-arrivals" />
-      </section>
-
-      {/* Section Divider */}
-      <div className="border-t border-neutral-200"></div>
-      
-      {/* Featured Products Section */}
-      <section className="section bg-white">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="font-display font-semibold text-[36px] md:text-[36px] text-[28px] leading-[130%] text-text-dark">Staff Picks</h2>
-            <p className="text-neutral-600 mt-2">Hand-picked favorites from our team</p>
-          </div>
-          <a className="link" href="/shop">View all</a>
-        </div>
-        <ProductGrid limit={4} section="staff-picks" />
-      </section>
-
-      {/* Section Divider */}
-      <div className="border-t border-neutral-200"></div>
-
-      {/* New & Used Vinyl Section */}
-      <section className="section">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="font-display font-semibold text-[36px] md:text-[36px] text-[28px] leading-[130%] text-text-dark">New & Used Vinyl</h2>
-            <p className="text-neutral-600 mt-2">Discover your next favorite record</p>
-          </div>
-          <a className="link" href="/shop">View all</a>
-        </div>
-        <ProductGrid limit={8} section="vinyl" />
-      </section>
-
-      {/* Section Divider */}
-      <div className="border-t border-neutral-200"></div>
-
-      {/* Audio Equipment Section */}
-      <section className="section bg-white">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="font-display font-semibold text-[36px] md:text-[36px] text-[28px] leading-[130%] text-text-dark">Audio Equipment & Accessories</h2>
-            <p className="text-neutral-600 mt-2">Everything you need for the perfect listening experience</p>
-          </div>
-          <a className="link" href="/shop?category=equipment">View all</a>
-        </div>
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="card group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-            <div className="aspect-[4/3] relative overflow-hidden">
-              <Image 
-                src="/images/placeholders/equipment.jpg" 
-                alt="Turntables at Spiral Groove Records"
-                fill
-                className="object-cover transition-transform group-hover:scale-110"
-              />
-              <div className="absolute top-4 left-4">
-                <span className="badge bg-accent-teal text-text-light">From $199</span>
-              </div>
-            </div>
-            <div className="p-6">
-              <h3 className="font-display font-semibold text-xl mb-2">Turntables</h3>
-              <p className="text-sm text-neutral-600 mb-4">Quality record players for every budget, from entry-level to audiophile grade</p>
-              <a href="/shop?category=turntables" className="btn-secondary w-full text-center">Shop Turntables</a>
-            </div>
-          </div>
-          
-          <div className="card group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-            <div className="aspect-[4/3] relative overflow-hidden">
-              <Image 
-                src="/images/placeholders/equipment.jpg" 
-                alt="Amplifiers at Spiral Groove Records"
-                fill
-                className="object-cover transition-transform group-hover:scale-110"
-              />
-              <div className="absolute top-4 left-4">
-                <span className="badge bg-accent-amber text-text-dark">From $299</span>
-              </div>
-            </div>
-            <div className="p-6">
-              <h3 className="font-display font-semibold text-xl mb-2">Amplifiers</h3>
-              <p className="text-sm text-neutral-600 mb-4">Tube and solid-state amplifiers to power your vinyl collection</p>
-              <a href="/shop?category=amplifiers" className="btn-secondary w-full text-center">Shop Amplifiers</a>
-            </div>
-          </div>
-          
-          <div className="card group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-            <div className="aspect-[4/3] relative overflow-hidden">
-              <Image 
-                src="/images/placeholders/equipment.jpg" 
-                alt="Audio Accessories at Spiral Groove Records"
-                fill
-                className="object-cover transition-transform group-hover:scale-110"
-              />
-              <div className="absolute top-4 left-4">
-                <span className="badge bg-highlight-red text-text-light">From $15</span>
-              </div>
-            </div>
-            <div className="p-6">
-              <h3 className="font-display font-semibold text-xl mb-2">Accessories</h3>
-              <p className="text-sm text-neutral-600 mb-4">Styli, cartridges, cleaning supplies, and everything in between</p>
-              <a href="/shop?category=accessories" className="btn-secondary w-full text-center">Shop Accessories</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section Divider */}
-      <div className="border-t border-neutral-200"></div>
-
-      {/* Events Section */}
-      <section className="section">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="font-display font-semibold text-[36px] md:text-[36px] text-[28px] leading-[130%] text-text-dark">Events & Community</h2>
-            <p className="text-neutral-600 mt-2">Join our vibrant music community. <a href="/events" className="text-accent-teal hover:underline">View upcoming events</a> or <a href="/events/book" className="text-accent-teal hover:underline">book our event space</a>.</p>
-          </div>
-          <a className="link" href="/events">View all</a>
-        </div>
-        <div className="grid gap-6 md:grid-cols-3">
-          <EventCard
-            image="/images/placeholders/vinyl.jpg"
-            alt="Live Jazz Night event at Spiral Groove Records"
-            title="Live Jazz Night"
-            date="March 15, 2025 • Intimate basement venue"
-            description="Intimate shows in our basement event space featuring local and touring artists"
-            badge={{ text: "This Saturday", className: "bg-highlight-red text-text-light" }}
-            timeBadge="7:00 PM"
-            href="/events"
-            eventTitle="Live Jazz Night"
+    <div className="min-h-screen bg-black relative overflow-hidden w-full" style={{ backgroundColor: '#000000' }}>
+      {/* Abstract Gradient Shape Background */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="relative w-full h-full">
+          {/* Abstract gradient blob shape */}
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full opacity-80 blur-3xl"
+            style={{
+              background: 'radial-gradient(circle, rgba(236,72,153,0.6) 0%, rgba(168,85,247,0.5) 30%, rgba(6,182,212,0.4) 60%, rgba(236,72,153,0.3) 100%)',
+              filter: 'blur(80px)',
+            }}
           />
-          
-          <div className="card overflow-hidden group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
-            <div className="aspect-video relative">
-              <Image 
-                src="/images/placeholders/vinyl.jpg" 
-                alt="Record Fair event at Spiral Groove Records"
-                fill
-                className="object-cover"
-              />
-              <div className="absolute top-4 left-4">
-                <span className="badge bg-accent-amber text-text-dark">Monthly</span>
+          {/* Additional smaller blobs for depth */}
+          <div 
+            className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full opacity-60 blur-2xl"
+            style={{
+              background: 'radial-gradient(circle, rgba(168,85,247,0.5) 0%, rgba(6,182,212,0.4) 100%)',
+              filter: 'blur(60px)',
+            }}
+          />
+          <div 
+            className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full opacity-50 blur-2xl"
+            style={{
+              background: 'radial-gradient(circle, rgba(236,72,153,0.5) 0%, rgba(168,85,247,0.3) 100%)',
+              filter: 'blur(50px)',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Grid Layout - 50/50 Split */}
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 min-h-screen">
+        {/* Left Half - Text Content */}
+        <div className="flex flex-col justify-center p-8 md:p-12 lg:pl-64 lg:pr-4 xl:pl-80 2xl:pl-96">
+          <div className="space-y-8">
+            {/* Coming Soon Badge */}
+            <div className="text-white uppercase text-xs md:text-sm tracking-wider">
+              NEW WEBSITE COMING SOON
+            </div>
+
+            {/* Main Headline */}
+            <div className="space-y-2">
+              <h1 className="text-white text-4xl md:text-5xl lg:text-6xl font-bold uppercase leading-tight">
+                SPIRAL GROOVE
+              </h1>
+              <h1 className="text-white text-4xl md:text-5xl lg:text-6xl font-bold uppercase leading-tight">
+                RECORDS
+              </h1>
+            </div>
+
+            {/* Sub-headline */}
+            <p className="text-white text-lg md:text-xl max-w-lg font-light">
+              Milford's favorite record shop. We're building something special online, but you can always visit us in person.
+            </p>
+
+            {/* Visit Us Section */}
+            <div className="space-y-4 text-center border-2 border-white/20 rounded-lg p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto">
+              <h2 className="text-white text-xl md:text-2xl font-semibold uppercase tracking-wider">
+                Visit Us
+              </h2>
+              <div className="text-white/80 space-y-1">
+                <p className="text-lg">215B Main St</p>
+                <p className="text-lg">Milford, OH 45150</p>
+                <a 
+                  href="tel:+15136008018" 
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors text-lg block mt-2"
+                >
+                  (513) 600-8018
+                </a>
+                <p className="text-sm mt-2 italic">Open 12–9 PM daily</p>
               </div>
             </div>
-            <div className="p-6">
-              <h3 className="font-display font-semibold text-lg mb-1">Record Fair</h3>
-              <p className="text-sm text-neutral-600 mb-3">First Saturday of every month</p>
-              <p className="text-sm text-neutral-600 mb-4">Monthly vinyl trading events with collectors, dealers, and music lovers</p>
-              <a href="/events/record-fair" className="btn w-full text-center">Learn More</a>
-            </div>
-          </div>
-          
-          <div className="card overflow-hidden group hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
-            <div className="aspect-video relative">
-              <Image 
-                src="/images/placeholders/crafts.jpg" 
-                alt="Vinyl Crafts at Spiral Groove Records"
-                fill
-                className="object-cover"
+
+            {/* CTA Button with gradient */}
+            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md w-full">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Get notified when we launch"
+                required
+                className="flex-1 px-6 py-4 bg-black border-2 border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-white/40 transition-colors rounded-lg"
               />
-              <div className="absolute top-4 left-4">
-                <span className="badge bg-accent-teal text-text-light">Handmade</span>
-              </div>
-            </div>
-            <div className="p-6">
-              <h3 className="font-display font-semibold text-lg mb-1">Vinyl Crafts</h3>
-              <p className="text-sm text-neutral-600 mb-3">Unique handmade items</p>
-              <p className="text-sm text-neutral-600 mb-4">Handmade bowls, décor, and unique items crafted from recycled vinyl</p>
-              <a href="/shop?category=crafts" className="btn w-full text-center">Shop Crafts</a>
+              <button
+                type="submit"
+                className="px-8 py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 text-white font-semibold hover:opacity-90 transition-opacity rounded-lg uppercase tracking-wider whitespace-nowrap"
+              >
+                {submitted ? "✓ You're In" : "Notify Me"}
+              </button>
+            </form>
+            {submitted && (
+              <p className="text-cyan-400 text-sm">Thanks! We'll let you know when the site is live.</p>
+            )}
+
+            {/* Social Media Icons */}
+            <div className="flex gap-6 pt-4">
+              <a
+                href="https://www.facebook.com/spiralgrooverecords/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white hover:text-cyan-400 transition-colors"
+                aria-label="Follow us on Facebook"
+              >
+                <Facebook size={24} />
+              </a>
+              <a
+                href="https://www.instagram.com/spiral_groove_records_/?hl=en"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white hover:text-cyan-400 transition-colors"
+                aria-label="Follow us on Instagram"
+              >
+                <Instagram size={24} />
+              </a>
+              <a
+                href="https://www.tiktok.com/@spiral_groove"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white hover:text-cyan-400 transition-colors"
+                aria-label="Follow us on TikTok"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                </svg>
+              </a>
             </div>
           </div>
         </div>
-      </section>
 
-
-    </>
+        {/* Right Half - Spinning Record */}
+        <div className="flex items-center justify-center p-8 md:p-12 lg:p-16">
+          <div className="relative w-full max-w-lg aspect-square">
+            <Image
+              src="/logo.png"
+              alt="Spiral Groove Records"
+              fill
+              className="object-contain animate-spin-slow"
+              style={{ animationDuration: '8s' }}
+              priority
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
+

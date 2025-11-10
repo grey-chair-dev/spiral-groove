@@ -33,6 +33,15 @@ export const metadata: Metadata = {
     canonical: "https://spiralgrooverecords.com/",
   },
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32" },
+    ],
+    apple: [
+      { url: "/icon.svg", sizes: "180x180" },
+    ],
+  },
   openGraph: {
     title: "Spiral Groove Records | Milford, OH Vinyl Shop",
     description: "Buy vinyl, turntables, and accessories. Join live shows and community events at Milford's local record shop.",
@@ -139,9 +148,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="https://plausible.io/js/script.js"
           strategy="afterInteractive"
         />
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        {children}
       </body>
     </html>
   );
