@@ -68,7 +68,9 @@ npm run dev
 Create a `.env.local` file with:
 
 ```env
-# Database
+# Database (Vercel uses SGR_DATABASE_URL, local uses DATABASE_URL)
+SGR_DATABASE_URL=your_neon_postgresql_connection_string
+# Or for local development:
 DATABASE_URL=your_neon_postgresql_connection_string
 
 # Optional: Make.com Webhook
