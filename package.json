@@ -9,17 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "clsx": "^2.1.1",
     "lucide-react": "^0.546.0",
     "next": "15.0.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "square": "^43.1.1",
-    "squareup": "^1.0.0",
-    "swr": "^2.3.6",
     "tailwind-merge": "^3.3.1",
-    "zod": "^4.1.12",
-    "zustand": "4.5.5"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/node": "22.7.5",
@@ -30,6 +27,6 @@
     "next-pwa": "^5.6.0",
     "postcss": "8.4.47",
     "tailwindcss": "3.4.14",
-    "typescript": "5.6.2"
+    "typescript": "^5.6.2"
   }
 }

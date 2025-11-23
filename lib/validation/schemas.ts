@@ -63,6 +63,8 @@ export const contactFormSchema = z.object({
 });
 
 export const newsletterSignupSchema = z.object({
+  firstName: z.string().min(2).max(50).optional(),
+  lastName: z.string().min(2).max(50).optional(),
   email: z.string().email(),
   interests: z.array(z.enum(['New Arrivals', 'Events', 'Sales', 'Blog'])).optional(),
 });

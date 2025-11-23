@@ -4,16 +4,45 @@ import { Instagram, Facebook } from "lucide-react";
 import { useState } from "react";
 
 export default function Home() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle email submission here
-    console.log("Email submitted:", email);
-    setSubmitted(true);
-    setEmail("");
-    setTimeout(() => setSubmitted(false), 3000);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ firstName, lastName, email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to subscribe');
+      }
+
+      setSubmitted(true);
+      setFirstName("");
+      setLastName("");
+      setEmail("");
+      setTimeout(() => {
+        setSubmitted(false);
+      }, 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -91,24 +120,60 @@ export default function Home() {
             </div>
 
             {/* CTA Button with gradient */}
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md w-full">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Get notified when we launch"
-                required
-                className="flex-1 px-6 py-4 bg-black border-2 border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-white/40 transition-colors rounded-lg"
-              />
-              <button
-                type="submit"
-                className="px-8 py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 text-white font-semibold hover:opacity-90 transition-opacity rounded-lg uppercase tracking-wider whitespace-nowrap"
-              >
-                {submitted ? "✓ You're In" : "Notify Me"}
-              </button>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3 max-w-md w-full">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => {
+                    setFirstName(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="First name"
+                  required
+                  disabled={loading}
+                  className="flex-1 px-6 py-4 bg-black border-2 border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-white/40 transition-colors rounded-lg disabled:opacity-50"
+                />
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => {
+                    setLastName(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="Last name"
+                  required
+                  disabled={loading}
+                  className="flex-1 px-6 py-4 bg-black border-2 border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-white/40 transition-colors rounded-lg disabled:opacity-50"
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="Your email"
+                  required
+                  disabled={loading}
+                  className="flex-1 px-6 py-4 bg-black border-2 border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-white/40 transition-colors rounded-lg disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || submitted}
+                  className="px-8 py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 text-white font-semibold hover:opacity-90 transition-opacity rounded-lg uppercase tracking-wider whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "..." : submitted ? "✓ You're In" : "Notify Me"}
+                </button>
+              </div>
             </form>
             {submitted && (
               <p className="text-cyan-400 text-sm">Thanks! We'll let you know when the site is live.</p>
+            )}
+            {error && (
+              <p className="text-red-400 text-sm">{error}</p>
             )}
 
             {/* Social Media Icons */}
