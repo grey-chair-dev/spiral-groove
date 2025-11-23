@@ -1,11 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { newsletterSignupSchema } from '@/lib/validation/schemas';
 import { sql } from '@/lib/db';
+import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
 // Mark route as dynamic
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 5 requests per 15 minutes per IP
+  const clientIP = getClientIP(request);
+  const rateLimitResult = rateLimit(`newsletter:${clientIP}`, {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    maxRequests: 5,
+  });
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      {
+        error: 'Too many requests. Please try again later.',
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)),
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+        },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
     
@@ -129,7 +154,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { success: true, message: 'Successfully subscribed!' },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+        },
+      }
     );
   } catch (error) {
     console.error('Newsletter signup error:', error);

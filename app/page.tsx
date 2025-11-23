@@ -176,6 +176,16 @@ export default function Home() {
               <p className="text-red-400 text-sm">{error}</p>
             )}
 
+            {/* Privacy Policy Link */}
+            <div className="pt-4">
+              <a
+                href="/privacy"
+                className="text-white/60 hover:text-white/80 text-sm transition-colors"
+              >
+                Privacy Policy
+              </a>
+            </div>
+
             {/* Social Media Icons */}
             <div className="flex gap-6 pt-4">
               <a

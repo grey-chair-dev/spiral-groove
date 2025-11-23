@@ -103,9 +103,20 @@ The code automatically handles both camelCase (Prisma default) and snake_case na
 - **First Load JS**: 109 kB (includes shared React/Next.js runtime)
 - **API Route**: 135 B
 
-## 🔒 Route Protection
+## 🔒 Security
 
+### Route Protection
 The middleware redirects all routes except `/` to the coming soon page. Only the homepage and static assets are accessible.
+
+### Security Features
+- ✅ **HTTPS Enforcement**: Automatic via Vercel
+- ✅ **Security Headers**: HSTS, CSP, X-Frame-Options, and more
+- ✅ **Rate Limiting**: 5 requests per 15 minutes per IP on API routes
+- ✅ **Input Validation**: Zod schema validation on all forms
+- ✅ **SQL Injection Prevention**: Parameterized queries
+- ✅ **Privacy Policy**: Available at `/privacy`
+
+See [SECURITY.md](./SECURITY.md) for complete security checklist.
 
 ## 📝 Notes
 
