@@ -96,6 +96,12 @@ npm run checkout:both         # Both delivery and pickup
 ### Routing
 
 The application uses React Router for multi-page navigation with the following routes:
+ 
+```env
+# Database (Vercel can use SGR_DATABASE_URL; local can use DATABASE_URL)
+SGR_DATABASE_URL=your_neon_postgresql_connection_string
+DATABASE_URL=your_neon_postgresql_connection_string
+```
 
 - `/` – Home page
 - `/catalog` – Product catalog
