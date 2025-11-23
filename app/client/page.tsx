@@ -24,7 +24,7 @@ export default function ClientPage() {
         router.push('/login');
       }
     } catch (error) {
-      router.push('/login');
+        router.push('/login');
     } finally {
       setLoading(false);
     }
@@ -100,3 +100,4 @@ export default function ClientPage() {
     </div>
   );
 }
+

@@ -1,14 +1,38 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifySession } from './lib/auth';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Create response
   let response: NextResponse;
 
-  // Allow the homepage (coming soon page)
-  if (pathname === '/') {
+  // Allow login page
+  if (pathname === '/login') {
+    response = NextResponse.next();
+  }
+  // Protect homepage (client portal) - check authentication
+  else if (pathname === '/') {
+    const sessionCookie = request.cookies.get('client_session');
+    
+    if (!sessionCookie?.value) {
+      // No session cookie, redirect to login
+      response = NextResponse.redirect(new URL('/login', request.url));
+    } else {
+      // Verify session token
+      const isValid = await verifySession(sessionCookie.value);
+      if (!isValid) {
+        // Invalid session, redirect to login
+        response = NextResponse.redirect(new URL('/login', request.url));
+      } else {
+        // Valid session, allow access
+        response = NextResponse.next();
+      }
+    }
+  }
+  // Allow API routes (they handle their own auth)
+  else if (pathname.startsWith('/api')) {
     response = NextResponse.next();
   }
   // Allow static assets (images, fonts, etc.)
