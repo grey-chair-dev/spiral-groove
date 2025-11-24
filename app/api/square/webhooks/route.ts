@@ -6,246 +6,203 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get raw body for signature verification (must be raw, not parsed)
+    // Raw body (required for signature verification)
     const body = await request.text();
-    
-    // Square uses x-square-signature header (trim to handle any whitespace issues)
-    const signature = request.headers.get('x-square-signature')?.trim();
 
-    // Log incoming webhook for debugging
-    console.log('Webhook received:', {
+    // New Webhook Subscriptions API header
+    // (This is the ONLY correct header for 2025-10-16 API)
+    const signature = request.headers.get('x-square-signature')?.trim() || null;
+
+    // Attempt to parse JSON for test-event detection
+    let parsedBody: any = null;
+    try {
+      parsedBody = JSON.parse(body);
+    } catch {
+      // ignore, body may not be JSON
+    }
+
+    // Square sandbox test events (from Webhooks → "Send Test Event")
+    // 1. Have NO signature
+    // 2. merchant_id starts with 6SSW
+    const isSquareTestEvent =
+      !signature &&
+      parsedBody &&
+      typeof parsedBody.merchant_id === "string" &&
+      parsedBody.merchant_id.startsWith("6SSW");
+
+    console.log("Webhook received:", {
       timestamp: new Date().toISOString(),
       hasSignature: !!signature,
-      bodyLength: body.length,
+      merchant_id: parsedBody?.merchant_id,
+      isTestEvent: isSquareTestEvent,
+      bodyLength: body.length
     });
 
-    // Verify webhook signature
+    // --------------------------
+    //  TEST EVENTS — SKIP SIGNATURE
+    // --------------------------
+    if (isSquareTestEvent) {
+      console.log("Square TEST event detected — skipping signature validation.");
+
+      return NextResponse.json({
+        success: true,
+        test: true,
+        type: parsedBody?.type,
+        event_id: parsedBody?.event_id,
+        received_at: new Date().toISOString()
+      });
+    }
+
+    // --------------------------
+    //  REAL EVENTS — MUST BE SIGNED
+    // --------------------------
     if (!signature) {
-      console.error('Missing webhook signature header (x-square-signature)');
+      console.error("Missing x-square-signature for a non-test event.");
       return NextResponse.json(
-        { error: 'Missing webhook signature' },
+        { error: "Missing webhook signature" },
         { status: 400 }
       );
     }
 
-    // Get webhook signature key from environment
     const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;
-
     if (!webhookSignatureKey) {
-      console.error('SQUARE_WEBHOOK_SIGNATURE_KEY not configured');
+      console.error("SQUARE_WEBHOOK_SIGNATURE_KEY missing in env.");
       return NextResponse.json(
-        { error: 'Webhook signature key not configured' },
+        { error: "Webhook signature key not configured" },
         { status: 500 }
       );
     }
 
-    // Square signature verification: body only
-    // According to Square docs: signature = HMAC-SHA256(body, signature_key)
+    // Square Webhook Subscriptions API (current):
+    // signature = HMAC_SHA256(body, signature_key)
     const expectedSignature = crypto
-      .createHmac('sha256', webhookSignatureKey)
+      .createHmac("sha256", webhookSignatureKey)
       .update(body)
-      .digest('base64');
+      .digest("base64");
 
-    // Decode both signatures from base64 to binary buffers for comparison
-    const receivedBuf = Buffer.from(signature, 'base64');
-    const expectedBuf = Buffer.from(expectedSignature, 'base64');
+    // Convert both to binary buffers (required)
+    const receivedBuf = Buffer.from(signature, "base64");
+    const expectedBuf = Buffer.from(expectedSignature, "base64");
 
-    // Log for debugging (remove in production)
-    console.log('Signature verification:', {
-      receivedPrefix: signature.substring(0, 20),
-      expectedPrefix: expectedSignature.substring(0, 20),
+    console.log("Signature verification:", {
+      match: receivedBuf.equals(expectedBuf),
       receivedLength: receivedBuf.length,
-      expectedLength: expectedBuf.length,
+      expectedLength: expectedBuf.length
     });
 
-    // Ensure equal-length buffers
+    // Must match EXACT binary length for timingSafeEqual
     if (receivedBuf.length !== expectedBuf.length) {
-      console.error('Signature buffer length mismatch', {
-        received: receivedBuf.length,
-        expected: expectedBuf.length
-      });
+      console.error("Signature length mismatch");
       return NextResponse.json(
-        { error: 'Invalid webhook signature' },
+        { error: "Invalid webhook signature" },
         { status: 401 }
       );
     }
 
-    // Timing-safe comparison of binary buffers
+    // Timing-safe comparison
     if (!crypto.timingSafeEqual(receivedBuf, expectedBuf)) {
-      console.error('Invalid webhook signature - signatures do not match');
+      console.error("Invalid webhook signature (not equal)");
       return NextResponse.json(
-        { error: 'Invalid webhook signature' },
+        { error: "Invalid webhook signature" },
         { status: 401 }
       );
     }
 
-    // Parse webhook data
-    const webhookData = JSON.parse(body);
-    const { type, event_id, data } = webhookData;
+    // --------------------------
+    //  PARSE EVENT
+    // --------------------------
+    const { type, event_id, data } = parsedBody;
 
-    console.log('Webhook event received:', {
+    console.log("Verified webhook event:", {
       type,
       event_id,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     });
 
-    // Handle different webhook events
+    // Handle events
     switch (type) {
-      case 'order.created':
+      case "order.created":
         await handleOrderCreated(data);
         break;
-
-      case 'order.updated':
+      case "order.updated":
         await handleOrderUpdated(data);
         break;
-
-      case 'order.fulfillment.updated':
+      case "order.fulfillment.updated":
         await handleOrderFulfillmentUpdated(data);
         break;
-
-      case 'payment.created':
+      case "payment.created":
         await handlePaymentCreated(data);
         break;
-
-      case 'payment.updated':
+      case "payment.updated":
         await handlePaymentUpdated(data);
         break;
-
-      case 'refund.created':
+      case "refund.created":
         await handleRefundCreated(data);
         break;
-
-      case 'refund.updated':
+      case "refund.updated":
         await handleRefundUpdated(data);
         break;
-
-      case 'customer.created':
+      case "customer.created":
         await handleCustomerCreated(data);
         break;
-
-      case 'customer.updated':
+      case "customer.updated":
         await handleCustomerUpdated(data);
         break;
-
-      case 'customer.deleted':
+      case "customer.deleted":
         await handleCustomerDeleted(data);
         break;
-
-      case 'inventory.count.updated':
+      case "inventory.count.updated":
         await handleInventoryCountUpdated(data);
         break;
-
-      case 'catalog.version.updated':
+      case "catalog.version.updated":
         await handleCatalogVersionUpdated(data);
         break;
-
-      case 'loyalty.account.created':
-      case 'loyalty.account.updated':
-      case 'loyalty.account.deleted':
-      case 'loyalty.event.created':
-      case 'loyalty.program.created':
-      case 'loyalty.program.updated':
-      case 'loyalty.promotion.created':
-      case 'loyalty.promotion.updated':
+      // Loyalty events
+      case "loyalty.account.created":
+      case "loyalty.account.updated":
+      case "loyalty.account.deleted":
+      case "loyalty.event.created":
+      case "loyalty.program.created":
+      case "loyalty.program.updated":
+      case "loyalty.promotion.created":
+      case "loyalty.promotion.updated":
         await handleLoyaltyEvent(type, data);
         break;
 
       default:
-        console.log(`Unhandled webhook type: ${type}`, data);
+        console.log(`Unhandled event type: ${type}`);
     }
 
-    // Return success response
-    return NextResponse.json({ 
-      success: true, 
-      event_id,
+    return NextResponse.json({
+      success: true,
       type,
+      event_id,
       received_at: new Date().toISOString()
     });
 
-  } catch (error) {
-    console.error('Webhook processing error:', error);
+  } catch (err) {
+    console.error("Webhook processing error:", err);
     return NextResponse.json(
-      { error: 'Webhook processing failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: "Webhook processing failed" },
       { status: 500 }
     );
   }
 }
 
-// Event handlers (placeholder implementations - customize as needed)
+/* -------------------------
+   EVENT HANDLERS
+------------------------- */
 
-async function handleOrderCreated(data: any) {
-  console.log('Order created:', data);
-  // TODO: Create order record in database
-  // TODO: Send order confirmation email
-  // TODO: Update inventory
-}
-
-async function handleOrderUpdated(data: any) {
-  console.log('Order updated:', data);
-  // TODO: Update order status in database
-  // TODO: Send status update email
-}
-
-async function handleOrderFulfillmentUpdated(data: any) {
-  console.log('Order fulfillment updated:', data);
-  // TODO: Update fulfillment status
-  // TODO: Send shipping notification
-}
-
-async function handlePaymentCreated(data: any) {
-  console.log('Payment created:', data);
-  // TODO: Confirm payment received
-  // TODO: Update order payment status
-}
-
-async function handlePaymentUpdated(data: any) {
-  console.log('Payment updated:', data);
-  // TODO: Handle payment status changes
-  // TODO: Handle refunds
-}
-
-async function handleRefundCreated(data: any) {
-  console.log('Refund created:', data);
-  // TODO: Process refund
-  // TODO: Update order status
-  // TODO: Notify customer
-}
-
-async function handleRefundUpdated(data: any) {
-  console.log('Refund updated:', data);
-  // TODO: Update refund status
-}
-
-async function handleCustomerCreated(data: any) {
-  console.log('Customer created:', data);
-  // TODO: Sync customer to database
-}
-
-async function handleCustomerUpdated(data: any) {
-  console.log('Customer updated:', data);
-  // TODO: Update customer in database
-}
-
-async function handleCustomerDeleted(data: any) {
-  console.log('Customer deleted:', data);
-  // TODO: Handle customer deletion (soft delete recommended)
-}
-
-async function handleInventoryCountUpdated(data: any) {
-  console.log('Inventory count updated:', data);
-  // TODO: Sync inventory quantities
-  // TODO: Update product availability
-}
-
-async function handleCatalogVersionUpdated(data: any) {
-  console.log('Catalog version updated:', data);
-  // TODO: Sync catalog changes
-  // TODO: Update products/prices
-}
-
-async function handleLoyaltyEvent(type: string, data: any) {
-  console.log(`Loyalty event (${type}):`, data);
-  // TODO: Handle loyalty program events
-  // TODO: Sync points/balances
-}
-
+async function handleOrderCreated(data: any) { console.log("Order created:", data); }
+async function handleOrderUpdated(data: any) { console.log("Order updated:", data); }
+async function handleOrderFulfillmentUpdated(data: any) { console.log("Fulfillment updated:", data); }
+async function handlePaymentCreated(data: any) { console.log("Payment created:", data); }
+async function handlePaymentUpdated(data: any) { console.log("Payment updated:", data); }
+async function handleRefundCreated(data: any) { console.log("Refund created:", data); }
+async function handleRefundUpdated(data: any) { console.log("Refund updated:", data); }
+async function handleCustomerCreated(data: any) { console.log("Customer created:", data); }
+async function handleCustomerUpdated(data: any) { console.log("Customer updated:", data); }
+async function handleCustomerDeleted(data: any) { console.log("Customer deleted:", data); }
+async function handleInventoryCountUpdated(data: any) { console.log("Inventory updated:", data); }
+async function handleCatalogVersionUpdated(data: any) { console.log("Catalog updated:", data); }
+async function handleLoyaltyEvent(type: string, data: any) { console.log(`Loyalty event: ${type}`, data); }
