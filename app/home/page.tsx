@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 
-export default function ClientPage() {
+export default function HomePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
@@ -21,10 +21,10 @@ export default function ClientPage() {
       if (response.ok) {
         setAuthenticated(true);
       } else {
-        router.push('/login');
+        router.push('/');
       }
     } catch (error) {
-        router.push('/login');
+      router.push('/');
     } finally {
       setLoading(false);
     }
@@ -37,7 +37,7 @@ export default function ClientPage() {
       });
 
       if (response.ok) {
-        router.push('/login');
+        router.push('/');
       }
     } catch (error) {
       console.error('Logout error:', error);
@@ -70,31 +70,10 @@ export default function ClientPage() {
         </button>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content - Blank page for now */}
       <main className="p-8 md:p-12 lg:p-16">
         <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-4">Welcome to Your Client Portal</h2>
-            <p className="text-white/70 text-lg">
-              This is your password-protected client area. You can add any content, tools, or information here.
-            </p>
-          </div>
-
-          {/* Example Content Sections */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-            <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-2">Quick Stats</h3>
-              <p className="text-white/60">Add your key metrics here</p>
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-2">Recent Activity</h3>
-              <p className="text-white/60">Show recent updates or changes</p>
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-2">Resources</h3>
-              <p className="text-white/60">Links and helpful information</p>
-            </div>
-          </div>
+          {/* Blank page - ready for content */}
         </div>
       </main>
     </div>

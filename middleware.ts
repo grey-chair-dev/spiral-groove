@@ -8,23 +8,23 @@ export async function middleware(request: NextRequest) {
   // Create response
   let response: NextResponse;
 
-  // Allow login page
-  if (pathname === '/login') {
+  // Allow login page (homepage)
+  if (pathname === '/') {
     response = NextResponse.next();
   }
-  // Protect homepage (client portal) - check authentication
-  else if (pathname === '/') {
+  // Protect /home route - check authentication
+  else if (pathname === '/home') {
     const sessionCookie = request.cookies.get('client_session');
     
     if (!sessionCookie?.value) {
       // No session cookie, redirect to login
-      response = NextResponse.redirect(new URL('/login', request.url));
+      response = NextResponse.redirect(new URL('/', request.url));
     } else {
       // Verify session token
       const isValid = await verifySession(sessionCookie.value);
       if (!isValid) {
         // Invalid session, redirect to login
-        response = NextResponse.redirect(new URL('/login', request.url));
+        response = NextResponse.redirect(new URL('/', request.url));
       } else {
         // Valid session, allow access
         response = NextResponse.next();
