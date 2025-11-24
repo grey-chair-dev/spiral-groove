@@ -9,6 +9,21 @@ export async function POST(request: NextRequest) {
     // Raw body (required for signature verification)
     const body = await request.text();
 
+    // DIAGNOSTIC LOGGING - Compare with webhook.site to find body differences
+    console.log("=== RAW BODY DIAGNOSTICS ===");
+    console.log("RAW BODY (length):", body.length);
+    console.log("RAW BODY (first 200 chars):", body.substring(0, 200));
+    console.log("RAW BODY (last 200 chars):", body.substring(Math.max(0, body.length - 200)));
+    console.log("RAW BODY (JSON stringified):", JSON.stringify(body.substring(0, 500))); // First 500 chars as JSON to see hidden chars
+
+    // Log all headers for comparison
+    const headers: Record<string, string> = {};
+    request.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    console.log("=== ALL HEADERS ===");
+    console.log(JSON.stringify(headers, null, 2));
+
     // New Webhook Subscriptions API header
     // (This is the ONLY correct header for 2025-10-16 API)
     const signature = request.headers.get('x-square-signature')?.trim() || null;
@@ -17,7 +32,8 @@ export async function POST(request: NextRequest) {
     let parsedBody: any = null;
     try {
       parsedBody = JSON.parse(body);
-    } catch {
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
       // ignore, body may not be JSON
     }
 
@@ -35,7 +51,8 @@ export async function POST(request: NextRequest) {
       hasSignature: !!signature,
       merchant_id: parsedBody?.merchant_id,
       isTestEvent: isSquareTestEvent,
-      bodyLength: body.length
+      bodyLength: body.length,
+      url: request.url
     });
 
     // --------------------------
@@ -84,10 +101,20 @@ export async function POST(request: NextRequest) {
     const receivedBuf = Buffer.from(signature, "base64");
     const expectedBuf = Buffer.from(expectedSignature, "base64");
 
+    // DIAGNOSTIC LOGGING - Compare signatures
+    console.log("=== SIGNATURE VERIFICATION ===");
+    console.log("Received signature (first 50 chars):", signature.substring(0, 50));
+    console.log("Expected signature (first 50 chars):", expectedSignature.substring(0, 50));
+    console.log("Received signature (base64):", signature);
+    console.log("Expected signature (base64):", expectedSignature);
+    console.log("Body used for signature (length):", body.length);
+    console.log("Body used for signature (first 100 chars):", body.substring(0, 100));
     console.log("Signature verification:", {
       match: receivedBuf.equals(expectedBuf),
       receivedLength: receivedBuf.length,
-      expectedLength: expectedBuf.length
+      expectedLength: expectedBuf.length,
+      receivedBase64: signature,
+      expectedBase64: expectedSignature
     });
 
     // Must match EXACT binary length for timingSafeEqual
