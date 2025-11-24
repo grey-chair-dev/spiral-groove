@@ -9,22 +9,19 @@ export async function POST(request: NextRequest) {
     // Get raw body for signature verification (must be raw, not parsed)
     const body = await request.text();
     
-    // Square uses x-square-hmacsha256-signature header
-    const signature = request.headers.get('x-square-hmacsha256-signature');
-    const url = request.url;
+    // Square uses x-square-signature header (trim to handle any whitespace issues)
+    const signature = request.headers.get('x-square-signature')?.trim();
 
     // Log incoming webhook for debugging
     console.log('Webhook received:', {
       timestamp: new Date().toISOString(),
       hasSignature: !!signature,
-      url: url,
       bodyLength: body.length,
-      allHeaders: Object.fromEntries(request.headers.entries())
     });
 
     // Verify webhook signature
     if (!signature) {
-      console.error('Missing webhook signature header (x-square-hmacsha256-signature)');
+      console.error('Missing webhook signature header (x-square-signature)');
       return NextResponse.json(
         { error: 'Missing webhook signature' },
         { status: 400 }
@@ -42,29 +39,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Square signature verification: URL + body
-    // According to Square docs: signature = HMAC-SHA256(url + body, signature_key)
-    const payload = url + body;
+    // Square signature verification: body only
+    // According to Square docs: signature = HMAC-SHA256(body, signature_key)
     const expectedSignature = crypto
       .createHmac('sha256', webhookSignatureKey)
-      .update(payload)
+      .update(body)
       .digest('base64');
+
+    // Decode both signatures from base64 to binary buffers for comparison
+    const receivedBuf = Buffer.from(signature, 'base64');
+    const expectedBuf = Buffer.from(expectedSignature, 'base64');
 
     // Log for debugging (remove in production)
     console.log('Signature verification:', {
       receivedPrefix: signature.substring(0, 20),
       expectedPrefix: expectedSignature.substring(0, 20),
-      receivedLength: signature.length,
-      expectedLength: expectedSignature.length,
-      match: signature === expectedSignature
+      receivedLength: receivedBuf.length,
+      expectedLength: expectedBuf.length,
     });
 
-    // Use timing-safe comparison to prevent timing attacks
-    // Note: Both must be same length for timingSafeEqual
-    if (signature.length !== expectedSignature.length) {
-      console.error('Signature length mismatch', {
-        received: signature.length,
-        expected: expectedSignature.length
+    // Ensure equal-length buffers
+    if (receivedBuf.length !== expectedBuf.length) {
+      console.error('Signature buffer length mismatch', {
+        received: receivedBuf.length,
+        expected: expectedBuf.length
       });
       return NextResponse.json(
         { error: 'Invalid webhook signature' },
@@ -72,12 +70,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValid = crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
-
-    if (!isValid) {
+    // Timing-safe comparison of binary buffers
+    if (!crypto.timingSafeEqual(receivedBuf, expectedBuf)) {
       console.error('Invalid webhook signature - signatures do not match');
       return NextResponse.json(
         { error: 'Invalid webhook signature' },
