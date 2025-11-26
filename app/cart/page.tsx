@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { LogOut, Music, ArrowLeft, ShoppingCart, Trash2, Plus, Minus, Loader2, Calendar, MapPin, Truck } from "lucide-react";
+import { LogOut, Music, ArrowLeft, ShoppingCart, Trash2, Plus, Minus, Loader2 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import type { FormattedProduct } from "@/lib/types/square";
 
@@ -14,15 +14,6 @@ export default function CartPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fulfillmentType, setFulfillmentType] = useState<'pickup' | 'delivery'>('pickup');
-  const [pickupDate, setPickupDate] = useState<string>('');
-  const [pickupTime, setPickupTime] = useState<string>('');
-  const [deliveryAddress, setDeliveryAddress] = useState({
-    street: '',
-    city: '',
-    state: '',
-    zip: '',
-  });
 
   useEffect(() => {
     checkAuth();
@@ -74,22 +65,6 @@ export default function CartPage() {
         quantity: item.quantity,
       }));
 
-      // Validate fulfillment options
-      if (fulfillmentType === 'pickup' && (!pickupDate || !pickupTime)) {
-        setError('Please select a pickup date and time');
-        setCheckingOut(false);
-        return;
-      }
-
-      if (fulfillmentType === 'delivery') {
-        const { street, city, state, zip } = deliveryAddress;
-        if (!street || !city || !state || !zip) {
-          setError('Please provide a complete delivery address');
-          setCheckingOut(false);
-          return;
-        }
-      }
-
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: {
@@ -101,13 +76,6 @@ export default function CartPage() {
           productId: items[0].product.id,
           variationId: items[0].variationId,
           quantity: items[0].quantity,
-          // Fulfillment options
-          fulfillment: {
-            type: fulfillmentType,
-            pickupDate: fulfillmentType === 'pickup' ? pickupDate : undefined,
-            pickupTime: fulfillmentType === 'pickup' ? pickupTime : undefined,
-            deliveryAddress: fulfillmentType === 'delivery' ? deliveryAddress : undefined,
-          },
         }),
       });
 
@@ -302,123 +270,6 @@ export default function CartPage() {
                 <div className="bg-white/5 border border-white/10 rounded-lg p-6 sticky top-24">
                   <h2 className="text-xl font-bold mb-4">Order Summary</h2>
                   
-                  {/* Fulfillment Options */}
-                  <div className="mb-6 space-y-4">
-                    <div>
-                      <label className="text-white font-medium mb-2 block">Fulfillment Method</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setFulfillmentType('pickup')}
-                          className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
-                            fulfillmentType === 'pickup'
-                              ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-400'
-                              : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
-                          }`}
-                        >
-                          <MapPin size={18} />
-                          <span className="text-sm font-medium">Pickup</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFulfillmentType('delivery')}
-                          className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
-                            fulfillmentType === 'delivery'
-                              ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-400'
-                              : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
-                          }`}
-                        >
-                          <Truck size={18} />
-                          <span className="text-sm font-medium">Delivery</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Pickup Date/Time Selection */}
-                    {fulfillmentType === 'pickup' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-white/80 text-sm mb-1 block">Pickup Date</label>
-                          <input
-                            type="date"
-                            value={pickupDate}
-                            onChange={(e) => setPickupDate(e.target.value)}
-                            min={new Date().toISOString().split('T')[0]}
-                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-400/50"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-white/80 text-sm mb-1 block">Pickup Time</label>
-                          <select
-                            value={pickupTime}
-                            onChange={(e) => setPickupTime(e.target.value)}
-                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-400/50"
-                          >
-                            <option value="">Select time</option>
-                            {Array.from({ length: 24 }, (_, i) => {
-                              const hour = i.toString().padStart(2, '0');
-                              return (
-                                <option key={hour} value={`${hour}:00`}>
-                                  {hour}:00
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Delivery Address */}
-                    {fulfillmentType === 'delivery' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-white/80 text-sm mb-1 block">Street Address</label>
-                          <input
-                            type="text"
-                            value={deliveryAddress.street}
-                            onChange={(e) => setDeliveryAddress({ ...deliveryAddress, street: e.target.value })}
-                            placeholder="123 Main St"
-                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/40 focus:outline-none focus:border-cyan-400/50"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-white/80 text-sm mb-1 block">City</label>
-                            <input
-                              type="text"
-                              value={deliveryAddress.city}
-                              onChange={(e) => setDeliveryAddress({ ...deliveryAddress, city: e.target.value })}
-                              placeholder="Milford"
-                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/40 focus:outline-none focus:border-cyan-400/50"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-white/80 text-sm mb-1 block">State</label>
-                            <input
-                              type="text"
-                              value={deliveryAddress.state}
-                              onChange={(e) => setDeliveryAddress({ ...deliveryAddress, state: e.target.value })}
-                              placeholder="OH"
-                              maxLength={2}
-                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/40 focus:outline-none focus:border-cyan-400/50"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-white/80 text-sm mb-1 block">ZIP Code</label>
-                          <input
-                            type="text"
-                            value={deliveryAddress.zip}
-                            onChange={(e) => setDeliveryAddress({ ...deliveryAddress, zip: e.target.value })}
-                            placeholder="45150"
-                            maxLength={10}
-                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/40 focus:outline-none focus:border-cyan-400/50"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between text-white/80">
                       <span>Subtotal ({totalItems} {totalItems === 1 ? 'item' : 'items'})</span>
@@ -479,4 +330,3 @@ export default function CartPage() {
     </div>
   );
 }
-

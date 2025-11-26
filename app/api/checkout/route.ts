@@ -22,18 +22,6 @@ const checkoutSchema = z.object({
   productId: z.string().optional(),
   variationId: z.string().optional(),
   quantity: z.number().int().positive().optional(),
-  // Fulfillment options
-  fulfillment: z.object({
-    type: z.enum(['pickup', 'delivery']),
-    pickupDate: z.string().optional(),
-    pickupTime: z.string().optional(),
-    deliveryAddress: z.object({
-      street: z.string(),
-      city: z.string(),
-      state: z.string(),
-      zip: z.string(),
-    }).optional(),
-  }).optional(),
 }).refine(
   (data) => data.items || (data.productId && data.variationId),
   {
@@ -160,8 +148,7 @@ export async function POST(request: NextRequest) {
  */
 async function createCartCheckout(
   items: Array<{ productId: string; variationId: string; quantity: number }>,
-  locationId: string,
-  fulfillment?: { type: 'pickup' | 'delivery'; pickupDate?: string; pickupTime?: string; deliveryAddress?: { street: string; city: string; state: string; zip: string } }
+  locationId: string
 ) {
   try {
     const client = getClient();
@@ -201,41 +188,7 @@ async function createCartCheckout(
       return errorResponse('No valid items to checkout', { status: 400 });
     }
 
-    // Build fulfillment preferences
-    let fulfillmentPreferences: any = undefined;
-    if (fulfillment) {
-      if (fulfillment.type === 'pickup' && fulfillment.pickupDate && fulfillment.pickupTime) {
-        // Combine date and time for pickup scheduling
-        const pickupDateTime = new Date(`${fulfillment.pickupDate}T${fulfillment.pickupTime}`);
-        fulfillmentPreferences = {
-          fulfillmentType: 'PICKUP',
-          pickupDetails: {
-            scheduleType: 'SCHEDULED',
-            pickupAt: pickupDateTime.toISOString(),
-            prepTimeDuration: 'PT15M', // 15 minutes prep time (adjust as needed)
-            note: `Pickup scheduled for ${fulfillment.pickupDate} at ${fulfillment.pickupTime}`,
-          },
-        };
-      } else if (fulfillment.type === 'delivery' && fulfillment.deliveryAddress) {
-        fulfillmentPreferences = {
-          fulfillmentType: 'SHIPMENT',
-          shipmentDetails: {
-            recipient: {
-              displayName: 'Customer',
-              address: {
-                addressLine1: fulfillment.deliveryAddress.street,
-                locality: fulfillment.deliveryAddress.city,
-                administrativeDistrictLevel1: fulfillment.deliveryAddress.state,
-                postalCode: fulfillment.deliveryAddress.zip,
-                country: 'US',
-              },
-            },
-          },
-        };
-      }
-    }
-
-    // Create order with all line items and fulfillment preferences
+    // Create order with all line items
     const order = await createOrder({
       lineItems: lineItems.map(item => ({
         catalogObjectId: item.catalogObjectId,
@@ -246,7 +199,6 @@ async function createCartCheckout(
           currency: item.basePriceMoney.currency,
         },
       })),
-      fulfillmentPreferences,
     });
 
     if (!order?.id) {
@@ -254,8 +206,8 @@ async function createCartCheckout(
     }
 
     // Use Square Checkout API to create a payment link
-    // Pass the full order object and fulfillment info
-    const checkoutUrl = await createSquarePaymentLink(order, fulfillment);
+    // Pass the full order object
+    const checkoutUrl = await createSquarePaymentLink(order);
 
     return successResponse({
       checkoutUrl,
@@ -275,7 +227,7 @@ async function createCartCheckout(
  * Uses Square's CreatePaymentLink endpoint to generate a checkout URL
  * @param order - The Square Order object (must include locationId, but NOT id - it's read-only)
  */
-async function createSquarePaymentLink(order: any, fulfillment?: { type: 'pickup' | 'delivery'; pickupDate?: string; pickupTime?: string; deliveryAddress?: { street: string; city: string; state: string; zip: string } }): Promise<string> {
+async function createSquarePaymentLink(order: any): Promise<string> {
   const client = getClient();
 
   try {
@@ -327,7 +279,7 @@ async function createSquarePaymentLink(order: any, fulfillment?: { type: 'pickup
       idempotencyKey,
       order: orderForCheckout, // Order without read-only fields
       checkoutOptions: {
-        askForShippingAddress: fulfillment?.type === 'delivery', // Ask for shipping if delivery
+        askForShippingAddress: false,
         allowTipping: false, // Set to true if you want to allow tips
       },
     });

@@ -21,7 +21,6 @@ export interface CreateOrderData {
   lineItems: OrderLineItem[];
   customerId?: string;
   referenceId?: string;
-  fulfillmentPreferences?: any; // Square fulfillment preferences (pickup/delivery)
 }
 
 /**
@@ -34,28 +33,21 @@ export async function createOrder(orderData: CreateOrderData) {
   const client = getClient();
   
   try {
-    const orderPayload: any = {
-      locationId,
-      lineItems: orderData.lineItems.map(item => ({
-        catalogObjectId: item.catalogObjectId,
-        name: item.name,
-        quantity: item.quantity,
-        basePriceMoney: {
-          amount: BigInt(item.basePriceMoney.amount),
-          currency: item.basePriceMoney.currency as any,
-        },
-      })) as any,
-      referenceId: orderData.referenceId,
-      customerId: orderData.customerId,
-    };
-
-    // Add fulfillment preferences if provided
-    if (orderData.fulfillmentPreferences) {
-      orderPayload.fulfillments = [orderData.fulfillmentPreferences];
-    }
-
     const response = await client.orders.create({
-      order: orderPayload,
+      order: {
+        locationId,
+        lineItems: orderData.lineItems.map(item => ({
+          catalogObjectId: item.catalogObjectId,
+          name: item.name,
+          quantity: item.quantity,
+          basePriceMoney: {
+            amount: BigInt(item.basePriceMoney.amount),
+            currency: item.basePriceMoney.currency as any,
+          },
+        })) as any,
+        referenceId: orderData.referenceId,
+        customerId: orderData.customerId,
+      },
     });
 
     return response.order;
