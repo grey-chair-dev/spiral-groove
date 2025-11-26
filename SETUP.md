@@ -10,13 +10,11 @@
 - Database connection string configured
 - Client portal authentication configured (`CLIENT_PASSWORD`, `AUTH_SECRET`)
 - Make.com webhook configured
-- Square API credentials configured (Application ID, Access Token, Environment, Location ID)
-- Square webhook subscription configured (20 events: Orders, Payments, Refunds, Customers, Inventory, Catalog, Loyalty)
-- Square Webhook Signature Key configured
+- Square API credentials configured (Application ID, Access Token, Environment, Location ID, Webhook Signature Key)
+- Square webhook handler created and ready
 
 **✅ Completed (Optional):**
 - Square API credentials configured ✅
-- Square webhook subscription configured ✅ (20 events selected)
 
 **Ready to start development!** ✅
 
@@ -87,9 +85,9 @@ Visit: `http://localhost:3000`
 2. Enter your `CLIENT_PASSWORD`
 3. Should redirect to `/home`
 
-## 📚 Full Documentation
+## 📚 Documentation
 
-See [docs/environment-setup.md](./docs/environment-setup.md) for detailed instructions.
+See [README.md](./README.md) for full documentation.
 
 ## 🔒 Security Reminders
 

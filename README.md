@@ -21,18 +21,21 @@ npm run dev
   - Neon-themed gradient background
 
 ### API Routes
-- **`/api/newsletter`** - Email signup endpoint that:
-  - Validates input with Zod
-  - Saves to Neon PostgreSQL database
-  - Optionally sends to Make.com webhook
-  - Handles both camelCase and snake_case database schemas
+- **`/api/newsletter`** - Email signup endpoint
+- **`/api/products`** - Get Square catalog products (cached)
+- **`/api/products/[id]`** - Get single product by Square ID
+- **`/api/inventory`** - Get inventory counts (cached)
+- **`/api/square/test`** - Test Square SDK integration
+- **`/api/square/webhooks`** - Square webhook handler
 
 ### Features
 - ✅ Mobile-first responsive design
 - ✅ Email capture with database storage
-- ✅ Webhook integration (Make.com)
+- ✅ Square API integration with caching
+- ✅ Product catalog sync (cached)
+- ✅ Webhook integration (Square, Make.com)
 - ✅ SEO metadata and structured data
-- ✅ Route protection (only coming soon page accessible)
+- ✅ Route protection (client portal)
 - ✅ TypeScript for type safety
 
 ## 🛠️ Tech Stack
@@ -79,7 +82,7 @@ MAKE_WEBHOOK_URL=your_make_webhook_url
 
 ## 📊 Database Schema
 
-The `email_list` table should have:
+### Email List Table
 - `id` (auto-incrementing primary key)
 - `firstName` or `first_name` (optional)
 - `lastName` or `last_name` (optional)
@@ -88,7 +91,12 @@ The `email_list` table should have:
 - `createdAt` or `created_at` (timestamp)
 - `updatedAt` or `updated_at` (timestamp)
 
-The code automatically handles both camelCase (Prisma default) and snake_case naming conventions.
+The code automatically handles both camelCase and snake_case naming conventions.
+
+### Square Integration
+- Products are cached (1 hour) - no database needed
+- Inventory is cached (5 minutes)
+- Use Square IDs directly in URLs (clean, short)
 
 ## 🚦 Available Scripts
 

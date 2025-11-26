@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { CartProvider } from "@/contexts/CartContext";
 
 // Configure Google Fonts
 const inter = Inter({
@@ -77,7 +78,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: JSON.stringify(localBusinessSchema),
           }}
         />
-        {children}
+        <CartProvider>
+          {children}
+        </CartProvider>
       </body>
     </html>
   );

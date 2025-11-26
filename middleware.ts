@@ -12,8 +12,8 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/') {
     response = NextResponse.next();
   }
-  // Protect /home route - check authentication
-  else if (pathname === '/home') {
+  // Protect /home, /catalog, /products, and /cart routes - check authentication
+  else if (pathname === '/home' || pathname.startsWith('/catalog/') || pathname.startsWith('/products/') || pathname === '/cart') {
     const sessionCookie = request.cookies.get('client_session');
     
     if (!sessionCookie?.value) {
@@ -46,7 +46,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/manifest.json') ||
     pathname.startsWith('/robots.txt') ||
     pathname.startsWith('/sitemap.xml') ||
-    pathname.startsWith('/privacy')
+    pathname.startsWith('/privacy') ||
+    pathname.startsWith('/.well-known')
   ) {
     response = NextResponse.next();
   }
