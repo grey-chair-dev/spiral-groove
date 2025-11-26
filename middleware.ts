@@ -50,6 +50,11 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/.well-known')
   ) {
     response = NextResponse.next();
+    
+    // Skip security headers for .well-known files (needed for Apple Pay verification)
+    if (pathname.startsWith('/.well-known')) {
+      return response;
+    }
   }
   // Redirect all other routes to the coming soon page
   else {
