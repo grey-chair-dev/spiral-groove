@@ -3,17 +3,26 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { LogOut, Music, ArrowLeft, ShoppingCart, Plus, Minus, Trash2, Loader2 } from "lucide-react";
+import { LogOut, Music, ArrowLeft, ShoppingCart, Trash2, Plus, Minus, Loader2, Calendar, MapPin, Truck } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import type { FormattedProduct } from "@/lib/types/square";
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, updateQuantity, removeFromCart, clearCart, getTotalItems, getTotalPrice } = useCart();
+  const { items, removeFromCart, updateQuantity, clearCart, getTotalItems, getTotalPrice } = useCart();
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fulfillmentType, setFulfillmentType] = useState<'pickup' | 'delivery'>('pickup');
+  const [pickupDate, setPickupDate] = useState<string>('');
+  const [pickupTime, setPickupTime] = useState<string>('');
+  const [deliveryAddress, setDeliveryAddress] = useState({
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
+  });
 
   useEffect(() => {
     checkAuth();
@@ -34,16 +43,18 @@ export default function CartPage() {
     }
   };
 
-  const handleQuantityChange = (productId: string, variationId: string, newQuantity: number) => {
-    if (newQuantity < 1) {
-      removeFromCart(productId, variationId);
-    } else {
-      updateQuantity(productId, variationId, newQuantity);
-    }
-  };
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
 
-  const handleRemove = (productId: string, variationId: string) => {
-    removeFromCart(productId, variationId);
+      if (response.ok) {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const handleCheckout = async () => {
@@ -56,14 +67,27 @@ export default function CartPage() {
     setError(null);
 
     try {
-      // Create checkout with all cart items
-      // For now, we'll create a checkout for the first item
-      // In a full implementation, you'd want to create an order with all items
-      const firstItem = items[0];
-      const variation = firstItem.product.variations.find(v => v.id === firstItem.variationId);
-      
-      if (!variation) {
-        throw new Error('Invalid product variation');
+      // Create checkout for all items in cart
+      const checkoutItems = items.map(item => ({
+        productId: item.product.id,
+        variationId: item.variationId,
+        quantity: item.quantity,
+      }));
+
+      // Validate fulfillment options
+      if (fulfillmentType === 'pickup' && (!pickupDate || !pickupTime)) {
+        setError('Please select a pickup date and time');
+        setCheckingOut(false);
+        return;
+      }
+
+      if (fulfillmentType === 'delivery') {
+        const { street, city, state, zip } = deliveryAddress;
+        if (!street || !city || !state || !zip) {
+          setError('Please provide a complete delivery address');
+          setCheckingOut(false);
+          return;
+        }
       }
 
       const response = await fetch('/api/checkout', {
@@ -72,9 +96,18 @@ export default function CartPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          productId: firstItem.product.id,
-          variationId: firstItem.variationId,
-          quantity: firstItem.quantity,
+          items: checkoutItems,
+          // Include first item for backward compatibility
+          productId: items[0].product.id,
+          variationId: items[0].variationId,
+          quantity: items[0].quantity,
+          // Fulfillment options
+          fulfillment: {
+            type: fulfillmentType,
+            pickupDate: fulfillmentType === 'pickup' ? pickupDate : undefined,
+            pickupTime: fulfillmentType === 'pickup' ? pickupTime : undefined,
+            deliveryAddress: fulfillmentType === 'delivery' ? deliveryAddress : undefined,
+          },
         }),
       });
 
@@ -98,20 +131,6 @@ export default function CartPage() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        router.push('/');
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -124,8 +143,8 @@ export default function CartPage() {
     return null;
   }
 
-  const totalPrice = getTotalPrice();
   const totalItems = getTotalItems();
+  const totalPrice = getTotalPrice();
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -163,12 +182,12 @@ export default function CartPage() {
             <div className="text-center py-20">
               <ShoppingCart size={64} className="text-white/20 mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-2">Your cart is empty</h2>
-              <p className="text-white/60 mb-6">Add some items to get started!</p>
+              <p className="text-white/60 mb-6">Add some products to get started!</p>
               <button
                 onClick={() => router.push('/home')}
                 className="px-6 py-3 bg-cyan-500/20 border border-cyan-400/50 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors font-semibold"
               >
-                Browse Products
+                Continue Shopping
               </button>
             </div>
           ) : (
@@ -187,18 +206,18 @@ export default function CartPage() {
                   return (
                     <div
                       key={`${item.product.id}-${item.variationId}`}
-                      className="bg-white/5 border border-white/10 rounded-lg p-4 sm:p-6 hover:bg-white/10 transition-colors"
+                      className="bg-white/5 border border-white/10 rounded-lg p-4 sm:p-6"
                     >
-                      <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="flex gap-4">
                         {/* Product Image */}
-                        <div className="relative w-full sm:w-24 h-24 bg-black/20 rounded-lg overflow-hidden flex-shrink-0">
+                        <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 bg-black/20 rounded-lg overflow-hidden">
                           {item.product.image ? (
                             <Image
                               src={item.product.image}
                               alt={item.product.name}
                               fill
                               className="object-cover"
-                              sizes="96px"
+                              sizes="128px"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -211,14 +230,18 @@ export default function CartPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex-1 min-w-0">
-                              {item.product.artist && (
-                                <p className="text-white/70 text-sm mb-1 line-clamp-1">
-                                  {item.product.artist}
-                                </p>
+                              {item.product.artist ? (
+                                <>
+                                  <p className="text-white/70 text-sm mb-1">{item.product.artist}</p>
+                                  <h3 className="text-white font-semibold text-base sm:text-lg mb-1">
+                                    {item.product.album}
+                                  </h3>
+                                </>
+                              ) : (
+                                <h3 className="text-white font-semibold text-base sm:text-lg mb-1">
+                                  {item.product.album}
+                                </h3>
                               )}
-                              <h3 className="text-white font-semibold text-lg mb-1 line-clamp-2">
-                                {item.product.album}
-                              </h3>
                               {variation?.itemVariationData?.name && (
                                 <p className="text-white/60 text-xs">
                                   {variation.itemVariationData.name}
@@ -226,33 +249,37 @@ export default function CartPage() {
                               )}
                             </div>
                             <button
-                              onClick={() => handleRemove(item.product.id, item.variationId)}
-                              className="ml-4 p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-red-400"
+                              onClick={() => removeFromCart(item.product.id, item.variationId)}
+                              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-red-400 ml-2"
                               aria-label="Remove item"
                             >
                               <Trash2 size={18} />
                             </button>
                           </div>
 
+                          {/* Quantity and Price */}
                           <div className="flex items-center justify-between mt-4">
                             <div className="flex items-center gap-3">
-                              <button
-                                onClick={() => handleQuantityChange(item.product.id, item.variationId, item.quantity - 1)}
-                                className="p-1.5 bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-colors"
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus size={16} />
-                              </button>
-                              <span className="text-white font-semibold w-8 text-center">
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => handleQuantityChange(item.product.id, item.variationId, item.quantity + 1)}
-                                className="p-1.5 bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-colors"
-                                aria-label="Increase quantity"
-                              >
-                                <Plus size={16} />
-                              </button>
+                              <span className="text-white/60 text-sm">Quantity:</span>
+                              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg">
+                                <button
+                                  onClick={() => updateQuantity(item.product.id, item.variationId, item.quantity - 1)}
+                                  className="p-1.5 hover:bg-white/10 transition-colors"
+                                  aria-label="Decrease quantity"
+                                >
+                                  <Minus size={16} />
+                                </button>
+                                <span className="px-3 py-1 text-sm font-medium min-w-[2rem] text-center">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  onClick={() => updateQuantity(item.product.id, item.variationId, item.quantity + 1)}
+                                  className="p-1.5 hover:bg-white/10 transition-colors"
+                                  aria-label="Increase quantity"
+                                >
+                                  <Plus size={16} />
+                                </button>
+                              </div>
                             </div>
                             <div className="text-right">
                               <p className="text-cyan-400 font-bold text-lg">
@@ -273,27 +300,142 @@ export default function CartPage() {
               {/* Order Summary */}
               <div className="lg:col-span-1">
                 <div className="bg-white/5 border border-white/10 rounded-lg p-6 sticky top-24">
-                  <h2 className="text-2xl font-bold mb-6">Order Summary</h2>
+                  <h2 className="text-xl font-bold mb-4">Order Summary</h2>
                   
-                  <div className="space-y-4 mb-6">
+                  {/* Fulfillment Options */}
+                  <div className="mb-6 space-y-4">
+                    <div>
+                      <label className="text-white font-medium mb-2 block">Fulfillment Method</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFulfillmentType('pickup')}
+                          className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
+                            fulfillmentType === 'pickup'
+                              ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-400'
+                              : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                          }`}
+                        >
+                          <MapPin size={18} />
+                          <span className="text-sm font-medium">Pickup</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFulfillmentType('delivery')}
+                          className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
+                            fulfillmentType === 'delivery'
+                              ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-400'
+                              : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                          }`}
+                        >
+                          <Truck size={18} />
+                          <span className="text-sm font-medium">Delivery</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Pickup Date/Time Selection */}
+                    {fulfillmentType === 'pickup' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-white/80 text-sm mb-1 block">Pickup Date</label>
+                          <input
+                            type="date"
+                            value={pickupDate}
+                            onChange={(e) => setPickupDate(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-400/50"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-white/80 text-sm mb-1 block">Pickup Time</label>
+                          <select
+                            value={pickupTime}
+                            onChange={(e) => setPickupTime(e.target.value)}
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-400/50"
+                          >
+                            <option value="">Select time</option>
+                            {Array.from({ length: 24 }, (_, i) => {
+                              const hour = i.toString().padStart(2, '0');
+                              return (
+                                <option key={hour} value={`${hour}:00`}>
+                                  {hour}:00
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Delivery Address */}
+                    {fulfillmentType === 'delivery' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-white/80 text-sm mb-1 block">Street Address</label>
+                          <input
+                            type="text"
+                            value={deliveryAddress.street}
+                            onChange={(e) => setDeliveryAddress({ ...deliveryAddress, street: e.target.value })}
+                            placeholder="123 Main St"
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/40 focus:outline-none focus:border-cyan-400/50"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-white/80 text-sm mb-1 block">City</label>
+                            <input
+                              type="text"
+                              value={deliveryAddress.city}
+                              onChange={(e) => setDeliveryAddress({ ...deliveryAddress, city: e.target.value })}
+                              placeholder="Milford"
+                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/40 focus:outline-none focus:border-cyan-400/50"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-white/80 text-sm mb-1 block">State</label>
+                            <input
+                              type="text"
+                              value={deliveryAddress.state}
+                              onChange={(e) => setDeliveryAddress({ ...deliveryAddress, state: e.target.value })}
+                              placeholder="OH"
+                              maxLength={2}
+                              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/40 focus:outline-none focus:border-cyan-400/50"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-white/80 text-sm mb-1 block">ZIP Code</label>
+                          <input
+                            type="text"
+                            value={deliveryAddress.zip}
+                            onChange={(e) => setDeliveryAddress({ ...deliveryAddress, zip: e.target.value })}
+                            placeholder="45150"
+                            maxLength={10}
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/40 focus:outline-none focus:border-cyan-400/50"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3 mb-6">
                     <div className="flex justify-between text-white/80">
                       <span>Subtotal ({totalItems} {totalItems === 1 ? 'item' : 'items'})</span>
-                      <span className="font-semibold">${totalPrice.toFixed(2)}</span>
+                      <span>${totalPrice.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-white/80">
                       <span>Tax</span>
-                      <span className="font-semibold">Calculated at checkout</span>
+                      <span>Calculated at checkout</span>
                     </div>
-                    <div className="border-t border-white/10 pt-4">
-                      <div className="flex justify-between text-xl font-bold">
-                        <span>Total</span>
-                        <span className="text-cyan-400">${totalPrice.toFixed(2)}</span>
-                      </div>
+                    <div className="border-t border-white/10 pt-3 flex justify-between text-lg font-bold">
+                      <span>Total</span>
+                      <span className="text-cyan-400">${totalPrice.toFixed(2)}</span>
                     </div>
                   </div>
 
                   {error && (
-                    <div className="mb-4 bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
+                    <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm mb-4">
                       {error}
                     </div>
                   )}
@@ -301,7 +443,7 @@ export default function CartPage() {
                   <button
                     onClick={handleCheckout}
                     disabled={checkingOut || items.length === 0}
-                    className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-cyan-500/20 border-2 border-cyan-400/50 text-cyan-400 rounded-lg hover:bg-cyan-500/30 hover:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-lg"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-cyan-500/20 border-2 border-cyan-400/50 text-cyan-400 rounded-lg hover:bg-cyan-500/30 hover:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-lg"
                   >
                     {checkingOut ? (
                       <>
@@ -319,6 +461,15 @@ export default function CartPage() {
                   >
                     Continue Shopping
                   </button>
+
+                  {items.length > 0 && (
+                    <button
+                      onClick={clearCart}
+                      className="w-full mt-3 px-4 py-2 text-white/60 hover:text-red-400 transition-colors text-sm"
+                    >
+                      Clear Cart
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -12,10 +12,34 @@ export const dynamic = 'force-dynamic';
 
 // Validation schema for checkout request
 const checkoutSchema = z.object({
-  productId: z.string().min(1, 'Product ID is required'),
-  variationId: z.string().min(1, 'Variation ID is required'),
-  quantity: z.number().int().positive().default(1),
-});
+  // Optional: support multiple items (cart checkout)
+  items: z.array(z.object({
+    productId: z.string(),
+    variationId: z.string(),
+    quantity: z.number().int().positive(),
+  })).optional(),
+  // Single item checkout (for backward compatibility)
+  productId: z.string().optional(),
+  variationId: z.string().optional(),
+  quantity: z.number().int().positive().optional(),
+  // Fulfillment options
+  fulfillment: z.object({
+    type: z.enum(['pickup', 'delivery']),
+    pickupDate: z.string().optional(),
+    pickupTime: z.string().optional(),
+    deliveryAddress: z.object({
+      street: z.string(),
+      city: z.string(),
+      state: z.string(),
+      zip: z.string(),
+    }).optional(),
+  }).optional(),
+}).refine(
+  (data) => data.items || (data.productId && data.variationId),
+  {
+    message: 'Either items array or productId/variationId is required',
+  }
+);
 
 // POST /api/checkout
 // Create a Square checkout payment link for a product
@@ -33,8 +57,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { productId, variationId, quantity } = validationResult.data;
+    const { productId, variationId, quantity, items } = validationResult.data;
     const locationId = getLocationId();
+
+    // If items array is provided, create checkout for multiple items (cart checkout)
+    if (items && items.length > 0) {
+      return await createCartCheckout(items, locationId);
+    }
+
+    // Single item checkout (backward compatibility)
+    if (!productId || !variationId) {
+      return badRequestResponse('productId and variationId are required for single item checkout');
+    }
+
     const client = getClient();
 
     // Fetch the product to get details
@@ -64,7 +99,8 @@ export async function POST(request: NextRequest) {
       : BigInt(Number(priceMoney.amount));
 
     // Calculate total amount (price * quantity)
-    const totalAmount = amount * BigInt(quantity);
+    const itemQuantity = quantity || 1;
+    const totalAmount = amount * BigInt(itemQuantity);
 
     // Create a payment link using Square's Checkout API
     // Square Checkout creates a hosted checkout page
@@ -81,7 +117,7 @@ export async function POST(request: NextRequest) {
         locationId,
         productId,
         variationId,
-        quantity,
+        quantity: itemQuantity,
         amount: totalAmount,
         currency: priceMoney.currency || 'USD',
         productName: product.itemData?.name || 'Product',
@@ -120,9 +156,201 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Create a Square checkout link
- * Creates an order and returns a checkout URL
- * Note: This requires Square Online to be enabled or Payment Links API setup
+ * Create checkout for multiple cart items
+ */
+async function createCartCheckout(
+  items: Array<{ productId: string; variationId: string; quantity: number }>,
+  locationId: string,
+  fulfillment?: { type: 'pickup' | 'delivery'; pickupDate?: string; pickupTime?: string; deliveryAddress?: { street: string; city: string; state: string; zip: string } }
+) {
+  try {
+    const client = getClient();
+    const lineItems: any[] = [];
+
+    // Fetch all products and build line items
+    for (const item of items) {
+      const productResult = await getCatalogItem(item.productId);
+      const product = productResult.objects?.[0];
+      
+      if (!product) {
+        continue; // Skip invalid products
+      }
+
+      const variation = product.itemData?.variations?.find(v => v.id === item.variationId);
+      if (!variation || !variation.itemVariationData?.priceMoney) {
+        continue; // Skip invalid variations
+      }
+
+      const priceMoney = variation.itemVariationData.priceMoney;
+      const amount = typeof priceMoney.amount === 'bigint' 
+        ? priceMoney.amount 
+        : BigInt(Number(priceMoney.amount));
+
+      lineItems.push({
+        catalogObjectId: item.variationId,
+        name: product.itemData?.name || 'Product',
+        quantity: item.quantity.toString(),
+        basePriceMoney: {
+          amount: Number(amount),
+          currency: priceMoney.currency || 'USD',
+        },
+      });
+    }
+
+    if (lineItems.length === 0) {
+      return errorResponse('No valid items to checkout', { status: 400 });
+    }
+
+    // Build fulfillment preferences
+    let fulfillmentPreferences: any = undefined;
+    if (fulfillment) {
+      if (fulfillment.type === 'pickup' && fulfillment.pickupDate && fulfillment.pickupTime) {
+        // Combine date and time for pickup scheduling
+        const pickupDateTime = new Date(`${fulfillment.pickupDate}T${fulfillment.pickupTime}`);
+        fulfillmentPreferences = {
+          fulfillmentType: 'PICKUP',
+          pickupDetails: {
+            scheduleType: 'SCHEDULED',
+            pickupAt: pickupDateTime.toISOString(),
+            prepTimeDuration: 'PT15M', // 15 minutes prep time (adjust as needed)
+            note: `Pickup scheduled for ${fulfillment.pickupDate} at ${fulfillment.pickupTime}`,
+          },
+        };
+      } else if (fulfillment.type === 'delivery' && fulfillment.deliveryAddress) {
+        fulfillmentPreferences = {
+          fulfillmentType: 'SHIPMENT',
+          shipmentDetails: {
+            recipient: {
+              displayName: 'Customer',
+              address: {
+                addressLine1: fulfillment.deliveryAddress.street,
+                locality: fulfillment.deliveryAddress.city,
+                administrativeDistrictLevel1: fulfillment.deliveryAddress.state,
+                postalCode: fulfillment.deliveryAddress.zip,
+                country: 'US',
+              },
+            },
+          },
+        };
+      }
+    }
+
+    // Create order with all line items and fulfillment preferences
+    const order = await createOrder({
+      lineItems: lineItems.map(item => ({
+        catalogObjectId: item.catalogObjectId,
+        name: item.name,
+        quantity: item.quantity,
+        basePriceMoney: {
+          amount: item.basePriceMoney.amount,
+          currency: item.basePriceMoney.currency,
+        },
+      })),
+      fulfillmentPreferences,
+    });
+
+    if (!order?.id) {
+      throw new Error('Order was not created');
+    }
+
+    // Use Square Checkout API to create a payment link
+    // Pass the full order object and fulfillment info
+    const checkoutUrl = await createSquarePaymentLink(order, fulfillment);
+
+    return successResponse({
+      checkoutUrl,
+      orderId: order.id,
+    });
+  } catch (error: any) {
+    console.error('Cart checkout creation failed:', error);
+    return errorResponse(
+      `Failed to create checkout: ${error.message}`,
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Create a Square payment link using the Checkout API
+ * Uses Square's CreatePaymentLink endpoint to generate a checkout URL
+ * @param order - The Square Order object (must include locationId, but NOT id - it's read-only)
+ */
+async function createSquarePaymentLink(order: any, fulfillment?: { type: 'pickup' | 'delivery'; pickupDate?: string; pickupTime?: string; deliveryAddress?: { street: string; city: string; state: string; zip: string } }): Promise<string> {
+  const client = getClient();
+
+  try {
+    // Use Square Checkout API to create a payment link
+    // The Checkout API requires an idempotency key
+    const orderId = order.id || `order-${Date.now()}`;
+    const idempotencyKey = `${orderId}-${Date.now()}`;
+
+    // Create a clean order object without read-only fields
+    // Square doesn't allow setting id, version, createdAt, updatedAt, etc.
+    // Also need to clean line items - remove calculated fields like variation_total_price_money
+    const cleanLineItems = (order.lineItems || []).map((item: any) => {
+      // Only include writable fields for line items
+      const cleanItem: any = {};
+      
+      if (item.catalogObjectId) cleanItem.catalogObjectId = item.catalogObjectId;
+      if (item.catalogVersion) cleanItem.catalogVersion = item.catalogVersion;
+      if (item.name) cleanItem.name = item.name;
+      if (item.quantity) cleanItem.quantity = item.quantity;
+      if (item.basePriceMoney) cleanItem.basePriceMoney = item.basePriceMoney;
+      if (item.variationName) cleanItem.variationName = item.variationName;
+      if (item.note) cleanItem.note = item.note;
+      if (item.modifiers) cleanItem.modifiers = item.modifiers;
+      if (item.taxes) cleanItem.taxes = item.taxes;
+      if (item.discounts) cleanItem.discounts = item.discounts;
+      
+      // Exclude read-only fields:
+      // - uid (auto-generated)
+      // - variationTotalPriceMoney (calculated)
+      // - grossSalesMoney (calculated)
+      // - totalTaxMoney (calculated)
+      // - totalDiscountMoney (calculated)
+      // - totalMoney (calculated)
+      
+      return cleanItem;
+    });
+
+    const orderForCheckout = {
+      locationId: order.locationId,
+      lineItems: cleanLineItems,
+      referenceId: order.referenceId,
+      customerId: order.customerId,
+      // Exclude: id, version, createdAt, updatedAt, closedAt, state
+    };
+
+    // Access paymentLinks through checkout.paymentLinks
+    // Pass the order object without read-only fields
+    const response = await client.checkout.paymentLinks.create({
+      idempotencyKey,
+      order: orderForCheckout, // Order without read-only fields
+      checkoutOptions: {
+        askForShippingAddress: fulfillment?.type === 'delivery', // Ask for shipping if delivery
+        allowTipping: false, // Set to true if you want to allow tips
+      },
+    });
+
+    // The payment link URL is in the format: https://square.link/u/{short_url_id}
+    // Square SDK returns the response directly
+    if (response.paymentLink?.url) {
+      return response.paymentLink.url;
+    }
+
+    throw new Error('Payment link URL not returned from Square');
+  } catch (error: any) {
+    console.error('Square Checkout API error:', error);
+    throw new Error(
+      `Failed to create payment link: ${error.message}. ` +
+      'Please ensure Square Checkout API is enabled and properly configured.'
+    );
+  }
+}
+
+/**
+ * Create a Square checkout link (single item)
+ * Creates an order and returns a checkout URL using Square Checkout API
  */
 async function createSquareCheckoutLink(params: {
   locationId: string;
@@ -133,7 +361,6 @@ async function createSquareCheckoutLink(params: {
   currency: string;
   productName: string;
 }): Promise<string> {
-  const client = getClient();
   const { locationId, variationId, quantity, amount, currency, productName } = params;
 
   try {
@@ -152,22 +379,19 @@ async function createSquareCheckoutLink(params: {
       ],
     });
 
-    const orderId = order?.id;
-    
-    if (!orderId) {
+    if (!order?.id) {
       throw new Error('Order was not created');
     }
 
-    // For Square Online Checkout, construct the checkout URL
-    // Replace with your actual Square Online site URL
-    const squareOnlineUrl = process.env.SQUARE_ONLINE_URL || 'https://your-store.square.site';
-    return `${squareOnlineUrl}/checkout?order_id=${orderId}`;
+    // Use Square Checkout API to create a payment link
+    // Pass the full order object
+    return await createSquarePaymentLink(order);
     
   } catch (error: any) {
     console.error('Square checkout creation failed:', error);
     throw new Error(
       `Failed to create checkout: ${error.message}. ` +
-      'Please ensure Square Online is enabled or configure SQUARE_ONLINE_URL environment variable.'
+      'Please ensure Square Checkout API is enabled and properly configured.'
     );
   }
 }

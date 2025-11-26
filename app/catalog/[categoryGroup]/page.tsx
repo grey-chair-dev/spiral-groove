@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { LogOut, Music, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Music, ArrowLeft, ShoppingCart } from "lucide-react";
 import ProductGrid from "@/components/ProductGrid";
 import type { FormattedProduct } from "@/lib/types/square";
 import { CategoryGroups } from "@/lib/types/categories";
+import { useCart } from "@/contexts/CartContext";
 
 const CATEGORY_GROUP_NAMES: Record<string, string> = {
   vinyl: 'Vinyl',
@@ -25,6 +27,7 @@ export default function CategoryGroupPage() {
   const router = useRouter();
   const params = useParams();
   const categoryGroup = params?.categoryGroup as string;
+  const { getTotalItems } = useCart();
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [initialProducts, setInitialProducts] = useState<FormattedProduct[]>([]);

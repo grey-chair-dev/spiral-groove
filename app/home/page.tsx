@@ -116,7 +116,7 @@ export default function HomePage() {
             <ShoppingCart size={18} />
             <span className="hidden sm:inline">Cart</span>
             {getTotalItems() > 0 && (
-              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-cyan-500 text-black text-xs font-bold rounded-full min-w-[18px] text-center">
+              <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-cyan-500 text-white rounded-full text-xs font-bold min-w-[1.25rem] text-center">
                 {getTotalItems()}
               </span>
             )}
