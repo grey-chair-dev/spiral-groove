@@ -1,6 +1,7 @@
 import { getClient, requireSquareConfig } from './client';
 import { ApiError, NotFoundError } from '@/lib/api/errors';
 import type { SquareCatalogObject } from '@/lib/types/square';
+import { withSquareRetry } from '@/lib/utils/retry';
 
 /**
  * Default pagination limit
@@ -59,13 +60,15 @@ export async function searchCatalogItems(
       }
     }
     
-    const response = await client.catalog.search({
-      objectTypes,
-      limit,
-      query,
-      cursor: options.cursor,
-      includeRelatedObjects: true,  // Include categories in the response
-    });
+    const response = await withSquareRetry(() =>
+      client.catalog.search({
+        objectTypes,
+        limit,
+        query,
+        cursor: options.cursor,
+        includeRelatedObjects: true,  // Include categories in the response
+      })
+    );
 
     return {
       objects: response.objects as SquareCatalogObject[] | undefined,
@@ -100,10 +103,12 @@ export async function getCatalogItem(
 
   try {
     const client = getClient();
-    const response = await client.catalog.batchGet({
-      objectIds: [itemId],
-      includeRelatedObjects: true,
-    });
+    const response = await withSquareRetry(() =>
+      client.catalog.batchGet({
+        objectIds: [itemId],
+        includeRelatedObjects: true,
+      })
+    );
 
     const objects = response.objects as SquareCatalogObject[] | undefined;
     
@@ -170,11 +175,13 @@ export async function getCategories(): Promise<Map<string, string>> {
     const client = getClient();
     
     do {
-      const response = await client.catalog.search({
-        objectTypes: ['CATEGORY'],
-        limit: DEFAULT_LIMIT,
-        cursor,
-      });
+      const response = await withSquareRetry(() =>
+        client.catalog.search({
+          objectTypes: ['CATEGORY'],
+          limit: DEFAULT_LIMIT,
+          cursor,
+        })
+      );
 
       if (response.objects) {
         for (const obj of response.objects) {

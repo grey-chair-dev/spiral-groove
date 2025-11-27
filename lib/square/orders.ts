@@ -1,5 +1,6 @@
 import { requireSquareConfig, getLocationId, getClient } from './client';
 import { ApiError } from '@/lib/api/errors';
+import { withSquareRetry } from '@/lib/utils/retry';
 
 /**
  * Order line item data
@@ -33,22 +34,24 @@ export async function createOrder(orderData: CreateOrderData) {
   const client = getClient();
   
   try {
-    const response = await client.orders.create({
-      order: {
-        locationId,
-        lineItems: orderData.lineItems.map(item => ({
-          catalogObjectId: item.catalogObjectId,
-          name: item.name,
-          quantity: item.quantity,
-          basePriceMoney: {
-            amount: BigInt(item.basePriceMoney.amount),
-            currency: item.basePriceMoney.currency as any,
-          },
-        })) as any,
-        referenceId: orderData.referenceId,
-        customerId: orderData.customerId,
-      },
-    });
+    const response = await withSquareRetry(() =>
+      client.orders.create({
+        order: {
+          locationId,
+          lineItems: orderData.lineItems.map(item => ({
+            catalogObjectId: item.catalogObjectId,
+            name: item.name,
+            quantity: item.quantity,
+            basePriceMoney: {
+              amount: BigInt(item.basePriceMoney.amount),
+              currency: item.basePriceMoney.currency as any,
+            },
+          })) as any,
+          referenceId: orderData.referenceId,
+          customerId: orderData.customerId,
+        },
+      })
+    );
 
     return response.order;
   } catch (error: any) {
@@ -73,9 +76,11 @@ export async function getOrder(orderId: string) {
 
   try {
     const client = getClient();
-    const response = await client.orders.batchGet({
-      orderIds: [orderId],
-    });
+    const response = await withSquareRetry(() =>
+      client.orders.batchGet({
+        orderIds: [orderId],
+      })
+    );
 
     return response.orders?.[0];
   } catch (error: any) {
@@ -119,12 +124,14 @@ export async function searchOrders(options?: SearchOrdersOptions) {
   const client = getClient();
 
   try {
-    const response = await client.orders.search({
-      locationIds: [locationId],
-      limit: options?.limit || 100,
-      cursor: options?.cursor,
-      query: options?.query as any,
-    });
+    const response = await withSquareRetry(() =>
+      client.orders.search({
+        locationIds: [locationId],
+        limit: options?.limit || 100,
+        cursor: options?.cursor,
+        query: options?.query as any,
+      })
+    );
 
     return response;
   } catch (error: any) {

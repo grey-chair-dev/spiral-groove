@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getClient, requireSquareConfig, getLocationId } from '@/lib/square/client';
+import { getClient, requireSquareConfig } from '@/lib/square/client';
 import { getCatalogItem } from '@/lib/square/catalog';
 import { createOrder } from '@/lib/square/orders';
 import { successResponse, errorResponse, badRequestResponse } from '@/lib/api/response';
@@ -46,11 +46,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { productId, variationId, quantity, items } = validationResult.data;
-    const locationId = getLocationId();
 
     // If items array is provided, create checkout for multiple items (cart checkout)
     if (items && items.length > 0) {
-      return await createCartCheckout(items, locationId);
+      return await createCartCheckout(items);
     }
 
     // Single item checkout (backward compatibility)
@@ -81,14 +80,12 @@ export async function POST(request: NextRequest) {
       return errorResponse('Product variation has no price', { status: 400 });
     }
 
-    // Convert amount to BigInt if needed
-    const amount = typeof priceMoney.amount === 'bigint' 
-      ? priceMoney.amount 
-      : BigInt(Number(priceMoney.amount));
+    const unitAmount = typeof priceMoney.amount === 'bigint'
+      ? priceMoney.amount
+      : BigInt(Number(priceMoney.amount ?? 0));
 
-    // Calculate total amount (price * quantity)
     const itemQuantity = quantity || 1;
-    const totalAmount = amount * BigInt(itemQuantity);
+    const totalAmount = unitAmount * BigInt(itemQuantity);
 
     // Create a payment link using Square's Checkout API
     // Square Checkout creates a hosted checkout page
@@ -102,11 +99,9 @@ export async function POST(request: NextRequest) {
       // For Square, we'll create an order and then redirect to Square Online checkout
       // or use Square's Payment Links API if configured
       const checkoutUrl = await createSquareCheckoutLink({
-        locationId,
-        productId,
         variationId,
         quantity: itemQuantity,
-        amount: totalAmount,
+        unitAmount,
         currency: priceMoney.currency || 'USD',
         productName: product.itemData?.name || 'Product',
       });
@@ -147,8 +142,7 @@ export async function POST(request: NextRequest) {
  * Create checkout for multiple cart items
  */
 async function createCartCheckout(
-  items: Array<{ productId: string; variationId: string; quantity: number }>,
-  locationId: string
+  items: Array<{ productId: string; variationId: string; quantity: number }>
 ) {
   try {
     const client = getClient();
@@ -160,18 +154,18 @@ async function createCartCheckout(
       const product = productResult.objects?.[0];
       
       if (!product) {
-        continue; // Skip invalid products
+        return errorResponse(`Product not found: ${item.productId}`, { status: 400 });
       }
 
       const variation = product.itemData?.variations?.find(v => v.id === item.variationId);
       if (!variation || !variation.itemVariationData?.priceMoney) {
-        continue; // Skip invalid variations
+        return errorResponse(`Variation not found: ${item.variationId}`, { status: 400 });
       }
 
       const priceMoney = variation.itemVariationData.priceMoney;
       const amount = typeof priceMoney.amount === 'bigint' 
         ? priceMoney.amount 
-        : BigInt(Number(priceMoney.amount));
+        : BigInt(Number(priceMoney.amount ?? 0));
 
       lineItems.push({
         catalogObjectId: item.variationId,
@@ -305,15 +299,13 @@ async function createSquarePaymentLink(order: any): Promise<string> {
  * Creates an order and returns a checkout URL using Square Checkout API
  */
 async function createSquareCheckoutLink(params: {
-  locationId: string;
-  productId: string;
   variationId: string;
   quantity: number;
-  amount: bigint;
+  unitAmount: bigint;
   currency: string;
   productName: string;
 }): Promise<string> {
-  const { locationId, variationId, quantity, amount, currency, productName } = params;
+  const { variationId, quantity, unitAmount, currency, productName } = params;
 
   try {
     // Create an order using our helper function
@@ -324,8 +316,8 @@ async function createSquareCheckoutLink(params: {
           name: productName,
           quantity: quantity.toString(),
           basePriceMoney: {
-            amount: Number(amount),
-            currency: currency,
+            amount: Number(unitAmount),
+            currency,
           },
         },
       ],

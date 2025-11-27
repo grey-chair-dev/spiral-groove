@@ -2,6 +2,7 @@
 // For production, consider using Redis or a dedicated service like Upstash
 
 import type { NextRequest } from 'next/server';
+import { Redis } from '@upstash/redis';
 
 export interface RateLimitOptions {
   windowMs: number; // Time window in milliseconds
@@ -72,6 +73,50 @@ class InMemoryRateLimitProvider implements RateLimitProvider {
 }
 
 let provider: RateLimitProvider = new InMemoryRateLimitProvider();
+
+class UpstashRateLimitProvider implements RateLimitProvider {
+  constructor(private redis: Redis) {}
+
+  async hit(identifier: string, options: RateLimitOptions): Promise<RateLimitResult> {
+    const now = Date.now();
+    const key = `rl:${identifier}`;
+    const ttlMs = options.windowMs;
+
+    const count = await this.redis.incr(key);
+    if (count === 1) {
+      await this.redis.pexpire(key, ttlMs);
+    }
+
+    const ttlResponse = await this.redis.pttl(key);
+    const ttlRemaining = ttlResponse > 0 ? ttlResponse : ttlMs;
+    const resetTime = now + ttlRemaining;
+
+    if (count > options.maxRequests) {
+      return {
+        success: false,
+        remaining: 0,
+        resetTime,
+      };
+    }
+
+    return {
+      success: true,
+      remaining: options.maxRequests - count,
+      resetTime,
+    };
+  }
+}
+
+const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+if (upstashUrl && upstashToken) {
+  provider = new UpstashRateLimitProvider(
+    new Redis({
+      url: upstashUrl,
+      token: upstashToken,
+    })
+  );
+}
 
 export function setRateLimitProvider(customProvider: RateLimitProvider) {
   provider = customProvider;

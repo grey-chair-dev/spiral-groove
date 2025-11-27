@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as crypto from "crypto";
+import { enqueueWebhookTask, isWebhookQueueEnabled } from "@/lib/webhooks/queue";
+import { handleWebhookEvent, logInfo as workerLog } from "@/lib/webhooks/handlers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+const WEBHOOK_LOG_PREFIX = '[SquareWebhook]';
+
+const logInfo = (message: string, context: Record<string, unknown> = {}) => {
+  console.info(WEBHOOK_LOG_PREFIX, message, context);
+};
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
@@ -21,7 +29,7 @@ export async function POST(request: NextRequest) {
   // --- SQUARE TEST EVENT ---
   // Test events NEVER include a signature AND merchant_id starts with 6SSW
   if (!signature && typeof merchant === "string" && merchant.startsWith("6SSW")) {
-    console.log("Square TEST EVENT — skipping signature validation");
+    logInfo('Test event received', { merchant });
     return NextResponse.json({ success: true, test: true });
   }
 
@@ -59,80 +67,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  console.log("VALID SQUARE EVENT:", parsed.type);
+  logInfo('Event received', { type: parsed.type, merchant });
 
-  // Route event types
-  await routeEvent(parsed.type, parsed.data);
+  // Queue for async processing; fall back to inline processing if queue missing
+  if (isWebhookQueueEnabled()) {
+    await enqueueWebhookTask(parsed.type, parsed.data);
+  } else {
+    workerLog('Queue disabled; processing synchronously', { type: parsed.type });
+    await handleWebhookEvent(parsed.type, parsed.data);
+  }
 
   return NextResponse.json({ success: true });
 }
 
-/* -------------------------
-   EVENT ROUTER
-------------------------- */
-
-async function routeEvent(type: string, data: any) {
-  switch (type) {
-    case "order.created": return handleOrderCreated(data);
-    case "order.updated": return handleOrderUpdated(data);
-    case "order.fulfillment.updated": return handleOrderFulfillmentUpdated(data);
-
-    case "payment.created": return handlePaymentCreated(data);
-    case "payment.updated": return handlePaymentUpdated(data);
-
-    case "refund.created": return handleRefundCreated(data);
-    case "refund.updated": return handleRefundUpdated(data);
-
-    case "customer.created": return handleCustomerCreated(data);
-    case "customer.updated": return handleCustomerUpdated(data);
-    case "customer.deleted": return handleCustomerDeleted(data);
-
-    case "inventory.count.updated": return handleInventoryCountUpdated(data);
-
-    case "catalog.version.updated": return handleCatalogVersionUpdated(data);
-
-    case "loyalty.account.created":
-    case "loyalty.account.updated":
-    case "loyalty.account.deleted":
-    case "loyalty.event.created":
-    case "loyalty.program.created":
-    case "loyalty.program.updated":
-    case "loyalty.promotion.created":
-    case "loyalty.promotion.updated":
-      return handleLoyaltyEvent(type, data);
-
-    default:
-      console.log("Unhandled Square event:", type);
-  }
-}
-
-/* -------------------------
-   EVENT HANDLERS
-------------------------- */
-
-async function handleOrderCreated(data: any) { console.log("Order created", data); }
-async function handleOrderUpdated(data: any) { console.log("Order updated", data); }
-async function handleOrderFulfillmentUpdated(data: any) { console.log("Order fulfillment updated", data); }
-
-async function handlePaymentCreated(data: any) { console.log("Payment created", data); }
-async function handlePaymentUpdated(data: any) { console.log("Payment updated", data); }
-
-async function handleRefundCreated(data: any) { console.log("Refund created", data); }
-async function handleRefundUpdated(data: any) { console.log("Refund updated", data); }
-
-async function handleCustomerCreated(data: any) { console.log("Customer created", data); }
-async function handleCustomerUpdated(data: any) { console.log("Customer updated", data); }
-async function handleCustomerDeleted(data: any) { console.log("Customer deleted", data); }
-
-async function handleInventoryCountUpdated(data: any) { 
-  console.log("Inventory updated", data);
-  // Note: With caching, inventory will refresh on next request after cache expires (5 min)
-}
-
-async function handleCatalogVersionUpdated(data: any) { 
-  console.log("Catalog version updated", data);
-  // Note: With caching, products will refresh on next request after cache expires
-  // Or you can manually revalidate the cache if needed
-}
-
-async function handleLoyaltyEvent(type: string, data: any) { console.log(`Loyalty event ${type}`, data); }

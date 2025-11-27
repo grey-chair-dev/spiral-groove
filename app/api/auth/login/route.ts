@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSession, setSessionCookie } from '@/lib/auth';
 import { z } from 'zod';
+import bcrypt from 'bcryptjs';
 
 const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
@@ -22,18 +23,26 @@ export async function POST(request: NextRequest) {
     }
 
     const { password } = validationResult.data;
-    const correctPassword = process.env.CLIENT_PASSWORD;
+    const hashedPassword = process.env.CLIENT_PASSWORD_HASH;
+    const legacyPassword = process.env.CLIENT_PASSWORD;
 
-    if (!correctPassword) {
-      console.error('CLIENT_PASSWORD environment variable is not set');
+    if (!hashedPassword && !legacyPassword) {
+      console.error('CLIENT_PASSWORD_HASH environment variable is not set');
       return NextResponse.json(
         { error: 'Server configuration error' },
         { status: 500 }
       );
     }
 
-    // Compare passwords (in production, use bcrypt or similar)
-    if (password !== correctPassword) {
+    let isValid = false;
+    if (hashedPassword) {
+      isValid = await bcrypt.compare(password, hashedPassword);
+    } else if (legacyPassword) {
+      // Fallback for legacy environments until they rotate hashes
+      isValid = password === legacyPassword;
+    }
+
+    if (!isValid) {
       return NextResponse.json(
         { error: 'Invalid password' },
         { status: 401 }

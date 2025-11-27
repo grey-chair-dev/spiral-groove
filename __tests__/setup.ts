@@ -1,5 +1,7 @@
 import { vi, afterEach } from 'vitest';
 
+process.env.AUTH_SECRET = process.env.AUTH_SECRET || 'test-auth-secret';
+
 // Mock database module to avoid requiring DATABASE_URL
 vi.mock('@/lib/db', () => ({
   sql: vi.fn(),

@@ -1,13 +1,17 @@
 import { cookies } from 'next/headers';
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 
-const SECRET_KEY = process.env.AUTH_SECRET || 'your-secret-key-change-in-production';
+const rawSecret = process.env.AUTH_SECRET;
+if (!rawSecret) {
+  throw new Error('AUTH_SECRET environment variable is not set');
+}
+const SECRET_KEY = new TextEncoder().encode(rawSecret);
 const SESSION_COOKIE_NAME = 'client_session';
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export type SessionRole = 'staff' | 'viewer';
 
-export interface SessionClaims {
+export interface SessionClaims extends JWTPayload {
   userId: string;
   role: SessionRole;
 }
@@ -21,13 +25,11 @@ const DEFAULT_SESSION: SessionClaims = {
  * Create a session token for authenticated users
  */
 export async function createSession(claims: SessionClaims = DEFAULT_SESSION) {
-  const secret = new TextEncoder().encode(SECRET_KEY);
-  
   const token = await new SignJWT(claims)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(secret);
+    .sign(SECRET_KEY);
 
   return token;
 }
@@ -37,8 +39,7 @@ export async function createSession(claims: SessionClaims = DEFAULT_SESSION) {
  */
 export async function verifySession(token: string): Promise<SessionClaims | null> {
   try {
-    const secret = new TextEncoder().encode(SECRET_KEY);
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, SECRET_KEY);
 
     if (typeof payload.userId !== 'string' || typeof payload.role !== 'string') {
       return null;

@@ -27,7 +27,8 @@ npm run dev
 - **`/api/products/[id]`** - Get single product by Square ID
 - **`/api/inventory`** - Get inventory counts (cached)
 - **`/api/square/test`** - Test Square SDK integration
-- **`/api/square/webhooks`** - Square webhook handler
+- **`/api/square/webhooks`** - Square webhook handler (queues work)
+- **`/api/webhooks/process`** - Cron-safe worker that drains the webhook queue
 
 ### Features
 - ✅ Mobile-first responsive design
@@ -83,6 +84,32 @@ DATABASE_URL=postgresql://user:password@host/database?sslmode=require
 MAKE_WEBHOOK_URL=your_make_webhook_url
 ```
 
+### Secret Management
+
+- Copy `.env.local.example` to `.env.local` and fill in real values **outside** of version control.
+- Store production secrets in your secrets manager (Vercel, Doppler, 1Password, etc.) and rotate them whenever they are exposed or a teammate leaves.
+- Generate `CLIENT_PASSWORD_HASH` with bcrypt (`node -e "console.log(require('bcryptjs').hashSync('your-password', 12))"`) and keep the plaintext password outside the repo.
+- If you ever need to run elevated migrations, temporarily export a `DATABASE_URL_OWNER` variable rather than editing `.env.local`.
+- Never commit `.env.local`; the file is gitignored by default.
+
+### Rate Limiting Configuration
+
+- By default, rate limits are stored in memory per instance. For production, configure a shared store (e.g., Upstash Redis) by setting `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+- When those variables are present, the rate limiter automatically switches to Redis so vouchers apply across all Vercel regions.
+- Example provisioning command:
+  ```bash
+  # After creating an Upstash Redis database
+  vercel env add UPSTASH_REDIS_REST_URL
+  vercel env add UPSTASH_REDIS_REST_TOKEN
+  ```
+
+### Webhook Queue Processing
+
+- Webhook events are enqueued in Redis (`square:webhook:tasks`) to keep the `/api/square/webhooks` route fast and resilient.
+- Deploy a scheduled job (e.g., Vercel Cron) that POSTs to `/api/webhooks/process` with an `Authorization: Bearer <WEBHOOK_PROCESS_TOKEN>` header.
+- Set `WEBHOOK_PROCESS_TOKEN` in every environment where the processor runs to prevent unauthorized draining.
+- When Redis is not configured, the webhook route falls back to synchronous processing for local development.
+
 ### Database Configuration
 
 For optimal performance and security:
@@ -94,7 +121,7 @@ For optimal performance and security:
   - `npm run db:migrate:status` – reports applied vs pending migrations
   - `scripts/dev-reset-schema.sql` – destructive reset for local development only
 
-See [docs/neon-database-configuration.md](./docs/neon-database-configuration.md) for detailed setup instructions.
+See [docs/neon-database-configuration.md](./docs/neon-database-configuration.md) for Neon setup details and [docs/migrations.md](./docs/migrations.md) for the migration workflow.
 
 ### Database Migrations
 
@@ -136,8 +163,9 @@ The code automatically handles both camelCase and snake_case naming conventions.
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm run test` - Run Vitest suites for DAL + staff APIs
-- `psql -f scripts/schema.sql` - Apply safe schema migrations
-- `psql -f scripts/dev-reset-schema.sql` - Drop & recreate schema (dev only)
+- `npm run db:migrate` - Apply pending database migrations
+- `npm run db:migrate:status` - Show applied vs pending migrations
+- `psql -f scripts/dev-reset-schema.sql` - Drop and recreate the schema locally, then rerun migrations
 
 ## 📦 Bundle Size
 

@@ -2,6 +2,7 @@ import { getClient, requireSquareConfig } from './client';
 import { ApiError } from '@/lib/api/errors';
 import type { SquareInventoryCount } from '@/lib/types/square';
 import * as crypto from 'crypto';
+import { withSquareRetry } from '@/lib/utils/retry';
 
 /**
  * Get inventory count for a single catalog object
@@ -17,9 +18,11 @@ export async function getInventoryCount(
 
   try {
     const client = getClient();
-    const page = await client.inventory.batchGetCounts({
-      catalogObjectIds: [catalogObjectId],
-    });
+    const page = await withSquareRetry(() =>
+      client.inventory.batchGetCounts({
+        catalogObjectIds: [catalogObjectId],
+      })
+    );
 
     const counts: SquareInventoryCount[] = [];
     for await (const item of page) {
@@ -60,18 +63,20 @@ export async function batchUpdateInventory(
 
   try {
     const client = getClient();
-    const response = await client.inventory.batchCreateChanges({
-      idempotencyKey: crypto.randomUUID(),
-      changes: changes.map(change => ({
-        type: change.adjustmentType || 'ADJUSTMENT',
-        adjustment: {
-          catalogObjectId: change.catalogObjectId,
-          quantity: change.quantity,
-          fromState: 'NONE',
-          toState: 'IN_STOCK',
-        },
-      })),
-    });
+    const response = await withSquareRetry(() =>
+      client.inventory.batchCreateChanges({
+        idempotencyKey: crypto.randomUUID(),
+        changes: changes.map(change => ({
+          type: change.adjustmentType || 'ADJUSTMENT',
+          adjustment: {
+            catalogObjectId: change.catalogObjectId,
+            quantity: change.quantity,
+            fromState: 'NONE',
+            toState: 'IN_STOCK',
+          },
+        })),
+      })
+    );
 
     return response;
   } catch (error: any) {
@@ -98,9 +103,11 @@ export async function getInventoryCounts(
 
   try {
     const client = getClient();
-    const page = await client.inventory.batchGetCounts({
-      catalogObjectIds,
-    });
+    const page = await withSquareRetry(() =>
+      client.inventory.batchGetCounts({
+        catalogObjectIds,
+      })
+    );
 
     const counts: SquareInventoryCount[] = [];
     for await (const item of page) {
