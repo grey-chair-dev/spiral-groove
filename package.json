@@ -6,14 +6,21 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "db:migrate": "node scripts/migrate.js",
+    "db:migrate:status": "node scripts/migrate.js status"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
     "jose": "^6.1.2",
     "lucide-react": "^0.546.0",
     "next": "15.0.3",
+    "pg": "^8.16.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "square": "^43.2.1",
@@ -23,12 +30,14 @@
   "devDependencies": {
     "@types/node": "22.7.5",
     "@types/react": "18.3.8",
+    "@vitest/ui": "^4.0.14",
     "autoprefixer": "10.4.20",
     "eslint": "9.12.0",
     "eslint-config-next": "15.0.3",
     "next-pwa": "^5.6.0",
     "postcss": "8.4.47",
     "tailwindcss": "3.4.14",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vitest": "^4.0.14"
   }
 }

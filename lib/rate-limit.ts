@@ -3,15 +3,6 @@
 
 import type { NextRequest } from 'next/server';
 
-interface RateLimitStore {
-  [key: string]: {
-    count: number;
-    resetTime: number;
-  };
-}
-
-const store: RateLimitStore = {};
-
 export interface RateLimitOptions {
   windowMs: number; // Time window in milliseconds
   maxRequests: number; // Maximum requests per window
@@ -23,58 +14,77 @@ export interface RateLimitResult {
   resetTime: number;
 }
 
-/**
- * Simple rate limiter
- * @param identifier - Unique identifier (IP address, user ID, etc.)
- * @param options - Rate limit options
- * @returns Rate limit result
- */
-export function rateLimit(
-  identifier: string,
-  options: RateLimitOptions = { windowMs: 60 * 1000, maxRequests: 10 }
-): RateLimitResult {
-  const now = Date.now();
-  const record = store[identifier];
+export interface RateLimitProvider {
+  hit(identifier: string, options: RateLimitOptions): Promise<RateLimitResult>;
+}
 
-  // Clean up expired entries periodically
-  if (Math.random() < 0.01) {
-    // 1% chance to clean up (avoid overhead)
-    Object.keys(store).forEach((key) => {
-      if (store[key].resetTime < now) {
-        delete store[key];
-      }
-    });
-  }
+interface RateLimitStoreRecord {
+  count: number;
+  resetTime: number;
+}
 
-  if (!record || record.resetTime < now) {
-    // New window or expired, reset
-    store[identifier] = {
-      count: 1,
-      resetTime: now + options.windowMs,
-    };
+class InMemoryRateLimitProvider implements RateLimitProvider {
+  private store: Record<string, RateLimitStoreRecord> = {};
+
+  async hit(
+    identifier: string,
+    options: RateLimitOptions
+  ): Promise<RateLimitResult> {
+    const now = Date.now();
+    const record = this.store[identifier];
+
+    // Clean up expired entries periodically
+    if (Math.random() < 0.01) {
+      Object.keys(this.store).forEach((key) => {
+        if (this.store[key].resetTime < now) {
+          delete this.store[key];
+        }
+      });
+    }
+
+    if (!record || record.resetTime < now) {
+      this.store[identifier] = {
+        count: 1,
+        resetTime: now + options.windowMs,
+      };
+      return {
+        success: true,
+        remaining: options.maxRequests - 1,
+        resetTime: now + options.windowMs,
+      };
+    }
+
+    if (record.count >= options.maxRequests) {
+      return {
+        success: false,
+        remaining: 0,
+        resetTime: record.resetTime,
+      };
+    }
+
+    record.count++;
     return {
       success: true,
-      remaining: options.maxRequests - 1,
-      resetTime: now + options.windowMs,
-    };
-  }
-
-  if (record.count >= options.maxRequests) {
-    // Rate limit exceeded
-    return {
-      success: false,
-      remaining: 0,
+      remaining: options.maxRequests - record.count,
       resetTime: record.resetTime,
     };
   }
+}
 
-  // Increment count
-  record.count++;
-  return {
-    success: true,
-    remaining: options.maxRequests - record.count,
-    resetTime: record.resetTime,
-  };
+let provider: RateLimitProvider = new InMemoryRateLimitProvider();
+
+export function setRateLimitProvider(customProvider: RateLimitProvider) {
+  provider = customProvider;
+}
+
+/**
+ * Pluggable rate limiter. Defaults to in-memory but can be swapped for Redis/Upstash.
+ */
+export async function rateLimit(
+  identifier: string,
+  options: RateLimitOptions = { windowMs: 60 * 1000, maxRequests: 10 }
+): Promise<RateLimitResult> {
+  return provider.hit(identifier, options);
 }
 
 /**

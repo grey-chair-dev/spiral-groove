@@ -5,13 +5,25 @@ const SECRET_KEY = process.env.AUTH_SECRET || 'your-secret-key-change-in-product
 const SESSION_COOKIE_NAME = 'client_session';
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+export type SessionRole = 'staff' | 'viewer';
+
+export interface SessionClaims {
+  userId: string;
+  role: SessionRole;
+}
+
+const DEFAULT_SESSION: SessionClaims = {
+  userId: 'client',
+  role: 'staff',
+};
+
 /**
  * Create a session token for authenticated users
  */
-export async function createSession(userId: string = 'client') {
+export async function createSession(claims: SessionClaims = DEFAULT_SESSION) {
   const secret = new TextEncoder().encode(SECRET_KEY);
   
-  const token = await new SignJWT({ userId })
+  const token = await new SignJWT(claims)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -21,22 +33,35 @@ export async function createSession(userId: string = 'client') {
 }
 
 /**
- * Verify a session token
+ * Verify a session token and return its claims
  */
-export async function verifySession(token: string): Promise<boolean> {
+export async function verifySession(token: string): Promise<SessionClaims | null> {
   try {
     const secret = new TextEncoder().encode(SECRET_KEY);
-    await jwtVerify(token, secret);
-    return true;
+    const { payload } = await jwtVerify(token, secret);
+
+    if (typeof payload.userId !== 'string' || typeof payload.role !== 'string') {
+      return null;
+    }
+
+    const role = payload.role as SessionRole;
+    if (role !== 'staff' && role !== 'viewer') {
+      return null;
+    }
+
+    return {
+      userId: payload.userId,
+      role,
+    };
   } catch {
-    return false;
+    return null;
   }
 }
 
 /**
  * Get the current session from cookies
  */
-export async function getSession(): Promise<string | null> {
+export async function getSession(): Promise<SessionClaims | null> {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
   
@@ -44,8 +69,8 @@ export async function getSession(): Promise<string | null> {
     return null;
   }
 
-  const isValid = await verifySession(sessionCookie.value);
-  return isValid ? sessionCookie.value : null;
+  const claims = await verifySession(sessionCookie.value);
+  return claims;
 }
 
 /**

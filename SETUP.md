@@ -58,10 +58,15 @@ Follow these steps to get the development environment running:
 
 ## ✅ Database Setup
 
-1. **Create database tables:**
-   - Go to Neon dashboard → SQL Editor
-   - Run the schema from `schema.sql`
-   - Or create the `email_list` table manually
+1. **Apply migrations:**
+   ```bash
+   npm run db:migrate
+   # or view status
+   npm run db:migrate:status
+   ```
+   - Uses the SQL files in `migrations/` and tracks history in `schema_migrations`
+   - Requires `SGR_DATABASE_URL` (preferred) or `DATABASE_URL`
+   - For destructive local resets, run `scripts/dev-reset-schema.sql` and then `npm run db:migrate`
 
 2. **Verify connection:**
    ```bash

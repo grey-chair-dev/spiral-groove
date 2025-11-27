@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifySession } from './lib/auth';
+import { rateLimit, getClientIP } from './lib/rate-limit';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -21,8 +22,8 @@ export async function middleware(request: NextRequest) {
       response = NextResponse.redirect(new URL('/', request.url));
     } else {
       // Verify session token
-      const isValid = await verifySession(sessionCookie.value);
-      if (!isValid) {
+      const session = await verifySession(sessionCookie.value);
+      if (!session || session.role !== 'staff') {
         // Invalid session, redirect to login
         response = NextResponse.redirect(new URL('/', request.url));
       } else {
@@ -31,9 +32,65 @@ export async function middleware(request: NextRequest) {
       }
     }
   }
-  // Allow API routes (they handle their own auth)
+  // Apply rate limiting to API routes
   else if (pathname.startsWith('/api')) {
-    response = NextResponse.next();
+    // Skip rate limiting for health check endpoint
+    if (pathname === '/api/health') {
+      response = NextResponse.next();
+    } else {
+      const clientIP = getClientIP(request);
+      
+      // Different rate limits for different endpoint types
+      let rateLimitOptions;
+      if (pathname.startsWith('/api/auth/')) {
+        // Staff/auth endpoints: stricter limits (prevent brute force)
+        rateLimitOptions = {
+          windowMs: 15 * 60 * 1000, // 15 minutes
+          maxRequests: 10, // 10 requests per 15 minutes
+        };
+      } else if (pathname.startsWith('/api/checkout')) {
+        // Checkout endpoints: moderate limits
+        rateLimitOptions = {
+          windowMs: 5 * 60 * 1000, // 5 minutes
+          maxRequests: 20, // 20 requests per 5 minutes
+        };
+      } else {
+        // Public endpoints: standard limits
+        rateLimitOptions = {
+          windowMs: 15 * 60 * 1000, // 15 minutes
+          maxRequests: 100, // 100 requests per 15 minutes
+        };
+      }
+      
+      const rateLimitResult = await rateLimit(`api:${pathname}:${clientIP}`, rateLimitOptions);
+      
+      if (!rateLimitResult.success) {
+        const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+        return new NextResponse(
+          JSON.stringify({
+            error: 'Too many requests',
+            message: 'Rate limit exceeded. Please try again later.',
+            retryAfter,
+          }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': retryAfter.toString(),
+              'X-RateLimit-Limit': rateLimitOptions.maxRequests.toString(),
+              'X-RateLimit-Remaining': '0',
+              'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+            },
+          }
+        );
+      }
+      
+      // Add rate limit headers to response
+      response = NextResponse.next();
+      response.headers.set('X-RateLimit-Limit', rateLimitOptions.maxRequests.toString());
+      response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+      response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetTime).toISOString());
+    }
   }
   // Allow static assets (images, fonts, etc.)
   else if (
@@ -56,7 +113,15 @@ export async function middleware(request: NextRequest) {
   }
 
   // Security headers
+  // Copy all existing headers (including rate limit headers) before adding security headers
   const headers = new Headers(response.headers);
+  
+  // Ensure rate limit headers are preserved (re-set them if they exist on response)
+  if (response.headers.has('X-RateLimit-Limit')) {
+    headers.set('X-RateLimit-Limit', response.headers.get('X-RateLimit-Limit')!);
+    headers.set('X-RateLimit-Remaining', response.headers.get('X-RateLimit-Remaining')!);
+    headers.set('X-RateLimit-Reset', response.headers.get('X-RateLimit-Reset')!);
+  }
 
   // HTTPS enforcement (HSTS)
   headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
@@ -106,13 +171,14 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
+     * Match all request paths except for:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * 
+     * Note: API routes ARE included so rate limiting works
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
 

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { isSquareConfigured } from '@/lib/square/client';
-import { ConfigurationError } from './errors';
+import { ConfigurationError, ValidationError } from './errors';
 
 // Helper to make sure Square is configured before using it
 export function requireSquareConfig() {
@@ -17,7 +17,9 @@ export async function parseBody<T = any>(request: Request): Promise<T> {
     const body = await request.json();
     return body as T;
   } catch (error) {
-    throw new Error('Invalid JSON in request body');
+    throw new ValidationError('Invalid JSON in request body', {
+      cause: error instanceof Error ? error.message : error,
+    });
   }
 }
 

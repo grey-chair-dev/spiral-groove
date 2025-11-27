@@ -15,7 +15,7 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   // Rate limit: 5 signups per 15 minutes per IP (prevents spam)
   const clientIP = getClientIP(request);
-  const rateLimitResult = rateLimit(`newsletter:${clientIP}`, {
+  const rateLimitResult = await rateLimit(`newsletter:${clientIP}`, {
     windowMs: 15 * 60 * 1000,  // 15 minutes
     maxRequests: 5,
   });

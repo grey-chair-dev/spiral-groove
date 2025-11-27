@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session
-    const token = await createSession('client');
+    const token = await createSession({ userId: 'staff-portal', role: 'staff' });
     
     // Set cookie in response
     const response = NextResponse.json(
