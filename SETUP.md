@@ -45,6 +45,9 @@ Follow these steps to get the development environment running:
    - [x] `SQUARE_ENVIRONMENT` (sandbox or production) ✅ - *sandbox*
    - [x] `SQUARE_LOCATION_ID` (if using Square features) ✅
    - [x] `SQUARE_WEBHOOK_SIGNATURE_KEY` (if using Square features) ✅
+   - [ ] `UPSTASH_REDIS_URL` / `UPSTASH_REDIS_TOKEN` (shared rate limiting + webhook queue)
+   - [ ] `WEBHOOK_PROCESS_TOKEN` (Bearer token for the queue worker)
+   - [ ] `WEBHOOK_PROCESS_MAX_ATTEMPTS`, `WEBHOOK_PROCESS_RETRY_DELAY_MS`, `WEBHOOK_PROCESS_MAX_BACKOFF_MS`, `WEBHOOK_PROCESS_BACKOFF_JITTER_MS`, `WEBHOOK_PROCESS_MAX_CONCURRENCY` (optional tuning)
    - [x] `MAKE_WEBHOOK_URL` (optional) ✅
 
 3. **Generate secure values:** ✅ *Already generated*
@@ -85,6 +88,15 @@ npm run dev
 ```
 
 Visit: `http://localhost:3000`
+
+## ⚙️ Webhook Queue Setup
+
+- Provision Upstash Redis and add `UPSTASH_REDIS_URL` / `UPSTASH_REDIS_TOKEN` (or the legacy `*_REST_*` names) to every environment.
+- Generate a high-entropy `WEBHOOK_PROCESS_TOKEN` (`openssl rand -hex 32`) and store it locally + in Vercel.
+- Configure a Vercel Cron job (e.g., every 5 minutes) pointing to `/api/webhooks/process` with `Authorization: Bearer <WEBHOOK_PROCESS_TOKEN>`.
+- Tune retry/backoff behavior with `WEBHOOK_PROCESS_MAX_ATTEMPTS`, `WEBHOOK_PROCESS_RETRY_DELAY_MS`, `WEBHOOK_PROCESS_MAX_BACKOFF_MS`, `WEBHOOK_PROCESS_BACKOFF_JITTER_MS`, and worker throughput with `WEBHOOK_PROCESS_MAX_CONCURRENCY`.
+- Monitor logs for `[SquareWebhookWorker]` entries—successful runs report `{ processed, failed, pulled, dlqSize }`.
+- If a task repeatedly fails it is automatically moved into `square-webhook-queue-dlq:{SQUARE_APPLICATION_ID}`; see `docs/webhook-queue.md` for replay steps.
 
 ## ✅ Test Authentication
 

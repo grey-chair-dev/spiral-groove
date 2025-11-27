@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
   // Queue for async processing; fall back to inline processing if queue missing
   if (isWebhookQueueEnabled()) {
-    await enqueueWebhookTask(parsed.type, parsed.data);
+    await enqueueWebhookTask(parsed.type, parsed.data, { rawBody });
   } else {
     workerLog('Queue disabled; processing synchronously', { type: parsed.type });
     await handleWebhookEvent(parsed.type, parsed.data);

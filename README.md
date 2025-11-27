@@ -105,10 +105,11 @@ MAKE_WEBHOOK_URL=your_make_webhook_url
 
 ### Webhook Queue Processing
 
-- Webhook events are enqueued in Redis (`square:webhook:tasks`) to keep the `/api/square/webhooks` route fast and resilient.
-- Deploy a scheduled job (e.g., Vercel Cron) that POSTs to `/api/webhooks/process` with an `Authorization: Bearer <WEBHOOK_PROCESS_TOKEN>` header.
-- Set `WEBHOOK_PROCESS_TOKEN` in every environment where the processor runs to prevent unauthorized draining.
-- When Redis is not configured, the webhook route falls back to synchronous processing for local development.
+- Payloads are enqueued in Upstash Redis using the key pattern `square-webhook-queue:{SQUARE_APPLICATION_ID}`; failures land in `square-webhook-queue-dlq:{SQUARE_APPLICATION_ID}` for analysis.
+- Set `UPSTASH_REDIS_URL`/`UPSTASH_REDIS_TOKEN` (or the legacy `*_REST_*` variables) along with `WEBHOOK_PROCESS_TOKEN`, `WEBHOOK_PROCESS_MAX_ATTEMPTS`, `WEBHOOK_PROCESS_RETRY_DELAY_MS`, `WEBHOOK_PROCESS_MAX_BACKOFF_MS`, `WEBHOOK_PROCESS_BACKOFF_JITTER_MS`, and `WEBHOOK_PROCESS_MAX_CONCURRENCY` to tune retry behavior and worker throughput.
+- Deploy a Vercel Cron job (e.g., `*/5 * * * *`) that POSTs to `/api/webhooks/process` with `Authorization: Bearer <WEBHOOK_PROCESS_TOKEN>` so the worker can drain batches, retry transient issues with bounded exponential backoff, and push exhausted tasks to the DLQ.
+- Without Redis the webhook route falls back to synchronous processing for local work, but production should keep the queue enabled for durability.
+- See `docs/webhook-queue.md` for architecture details, cron examples, and DLQ recovery commands.
 
 ### Database Configuration
 
