@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /api
-Disallow: /admin
-
-Sitemap: https://spiralgrooverecords.com/sitemap.xml
-
