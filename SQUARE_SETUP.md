@@ -127,12 +127,60 @@ While setting up your data adapter, you can:
 1. **Use mock data**: Set `VITE_ENABLE_MOCK_DATA=true` (current setting)
 2. **Test with sample data**: The app includes fallback products for testing
 
+## Using Square SDK Directly
+
+This project includes a Square SDK adapter service (`src/services/squareAdapter.ts`) that you can use to fetch products directly from Square.
+
+### Option 1: Use the Included API Routes (Vercel)
+
+Example API routes are provided in `api/square/`:
+
+1. **Add Square credentials to your environment variables:**
+   ```bash
+   SQUARE_ACCESS_TOKEN=your_access_token
+   SQUARE_ENVIRONMENT=sandbox  # or 'production'
+   SQUARE_LOCATION_ID=your_location_id
+   ```
+
+2. **Deploy to Vercel** (or similar platform)
+
+3. **Update `.env.local`** to point to your API:
+   ```bash
+   VITE_PRODUCTS_SNAPSHOT_URL=https://your-app.vercel.app/api/square/products
+   VITE_ADAPTER_HEALTH_URL=https://your-app.vercel.app/api/square/health
+   VITE_ENABLE_MOCK_DATA=false
+   ```
+
+### Option 2: Custom Backend Service
+
+Use the Square adapter service in your own backend:
+
+```typescript
+import { fetchSquareProducts, type SquareConfig } from './src/services/squareAdapter'
+
+const config: SquareConfig = {
+  accessToken: process.env.SQUARE_ACCESS_TOKEN!,
+  environment: 'sandbox', // or 'production'
+  locationId: process.env.SQUARE_LOCATION_ID!,
+}
+
+const products = await fetchSquareProducts(config)
+```
+
 ## Next Steps
 
-1. **Set up your data adapter service** (or use an existing one)
-2. **Update `.env.local`** with your adapter URLs
-3. **Set `VITE_ENABLE_MOCK_DATA=false`** when ready
-4. **Test the connection** - the app will show connection status in the hero section
+1. **Choose your approach:**
+   - Use the included API routes (Vercel example)
+   - Build your own backend service
+   - Use an existing data adapter service
+
+2. **Add Square credentials** to your environment variables
+
+3. **Update `.env.local`** with your adapter URLs
+
+4. **Set `VITE_ENABLE_MOCK_DATA=false`** when ready
+
+5. **Test the connection** - the app will show connection status in the hero section
 
 ## Connection Status
 
