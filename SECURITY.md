@@ -1,6 +1,6 @@
 # Security Checklist
 
-This document outlines the security measures implemented for Spiral Groove Records website.
+This document outlines the security measures implemented for Local Commerce Template website.
 
 ## ✅ BASICS
 

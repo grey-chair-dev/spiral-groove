@@ -1,7 +1,7 @@
 {
-  "name": "Spiral Groove Records",
-  "short_name": "Spiral Groove",
-  "description": "Milford's premier vinyl shop. Buy vinyl records, turntables, and accessories. Join live shows and community events.",
+  "name": "Local Commerce Template",
+  "short_name": "LCT",
+  "description": "Milford's premier item shop. Buy item products, turntables, and accessories. Join live shows and community events.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
@@ -25,7 +25,7 @@
     {
       "name": "Shop",
       "short_name": "Shop",
-      "description": "Browse vinyl records and audio equipment",
+      "description": "Browse item products and audio equipment",
       "url": "/shop",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },

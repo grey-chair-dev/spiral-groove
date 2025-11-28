@@ -1,0 +1,209 @@
+import { getClient, requireECSConfig } from './client';
+import { ApiError, NotFoundError } from '@/lib/api/errors';
+import type { ECSCatalogObject } from '@/lib/types/ecs';
+import { withECSRetry } from '@/lib/utils/retry';
+
+/**
+ * Default pagination limit
+ */
+const DEFAULT_LIMIT = 100;
+const MAX_LIMIT = 1000;
+
+/**
+ * Search options for catalog items
+ */
+export interface SearchCatalogOptions {
+  limit?: number;
+  cursor?: string;
+  query?: string;
+  categoryId?: string; // Filter by category ID
+  objectTypes?: ('ITEM' | 'CATEGORY' | 'DISCOUNT' | 'TAX' | 'MODIFIER_LIST' | 'MODIFIER')[];
+}
+
+/**
+ * Search catalog items from ECS
+ */
+export async function searchCatalogItems(
+  options: SearchCatalogOptions = {}
+): Promise<{
+  objects?: ECSCatalogObject[];
+  cursor?: string;
+  relatedObjects?: any[];  // Categories and other related objects
+}> {
+  requireECSConfig();
+
+  const limit = Math.min(options.limit || DEFAULT_LIMIT, MAX_LIMIT);
+  const objectTypes = (options.objectTypes || ['ITEM']) as any;
+
+  try {
+    const client = getClient();
+    
+    // Build the query - ECS supports filtering by category_id using exactQuery
+    let query: any = undefined;
+    if (options.query || options.categoryId) {
+      // If we have both search and category, prioritize category filter
+      // ECS's API doesn't easily support combining both, so we filter by category first
+      if (options.categoryId) {
+        query = {
+          exactQuery: {
+            attributeName: 'category_id',
+            attributeValue: options.categoryId,
+          },
+        };
+      } else if (options.query) {
+        query = {
+          exactQuery: {
+            attributeName: 'name',
+            attributeValue: options.query,
+          },
+        };
+      }
+    }
+    
+    const response = await withECSRetry(() =>
+      client.catalog.search({
+        objectTypes,
+        limit,
+        query,
+        cursor: options.cursor,
+        includeRelatedObjects: true,  // Include categories in the response
+      })
+    );
+
+    return {
+      objects: response.objects as ECSCatalogObject[] | undefined,
+      cursor: response.cursor,
+      relatedObjects: (response as any).relatedObjects,  // Categories might be in relatedObjects
+    };
+  } catch (error: any) {
+    throw new ApiError(
+      `Catalog search failed: ${error.message}`,
+      500,
+      'CATALOG_SEARCH_ERROR',
+      { cause: error }
+    );
+  }
+}
+
+/**
+ * Get a single catalog item by ECS ID
+ * @throws {NotFoundError} if item not found
+ */
+export async function getCatalogItem(
+  itemId: string
+): Promise<{
+  objects?: ECSCatalogObject[];
+  relatedObjects?: any[];
+}> {
+  requireECSConfig();
+
+  if (!itemId) {
+    throw new ApiError('Item ID is required', 400, 'MISSING_ITEM_ID');
+  }
+
+  try {
+    const client = getClient();
+    const response = await withECSRetry(() =>
+      client.catalog.batchGet({
+        objectIds: [itemId],
+        includeRelatedObjects: true,
+      })
+    );
+
+    const objects = response.objects as ECSCatalogObject[] | undefined;
+    
+    if (!objects || objects.length === 0) {
+      throw new NotFoundError(`Catalog item with ID ${itemId} not found`);
+    }
+
+    return { 
+      objects,
+      relatedObjects: (response as any).relatedObjects,
+    };
+  } catch (error: any) {
+    // Re-throw NotFoundError as-is
+    if (error instanceof NotFoundError) {
+      throw error;
+    }
+    
+    throw new ApiError(
+      `Failed to get catalog item: ${error.message}`,
+      500,
+      'CATALOG_GET_ERROR',
+      { cause: error }
+    );
+  }
+}
+
+/**
+ * Get all catalog items with automatic pagination
+ * Fetches all pages until no more items are available
+ */
+export async function getAllCatalogItems(): Promise<ECSCatalogObject[]> {
+  requireECSConfig();
+
+  const allItems: ECSCatalogObject[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const response = await searchCatalogItems({
+      limit: DEFAULT_LIMIT,
+      cursor,
+    });
+
+    if (response.objects) {
+      allItems.push(...response.objects);
+    }
+
+    cursor = response.cursor;
+  } while (cursor);
+
+  return allItems;
+}
+
+/**
+ * Get all categories from ECS catalog
+ * Returns a map of categoryId -> categoryName
+ */
+export async function getCategories(): Promise<Map<string, string>> {
+  requireECSConfig();
+
+  const categoryMap = new Map<string, string>();
+  let cursor: string | undefined;
+
+  try {
+    const client = getClient();
+    
+    do {
+      const response = await withECSRetry(() =>
+        client.catalog.search({
+          objectTypes: ['CATEGORY'],
+          limit: DEFAULT_LIMIT,
+          cursor,
+        })
+      );
+
+      if (response.objects) {
+        for (const obj of response.objects) {
+          // ECS categories have categoryData with name
+          const categoryData = (obj as any).categoryData;
+          if (categoryData?.name && obj.id) {
+            categoryMap.set(obj.id, categoryData.name);
+          }
+        }
+      }
+
+      cursor = response.cursor;
+    } while (cursor);
+  } catch (error: any) {
+    throw new ApiError(
+      `Failed to fetch categories: ${error.message}`,
+      500,
+      'CATEGORIES_FETCH_ERROR',
+      { cause: error }
+    );
+  }
+
+  return categoryMap;
+}
+

@@ -34,7 +34,7 @@ export function rateLimit(
   options: RateLimitOptions = { windowMs: 60 * 1000, maxRequests: 10 }
 ): RateLimitResult {
   const now = Date.now();
-  const record = store[identifier];
+  const product = store[identifier];
 
   // Clean up expired entries periodically
   if (Math.random() < 0.01) {
@@ -46,7 +46,7 @@ export function rateLimit(
     });
   }
 
-  if (!record || record.resetTime < now) {
+  if (!product || product.resetTime < now) {
     // New window or expired, reset
     store[identifier] = {
       count: 1,
@@ -59,21 +59,21 @@ export function rateLimit(
     };
   }
 
-  if (record.count >= options.maxRequests) {
+  if (product.count >= options.maxRequests) {
     // Rate limit exceeded
     return {
       success: false,
       remaining: 0,
-      resetTime: record.resetTime,
+      resetTime: product.resetTime,
     };
   }
 
   // Increment count
-  record.count++;
+  product.count++;
   return {
     success: true,
-    remaining: options.maxRequests - record.count,
-    resetTime: record.resetTime,
+    remaining: options.maxRequests - product.count,
+    resetTime: product.resetTime,
   };
 }
 

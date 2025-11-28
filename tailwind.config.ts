@@ -1,62 +1,41 @@
 import type { Config } from "tailwindcss";
+import defaultTheme from "tailwindcss/defaultTheme";
 
 const config: Config = {
-  content: [
-    "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-  ],
+  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
           colors: {
-            'primary-black': '#111111',
-            'primary-cream': '#FFFFFF',
-            'accent-teal': '#63dbdf',
-            'accent-amber': '#bd132b',
-            'highlight-red': '#bd132b',
-            'text-dark': '#111111',
-            'text-light': '#FFFFFF',
-            'neutral-gray': '#7A7A7A'
+        background: "var(--color-background)",
+        surface: "var(--color-surface)",
+        "surface-muted": "var(--color-surface-muted)",
+        border: "var(--color-border)",
+        "border-strong": "var(--color-border-strong)",
+        "text-primary": "var(--color-text-primary)",
+        "text-secondary": "var(--color-text-secondary)",
+        "text-muted": "var(--color-text-muted)",
+        primary: "var(--color-primary)",
+        secondary: "var(--color-secondary)",
+        accent: "var(--color-accent)",
+        success: "var(--color-success)",
+        danger: "var(--color-danger)",
           },
       fontFamily: {
-        'display': ['var(--font-display)', 'serif'],
-        'body': ['var(--font-body)', 'sans-serif'],
-        'accent': ['var(--font-accent)', 'sans-serif']
+        sans: ["var(--font-sans)", ...defaultTheme.fontFamily.sans],
+        display: ["var(--font-display)", ...defaultTheme.fontFamily.sans],
       },
-      spacing: {
-        'xxs': '4px',
-        'xs': '8px',
-        'sm': '16px',
-        'md': '24px',
-        'lg': '32px',
-        'xl': '64px',
-        'xxl': '96px'
+      backgroundImage: {
+        "neon-gradient": "var(--gradient-brand)",
       },
       borderRadius: {
-        'small': '6px',
-        'medium': '8px',
-        'large': '12px'
-      },
-      boxShadow: {
-        'card': '0 4px 12px rgba(0,0,0,0.15)',
-        'modal': '0 8px 20px rgba(0,0,0,0.25)',
-        'button': '0 2px 4px rgba(0,0,0,0.1)',
-        'card-hover': '0 8px 24px rgba(0,0,0,0.2)'
-      },
-      transitionDuration: {
-        '150': '150ms',
-        '200': '200ms',
-        '300': '300ms',
-        '400': '400ms'
-      },
-      transitionTimingFunction: {
-        'ease-out': 'cubic-bezier(0, 0, 0.2, 1)',
-        'ease-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)'
+        card: "var(--radius-card)",
       },
       animation: {
-        'spin-slow': 'spin 8s linear infinite',
-      }
+        "spin-slow": "spin 8s linear infinite",
+      },
     },
   },
   plugins: [],
 };
+
 export default config;

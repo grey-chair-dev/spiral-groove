@@ -16,7 +16,7 @@ export const catalogFilterSchema = z.object({
 });
 
 export const productSortSchema = z.object({
-  field: z.enum(['title', 'artist', 'price', 'year', 'createdAt']),
+  field: z.enum(['title', 'maker', 'price', 'year', 'createdAt']),
   direction: z.enum(['asc', 'desc']),
 });
 
@@ -49,7 +49,7 @@ export const eventInquirySchema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email(),
   phone: z.string().optional(),
-  eventType: z.enum(['Live Music', 'Record Fair', 'Private Event', 'Other']),
+  eventType: z.enum(['Live Music', 'Product Fair', 'Private Event', 'Other']),
   eventDate: z.string().min(1),
   expectedAttendance: z.number().min(1).max(500),
   message: z.string().min(10).max(1000),

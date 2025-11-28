@@ -3,129 +3,116 @@
 @tailwind utilities;
 
 :root {
-  --radius: 14px;
-  
-      /* Design System Colors */
-      --color-primary-black: #111111;
-      --color-primary-cream: #FFFFFF;
-      --color-accent-teal: #63dbdf;
-      --color-accent-amber: #bd132b;
-      --color-highlight-red: #bd132b;
-      --color-text-dark: #111111;
-      --color-text-light: #FFFFFF;
-      --color-neutral-gray: #7A7A7A;
-  
-  /* Design System Fonts */
-  --font-display: 'Playfair Display', serif;
-  --font-body: 'Inter', sans-serif;
-  --font-accent: 'Poppins', sans-serif;
+  /* Branding */
+  --color-background: #050505;
+  --color-surface: rgba(8, 8, 12, 0.92);
+  --color-surface-muted: rgba(8, 8, 12, 0.6);
+  --color-border: rgba(255, 255, 255, 0.18);
+  --color-border-strong: rgba(255, 255, 255, 0.36);
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: rgba(245, 245, 245, 0.8);
+  --color-text-muted: rgba(245, 245, 245, 0.6);
+  --color-primary: #ec4899;
+  --color-secondary: #06b6d4;
+  --color-accent: #a855f7;
+  --color-success: #34d399;
+  --color-danger: #f87171;
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-secondary) 100%
+  );
+  --gradient-blob-primary: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-primary) 70%, transparent) 0%,
+    color-mix(in srgb, var(--color-accent) 60%, transparent) 40%,
+    color-mix(in srgb, var(--color-secondary) 50%, transparent) 100%
+  );
+  --gradient-blob-secondary: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-accent) 60%, transparent) 0%,
+    color-mix(in srgb, var(--color-secondary) 50%, transparent) 100%
+  );
+  --gradient-blob-tertiary: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-primary) 55%, transparent) 0%,
+    color-mix(in srgb, var(--color-accent) 40%, transparent) 100%
+  );
+
+  /* Typography */
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Inter', sans-serif;
+
+  /* Effects */
+  --blob-blur-lg: 80px;
+  --blob-blur-md: 60px;
+  --blob-blur-sm: 50px;
+  --radius-card: 16px;
 }
 
 html {
-  background-color: #000000;
+  background-color: var(--color-background);
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body { 
-  @apply bg-primary-cream text-text-dark font-body;
-  background-color: #000000;
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-.header-brand { 
-  @apply text-2xl font-extrabold tracking-tight font-display; 
+.bg-neon-gradient {
+  background-image: var(--gradient-brand);
 }
 
-.container { 
-  @apply mx-auto px-4 sm:px-6 lg:px-8; 
+.gradient-blob-primary {
+  background: var(--gradient-blob-primary);
+  filter: blur(var(--blob-blur-lg));
 }
 
-.section { 
-  @apply container py-12 sm:py-16; 
+.gradient-blob-secondary {
+  background: var(--gradient-blob-secondary);
+  filter: blur(var(--blob-blur-md));
 }
 
-.grid-cols-responsive { 
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+.gradient-blob-tertiary {
+  background: var(--gradient-blob-tertiary);
+  filter: blur(var(--blob-blur-sm));
 }
 
-.card { 
-  @apply rounded-large shadow-card border border-neutral-200 bg-primary-cream; 
-}
-
-.badge { 
-  @apply text-xs px-2 py-1 rounded-full border border-neutral-300; 
-}
-
-.btn { 
-  @apply inline-flex items-center justify-center rounded-medium px-7 py-3.5 border border-accent-teal bg-accent-teal text-text-light font-accent font-bold uppercase transition-all duration-150 hover:bg-accent-amber hover:border-accent-amber; 
-}
-
-.btn-secondary {
-  @apply inline-flex items-center justify-center rounded-medium px-7 py-3.5 border border-accent-teal text-accent-teal font-accent font-bold uppercase transition-all duration-150 hover:bg-accent-amber hover:border-accent-amber hover:text-text-dark;
-}
-
-.link { 
-  @apply underline underline-offset-4 hover:no-underline text-accent-teal hover:text-accent-amber transition-all duration-150; 
-}
-
-/* Enhanced animations and hover effects */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
+.glass-panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  backdrop-filter: blur(24px);
+  border-radius: var(--radius-card);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+
+.glass-panel-muted {
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  backdrop-filter: blur(12px);
+  border-radius: var(--radius-card);
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.animate-pulse-slow {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Enhanced card hover effects */
-.card-hover-lift {
-  @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-card-hover;
-}
-
-/* Gradient text */
-.gradient-text {
-  @apply bg-gradient-to-r from-accent-teal to-accent-amber bg-clip-text text-transparent;
-}
-
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-neutral-100;
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-accent-teal rounded-full;
+  background: var(--color-accent);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-accent-amber;
+  background: var(--color-primary);
 }

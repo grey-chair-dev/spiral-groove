@@ -3,5 +3,5 @@ Allow: /
 Disallow: /api
 Disallow: /admin
 
-Sitemap: https://spiralgrooverecords.com/sitemap.xml
+Sitemap: https://localcommercetemplate.com/sitemap.xml
 

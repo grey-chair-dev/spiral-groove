@@ -1,14 +1,14 @@
 <svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="recordGradientLarge" cx="50%" cy="50%">
+    <radialGradient id="productGradientLarge" cx="50%" cy="50%">
       <stop offset="0%" style="stop-color:#2a2a2a;stop-opacity:1" />
       <stop offset="50%" style="stop-color:#333333;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#2a2a2a;stop-opacity:1" />
     </radialGradient>
   </defs>
   
-  <!-- Record surface with subtle radial shading -->
-  <circle cx="90" cy="90" r="85" fill="url(#recordGradientLarge)"/>
+  <!-- Product surface with subtle radial shading -->
+  <circle cx="90" cy="90" r="85" fill="url(#productGradientLarge)"/>
   
   <!-- Subtle radial segments for texture -->
   <g opacity="0.3">

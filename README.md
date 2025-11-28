@@ -1,6 +1,6 @@
-# Spiral Groove Records – Coming Soon Page
+# Local Commerce Template – Coming Soon Page
 
-> Minimal coming soon page for Spiral Groove Records with email capture functionality.
+> Minimal coming soon page for Local Commerce Template with email capture functionality.
 
 ## 🚀 Quick Start
 
@@ -14,7 +14,7 @@ npm run dev
 
 ### Pages
 - **Homepage (`/`)** - Coming soon page with:
-  - Spinning record logo animation
+  - Spinning product logo animation
   - Store information (address, phone, hours)
   - Email signup form (first name, last name, email)
   - Social media links (Facebook, Instagram, TikTok)
@@ -68,8 +68,8 @@ npm run dev
 Create a `.env.local` file with:
 
 ```env
-# Database (Vercel uses SGR_DATABASE_URL, local uses DATABASE_URL)
-SGR_DATABASE_URL=your_neon_postgresql_connection_string
+# Database (Vercel uses LCT_DATABASE_URL, local uses DATABASE_URL)
+LCT_DATABASE_URL=your_neon_postgresql_connection_string
 # Or for local development:
 DATABASE_URL=your_neon_postgresql_connection_string
 
@@ -128,10 +128,10 @@ See [SECURITY.md](./SECURITY.md) for complete security checklist.
 ## 🎨 Design
 
 - Black background with neon gradient accents
-- Spinning record logo animation
+- Spinning product logo animation
 - Mobile-first responsive layout
 - Clean, minimal aesthetic
 
 ---
 
-Built with ❤️ for Spiral Groove Records
+Built with ❤️ for Local Commerce Template

@@ -1,19 +1,19 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Spiral Groove Records',
-  description: 'Privacy policy for Spiral Groove Records website.',
+  title: 'Privacy Policy | Local Commerce Template',
+  description: 'Privacy policy for Local Commerce Template website.',
 };
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-black text-white p-8 md:p-16">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl md:text-5xl font-bold mb-8 uppercase">Privacy Policy</h1>
+    <div className="min-h-screen bg-background text-text-primary p-8 md:p-16">
+      <div className="max-w-4xl mx-auto space-y-6 text-lg leading-relaxed">
+        <h1 className="text-4xl md:text-5xl font-bold uppercase">Privacy Policy</h1>
         
-        <div className="space-y-6 text-lg leading-relaxed">
+        <div className="space-y-6">
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Information We Collect</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-text-secondary">Information We Collect</h2>
             <p>
               When you sign up for our newsletter, we collect:
             </p>
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">How We Use Your Information</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-text-secondary">How We Use Your Information</h2>
             <p>
               We use the information you provide to:
             </p>
@@ -37,14 +37,14 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Data Storage</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-text-secondary">Data Storage</h2>
             <p>
               Your information is securely stored in our database (Neon PostgreSQL) and may be sent to our email marketing service (Make.com) for processing. We do not sell or share your personal information with third parties.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Data Security</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-text-secondary">Data Security</h2>
             <p>
               We implement appropriate security measures to protect your personal information, including:
             </p>
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Your Rights</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-text-secondary">Your Rights</h2>
             <p>
               You have the right to:
             </p>
@@ -70,26 +70,26 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Contact Us</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-text-secondary">Contact Us</h2>
             <p>
               If you have questions about this privacy policy or wish to exercise your rights, please contact us:
             </p>
             <p className="mt-4">
-              <strong>Spiral Groove Records</strong><br />
+              <strong>Local Commerce Template</strong><br />
               215B Main St<br />
               Milford, OH 45150<br />
-              Phone: <a href="tel:+15136008018" className="text-cyan-400 hover:text-cyan-300">(513) 600-8018</a>
+              Phone: <a href="tel:+15136008018" className="text-secondary hover:text-primary transition-colors">(513) 600-8018</a>
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">Updates to This Policy</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-text-secondary">Updates to This Policy</h2>
             <p>
               We may update this privacy policy from time to time. The last updated date will be indicated at the bottom of this page.
             </p>
           </section>
 
-          <p className="text-sm text-gray-400 mt-8">
+          <p className="text-sm text-text-muted mt-8">
             Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>

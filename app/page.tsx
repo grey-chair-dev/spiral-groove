@@ -46,32 +46,20 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden w-full" style={{ backgroundColor: '#000000' }}>
+    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden w-full">
       {/* Abstract Gradient Shape Background */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="relative w-full h-full">
           {/* Abstract gradient blob shape */}
           <div 
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full opacity-80 blur-3xl"
-            style={{
-              background: 'radial-gradient(circle, rgba(236,72,153,0.6) 0%, rgba(168,85,247,0.5) 30%, rgba(6,182,212,0.4) 60%, rgba(236,72,153,0.3) 100%)',
-              filter: 'blur(80px)',
-            }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full opacity-80 gradient-blob-primary"
           />
           {/* Additional smaller blobs for depth */}
           <div 
-            className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full opacity-60 blur-2xl"
-            style={{
-              background: 'radial-gradient(circle, rgba(168,85,247,0.5) 0%, rgba(6,182,212,0.4) 100%)',
-              filter: 'blur(60px)',
-            }}
+            className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full opacity-60 gradient-blob-secondary"
           />
           <div 
-            className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full opacity-50 blur-2xl"
-            style={{
-              background: 'radial-gradient(circle, rgba(236,72,153,0.5) 0%, rgba(168,85,247,0.3) 100%)',
-              filter: 'blur(50px)',
-            }}
+            className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full opacity-50 gradient-blob-tertiary"
           />
         </div>
       </div>
@@ -82,40 +70,40 @@ export default function Home() {
         <div className="flex flex-col justify-center p-8 md:p-12 lg:pl-64 lg:pr-4 xl:pl-80 2xl:pl-96">
           <div className="space-y-8">
             {/* Coming Soon Badge */}
-            <div className="text-white uppercase text-xs md:text-sm tracking-wider">
+            <div className="text-text-secondary uppercase text-xs md:text-sm tracking-wider">
               NEW WEBSITE COMING SOON
             </div>
 
             {/* Main Headline */}
             <div className="space-y-2">
-              <h1 className="text-white text-4xl md:text-5xl lg:text-6xl font-bold uppercase leading-tight">
-                SPIRAL GROOVE
+              <h1 className="text-text-primary text-4xl md:text-5xl lg:text-6xl font-bold uppercase leading-tight">
+                LOCAL COMMERCE
               </h1>
-              <h1 className="text-white text-4xl md:text-5xl lg:text-6xl font-bold uppercase leading-tight">
-                RECORDS
+              <h1 className="text-text-primary text-4xl md:text-5xl lg:text-6xl font-bold uppercase leading-tight">
+                TEMPLATE
               </h1>
             </div>
 
             {/* Sub-headline */}
-            <p className="text-white text-lg md:text-xl max-w-lg font-light">
-              Milford's favorite record shop. We're building something special online, but you can always visit us in person.
+            <p className="text-text-secondary text-lg md:text-xl max-w-lg font-light">
+              Milford&rsquo;s favorite product shop. We&rsquo;re building something special online, but you can always visit us in person.
             </p>
 
             {/* Visit Us Section */}
-            <div className="space-y-4 text-center border-2 border-white/20 rounded-lg p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto">
-              <h2 className="text-white text-xl md:text-2xl font-semibold uppercase tracking-wider">
+            <div className="space-y-4 text-center glass-panel max-w-md mx-auto p-6">
+              <h2 className="text-text-primary text-xl md:text-2xl font-semibold uppercase tracking-wider">
                 Visit Us
               </h2>
-              <div className="text-white/80 space-y-1">
+              <div className="text-text-secondary space-y-1">
                 <p className="text-lg">215B Main St</p>
                 <p className="text-lg">Milford, OH 45150</p>
                 <a 
                   href="tel:+15136008018" 
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors text-lg block mt-2"
+                  className="text-secondary hover:text-primary transition-colors text-lg block mt-2"
                 >
                   (513) 600-8018
                 </a>
-                <p className="text-sm mt-2 italic">Open 12–9 PM daily</p>
+                <p className="text-sm mt-2 italic text-text-muted">Open 12–9 PM daily</p>
               </div>
             </div>
 
@@ -132,7 +120,7 @@ export default function Home() {
                   placeholder="First name"
                   required
                   disabled={loading}
-                  className="flex-1 px-6 py-4 bg-black border-2 border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-white/40 transition-colors rounded-lg disabled:opacity-50"
+                  className="flex-1 px-6 py-4 bg-surface border border-border text-text-primary placeholder-text-muted focus:outline-none focus:border-border-strong transition-colors rounded-lg disabled:opacity-50"
                 />
                 <input
                   type="text"
@@ -144,7 +132,7 @@ export default function Home() {
                   placeholder="Last name"
                   required
                   disabled={loading}
-                  className="flex-1 px-6 py-4 bg-black border-2 border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-white/40 transition-colors rounded-lg disabled:opacity-50"
+                  className="flex-1 px-6 py-4 bg-surface border border-border text-text-primary placeholder-text-muted focus:outline-none focus:border-border-strong transition-colors rounded-lg disabled:opacity-50"
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
@@ -158,29 +146,29 @@ export default function Home() {
                   placeholder="Your email"
                   required
                   disabled={loading}
-                  className="flex-1 px-6 py-4 bg-black border-2 border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-white/40 transition-colors rounded-lg disabled:opacity-50"
+                  className="flex-1 px-6 py-4 bg-surface border border-border text-text-primary placeholder-text-muted focus:outline-none focus:border-border-strong transition-colors rounded-lg disabled:opacity-50"
                 />
                 <button
                   type="submit"
                   disabled={loading || submitted}
-                  className="px-8 py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 text-white font-semibold hover:opacity-90 transition-opacity rounded-lg uppercase tracking-wider whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-8 py-4 bg-neon-gradient text-text-primary font-semibold hover:opacity-90 transition-opacity rounded-lg uppercase tracking-wider whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "..." : submitted ? "✓ You're In" : "Notify Me"}
                 </button>
               </div>
             </form>
             {submitted && (
-              <p className="text-cyan-400 text-sm">Thanks! We'll let you know when the site is live.</p>
+              <p className="text-secondary text-sm">Thanks! We&rsquo;ll let you know when the site is live.</p>
             )}
             {error && (
-              <p className="text-red-400 text-sm">{error}</p>
+              <p className="text-danger text-sm">{error}</p>
             )}
 
             {/* Privacy Policy Link */}
             <div className="pt-4">
               <a
                 href="/privacy"
-                className="text-white/60 hover:text-white/80 text-sm transition-colors"
+                className="text-text-muted hover:text-text-secondary text-sm transition-colors"
               >
                 Privacy Policy
               </a>
@@ -189,28 +177,28 @@ export default function Home() {
             {/* Social Media Icons */}
             <div className="flex gap-6 pt-4">
               <a
-                href="https://www.facebook.com/spiralgrooverecords/"
+                href="https://www.facebook.com/localcommercetemplate/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white hover:text-cyan-400 transition-colors"
+                className="text-text-primary hover:text-secondary transition-colors"
                 aria-label="Follow us on Facebook"
               >
                 <Facebook size={24} />
               </a>
               <a
-                href="https://www.instagram.com/spiral_groove_records_/?hl=en"
+                href="https://www.instagram.com/localcommerceshop/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white hover:text-cyan-400 transition-colors"
+                className="text-text-primary hover:text-secondary transition-colors"
                 aria-label="Follow us on Instagram"
               >
                 <Instagram size={24} />
               </a>
               <a
-                href="https://www.tiktok.com/@spiral_groove"
+                href="https://www.tiktok.com/@localcommerceshop"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white hover:text-cyan-400 transition-colors"
+                className="text-text-primary hover:text-secondary transition-colors"
                 aria-label="Follow us on TikTok"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -221,12 +209,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right Half - Spinning Record */}
+        {/* Right Half - Spinning Product */}
         <div className="flex items-center justify-center p-8 md:p-12 lg:p-16">
           <div className="relative w-full max-w-lg aspect-square">
             <Image
               src="/logo.png"
-              alt="Spiral Groove Records"
+              alt="Local Commerce Template"
               fill
               className="object-contain animate-spin-slow"
               style={{ animationDuration: '8s' }}

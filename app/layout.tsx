@@ -10,11 +10,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://spiralgrooverecords.com"),
-  title: "Spiral Groove Records | Coming Soon",
-  description: "Milford's favorite record shop. New website coming soon. Visit us at 215B Main St, Milford, OH.",
+  metadataBase: new URL("https://localcommercetemplate.com"),
+  title: "Local Commerce Template | Coming Soon",
+  description: "Milford's favorite product shop. New website coming soon. Visit us at 215B Main St, Milford, OH.",
   alternates: {
-    canonical: "https://spiralgrooverecords.com/",
+    canonical: "https://localcommercetemplate.com/",
   },
   icons: {
     icon: [
@@ -26,10 +26,10 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Spiral Groove Records | Coming Soon",
-    description: "Milford's favorite record shop. New website coming soon.",
-    url: "https://spiralgrooverecords.com/",
-    siteName: "Spiral Groove Records",
+    title: "Local Commerce Template | Coming Soon",
+    description: "Milford's favorite product shop. New website coming soon.",
+    url: "https://localcommercetemplate.com/",
+    siteName: "Local Commerce Template",
     locale: "en_US",
     type: "website",
   },
@@ -43,8 +43,8 @@ export const viewport: Viewport = {
 const localBusinessSchema = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
-  "name": "Spiral Groove Records",
-  "image": "https://spiralgrooverecords.com/images/storefront.jpg",
+  "name": "Local Commerce Template",
+  "image": "https://localcommercetemplate.com/images/storefront.jpg",
   "address": {
     "@type": "PostalAddress",
     "streetAddress": "215B Main St",
@@ -55,12 +55,12 @@ const localBusinessSchema = {
   },
   "telephone": "+1-513-600-8018",
   "openingHours": "Mo-Su 12:00-21:00",
-  "url": "https://spiralgrooverecords.com",
+  "url": "https://localcommercetemplate.com",
   "priceRange": "$$",
   "sameAs": [
-    "https://www.instagram.com/spiral_groove_records_/",
-    "https://www.facebook.com/spiralgrooverecords/",
-    "https://www.tiktok.com/@spiral_groove",
+    "https://www.instagram.com/localcommerceshop/",
+    "https://www.facebook.com/localcommercetemplate/",
+    "https://www.tiktok.com/@localcommerceshop",
   ],
 };
 
