@@ -101,7 +101,10 @@ export const ClientLoginPage: React.FC<ClientLoginPageProps> = ({ onSuccess }) =
           background: radial-gradient(1200px 600px at 20% 10%, rgba(255, 215, 0, 0.22), transparent 60%),
             radial-gradient(900px 500px at 80% 0%, rgba(59, 130, 246, 0.16), transparent 55%),
             var(--color-brand-light-grey);
+          /* Use dvh to avoid iOS address-bar "jump" when loading */
           min-height: 100vh;
+          min-height: 100dvh;
+          width: 100%;
         }
 
         .gc a { color: var(--color-brand-vibrant-blue); text-decoration: none; }
@@ -130,9 +133,13 @@ export const ClientLoginPage: React.FC<ClientLoginPageProps> = ({ onSuccess }) =
 
         .gc-shell {
           min-height: 100svh;
+          min-height: 100dvh;
           display: grid;
           place-items: center;
-          padding: 28px 16px;
+          width: 100%;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          padding: calc(28px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
         }
 
         .gc-card {
@@ -264,8 +271,13 @@ export const ClientLoginPage: React.FC<ClientLoginPageProps> = ({ onSuccess }) =
 
         /* --- Mobile friendliness tweaks --- */
         @media (max-width: 520px) {
-          .gc-shell { padding: 18px 12px; place-items: center; }
+          .gc-shell { padding: calc(18px + env(safe-area-inset-top)) 12px calc(18px + env(safe-area-inset-bottom)); place-items: center; }
           .gc-card { padding: 16px; }
+        }
+
+        /* When viewport is short (e.g., keyboard open), prefer top-aligned + scroll */
+        @media (max-height: 700px) {
+          .gc-shell { place-items: start; }
         }
 
         @media (max-width: 380px) {
