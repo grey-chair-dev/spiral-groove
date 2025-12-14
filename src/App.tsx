@@ -536,9 +536,14 @@ function App() {
   };
 
   const handlePlaceOrder = (details: any) => {
+    const effectiveOrderId =
+      details?.orderNumber ||
+      details?.orderId ||
+      `#ORD-${Math.floor(Math.random() * 10000) + 2024}`;
+
     // Generate Mock Order Object for Confirmation Page (if used)
     const newOrder: Order = {
-        id: details.orderNumber || `#ORD-${Math.floor(Math.random() * 10000) + 2024}`,
+        id: effectiveOrderId,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         status: details.deliveryMethod === 'pickup' ? 'Processing' : 'Pending Shipment',
         total: details.total,
@@ -556,18 +561,11 @@ function App() {
     setLastPlacedOrder(newOrder);
     setCartItems([]); // Clear cart
 
-    // If user is logged in, show normal confirmation
-    // If guest, show order status with details pre-filled
-    if (user) {
-        setCurrentPage('order-confirmation');
-        window.history.pushState(null, '', toPathFromState({ page: 'order-confirmation' }));
-    } else {
-        const orderId = encodeURIComponent(details.orderNumber);
-        const email = encodeURIComponent(details.email);
-        setOrderStatusParams({ id: details.orderNumber, email: details.email });
-        setCurrentPage('order-status');
-        window.history.pushState(null, '', `/order-status/${orderId}/${email}`);
-    }
+    // After payment, always go to order confirmation.
+    // (We still keep order status params handy for guests if they need to check status later.)
+    setOrderStatusParams({ id: effectiveOrderId, email: details?.email || '' });
+    setCurrentPage('order-confirmation');
+    window.history.pushState(null, '', toPathFromState({ page: 'order-confirmation' }));
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -629,6 +627,14 @@ function App() {
       setSelectedOrder(order);
       setCurrentPage('receipt');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePrintReceiptFromOrderConfirmation = () => {
+    if (!lastPlacedOrder) return;
+    setSelectedOrder(lastPlacedOrder);
+    setCurrentPage('receipt');
+    window.history.pushState(null, '', toPathFromState({ page: 'receipt' }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
   const handleRSVP = (event: Event) => {
@@ -810,6 +816,7 @@ function App() {
                 order={lastPlacedOrder}
                 viewMode={viewMode}
                 onNavigate={handleNavigate}
+                onPrintReceipt={handlePrintReceiptFromOrderConfirmation}
             />
         )}
         {currentPage === 'orders' && (
@@ -817,6 +824,7 @@ function App() {
                 viewMode={viewMode}
                 onNavigate={handleNavigate}
                 onViewReceipt={handleViewReceipt}
+                onLoginClick={() => setIsAuthModalOpen(true)}
             />
         )}
         {currentPage === 'receipt' && selectedOrder && (

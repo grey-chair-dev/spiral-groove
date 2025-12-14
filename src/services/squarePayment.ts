@@ -180,9 +180,15 @@ export async function processPayment(
     }
 
     const result = await response.json()
+    const orderId =
+      result?.orderId ||
+      result?.id ||
+      result?.payment?.localOrderNumber ||
+      result?.payment?.orderId ||
+      result?.payment?.id
     return {
       success: true,
-      orderId: result.orderId || result.id,
+      orderId,
     }
   } catch (error: any) {
     console.error('[Square] Payment processing error:', error)

@@ -9,9 +9,10 @@ interface OrderConfirmationPageProps {
   order: Order | null;
   viewMode: ViewMode;
   onNavigate: (page: Page, filter?: string) => void;
+  onPrintReceipt: () => void;
 }
 
-export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ order, viewMode, onNavigate }) => {
+export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ order, viewMode, onNavigate, onPrintReceipt }) => {
   const isRetro = viewMode === 'retro';
 
   // Scroll top on mount
@@ -99,7 +100,11 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
                                ? 'Wait for the "Ready for Pickup" email before heading over. Bring your ID!' 
                                : 'We will pack your order with care. You will receive a tracking number within 24 hours.'}
                         </p>
-                        <button className="text-xs font-bold uppercase tracking-widest text-brand-orange hover:underline flex items-center gap-1">
+                        <button
+                            type="button"
+                            onClick={onPrintReceipt}
+                            className="text-xs font-bold uppercase tracking-widest text-brand-orange hover:underline flex items-center gap-1"
+                        >
                             <Printer size={12} /> Print Receipt
                         </button>
                     </div>

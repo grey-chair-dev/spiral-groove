@@ -156,6 +156,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -226,9 +227,10 @@ export const Header: React.FC<HeaderProps> = ({
   // Close search dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setShowSearchDropdown(false);
-      }
+      const target = event.target as Node;
+      const inDesktop = !!searchContainerRef.current?.contains(target);
+      const inMobile = !!mobileSearchContainerRef.current?.contains(target);
+      if (!inDesktop && !inMobile) setShowSearchDropdown(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -252,8 +254,8 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchSubmit = (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
     if (searchQuery.trim()) {
         onNavigate('search', searchQuery);
         setShowSearchDropdown(false);
@@ -349,7 +351,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                       {/* Desktop Search Dropdown */}
                       {showSearchDropdown && searchResults.length > 0 && (
-                        <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl overflow-hidden z-50
+                        <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl overflow-hidden z-[220]
                             ${isRetro ? 'bg-white border-2 border-brand-black shadow-retro' : 'bg-white border border-gray-200 shadow-xl'}
                         `}>
                             <ul className="max-h-[300px] overflow-y-auto">
@@ -367,7 +369,9 @@ export const Header: React.FC<HeaderProps> = ({
                                                 setShowSearchDropdown(false);
                                                 setSearchQuery('');
                                             }}
-                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none"
+                                            className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-b last:border-none
+                                              ${isRetro ? 'hover:bg-white/60 border-brand-black/10' : 'hover:bg-gray-50 border-gray-50'}
+                                            `}
                                         >
                                             <div className="w-10 h-10 flex-shrink-0 bg-gray-100 rounded overflow-hidden border border-gray-200">
                                                 <img src={product.coverUrl} alt="" className="w-full h-full object-cover" />
@@ -643,7 +647,7 @@ export const Header: React.FC<HeaderProps> = ({
              </div>
 
              {/* Search in Drawer */}
-             <div className="px-6 pt-6 pb-2">
+             <div ref={mobileSearchContainerRef} className="px-6 pt-6 pb-2 relative z-[40]">
                 <form className="relative group" onSubmit={handleSearchSubmit}>
                     <input 
                         type="text" 
@@ -668,13 +672,14 @@ export const Header: React.FC<HeaderProps> = ({
 
                     {/* Mobile Search Dropdown */}
                     {showSearchDropdown && searchResults.length > 0 && (
-                        <div className={`mt-2 rounded-xl overflow-hidden
+                        <div className={`absolute left-0 right-0 top-full mt-2 rounded-xl overflow-hidden z-[60]
                             ${isRetro ? 'bg-white border-2 border-brand-black shadow-none' : 'bg-white border border-gray-200 shadow-lg'}
                         `}>
                             <ul className="max-h-[200px] overflow-y-auto">
                                 {searchResults.map(product => (
                                     <li key={product.id}>
                                         <button
+                                            type="button"
                                             onClick={() => {
                                                 // Same logic as desktop
                                                 if (onProductClick) {
@@ -686,7 +691,9 @@ export const Header: React.FC<HeaderProps> = ({
                                                 setIsMobileMenuOpen(false);
                                                 setSearchQuery('');
                                             }}
-                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none"
+                                            className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-b last:border-none
+                                              ${isRetro ? 'hover:bg-white/60 border-brand-black/10' : 'hover:bg-gray-50 border-gray-50'}
+                                            `}
                                         >
                                             <div className="w-8 h-8 flex-shrink-0 bg-gray-100 rounded overflow-hidden border border-gray-200">
                                                 <img src={product.coverUrl} alt="" className="w-full h-full object-cover" />
@@ -700,7 +707,8 @@ export const Header: React.FC<HeaderProps> = ({
                                 ))}
                             </ul>
                             <button
-                                onClick={handleSearchSubmit}
+                                type="button"
+                                onClick={() => handleSearchSubmit()}
                                 className={`w-full py-3 text-center text-xs font-bold uppercase tracking-wider border-t transition-colors
                                     ${isRetro ? 'bg-brand-mustard text-brand-black hover:bg-brand-orange border-brand-black' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-100'}
                                 `}
@@ -713,7 +721,7 @@ export const Header: React.FC<HeaderProps> = ({
              </div>
 
              {/* Links */}
-             <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
+             <div className="flex-1 overflow-y-auto p-6 scroll-smooth relative z-[10]">
                 <ul className="space-y-6">
                   {NAV_ITEMS.map((item) => (
                     <li key={item.label}>

@@ -11,9 +11,10 @@ interface OrdersPageProps {
   viewMode: ViewMode;
   onNavigate: (page: Page, filter?: string) => void;
   onViewReceipt: (order: Order) => void;
+  onLoginClick: () => void;
 }
 
-export const OrdersPage: React.FC<OrdersPageProps> = ({ viewMode, onNavigate, onViewReceipt }) => {
+export const OrdersPage: React.FC<OrdersPageProps> = ({ viewMode, onNavigate, onViewReceipt, onLoginClick }) => {
   const isRetro = viewMode === 'retro';
   const { user } = useUser();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -87,19 +88,25 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ viewMode, onNavigate, on
 
   if (!user) {
        return (
-          <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6
-                 ${isRetro ? 'bg-brand-orange border-2 border-brand-black text-brand-black' : 'bg-gray-100 text-gray-900'}
-              `}>
+          <div className="animate-in fade-in duration-500 pt-8 min-h-screen">
+            <Section>
+              <div className="max-w-3xl mx-auto text-center px-4 py-12 md:py-16">
+                <div
+                  className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6
+                    ${isRetro ? 'bg-brand-orange border-2 border-brand-black text-brand-black' : 'bg-gray-100 text-gray-900'}
+                  `}
+                >
                   <Store size={32} />
-              </div>
-              <h2 className="font-display text-3xl mb-4">Sign in to view orders</h2>
-              <p className="text-gray-500 mb-8 max-w-md">
+                </div>
+                <h2 className="font-display text-3xl mb-4">Sign in to view orders</h2>
+                <p className="text-gray-500 mb-8 max-w-md mx-auto">
                   Log in with your email to see your past purchases, track status, and view receipts.
-              </p>
-              <Button onClick={() => document.getElementById('login-btn')?.click()}>
+                </p>
+                <Button onClick={onLoginClick}>
                   Sign In / Register
-              </Button>
+                </Button>
+              </div>
+            </Section>
           </div>
        );
   }
