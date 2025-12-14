@@ -1,214 +1,130 @@
-import type { CartItem } from './CheckoutReviewPage'
-import { moneyFormatter } from '../formatters'
 
-type ShippingForm = {
-  email: string
-  firstName: string
-  lastName: string
-  address: string
-  city: string
-  state: string
-  zipCode: string
-  phone: string
+import React, { useEffect } from 'react';
+import { ViewMode, Order, Page } from '../../types';
+import { Section } from './ui/Section';
+import { Button } from './ui/Button';
+import { CheckCircle2, ArrowRight, MapPin, Calendar, Printer } from 'lucide-react';
+
+interface OrderConfirmationPageProps {
+  order: Order | null;
+  viewMode: ViewMode;
+  onNavigate: (page: Page, filter?: string) => void;
 }
 
-type OrderConfirmationPageProps = {
-  orderNumber: string
-  cartItems: CartItem[]
-  shippingForm: ShippingForm
-  cartSubtotal: number
-  estimatedShipping: number
-  estimatedTax: number
-  onViewOrderStatus: () => void
-  onGoToDashboard: () => void
-  onContinueShopping: () => void
-}
+export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ order, viewMode, onNavigate }) => {
+  const isRetro = viewMode === 'retro';
 
-export function OrderConfirmationPage({
-  orderNumber,
-  cartItems,
-  shippingForm,
-  cartSubtotal,
-  estimatedShipping,
-  estimatedTax,
-  onViewOrderStatus,
-  onGoToDashboard,
-  onContinueShopping,
-}: OrderConfirmationPageProps) {
-  const total = cartSubtotal + estimatedShipping + estimatedTax
+  // Scroll top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
-  const handlePrintReceipt = () => {
-    window.print()
-  }
+  if (!order) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-surface text-white">
-      <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/20">
-            <svg
-              className="h-8 w-8 text-accent"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-semibold">Order Confirmed!</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Thank you for your purchase. We've received your order and will send you a confirmation
-            email shortly.
-          </p>
-          <p className="mt-1 text-sm font-semibold text-primary">Order #{orderNumber}</p>
-        </div>
+    <div className="animate-in fade-in duration-700 pt-12 min-h-screen bg-gray-50/50">
+      <Section>
+        <div className="max-w-3xl mx-auto text-center">
+            
+            <div className={`w-24 h-24 mx-auto mb-8 rounded-full flex items-center justify-center animate-in zoom-in duration-500
+               ${isRetro 
+                 ? 'bg-brand-teal text-white border-2 border-brand-black shadow-retro' 
+                 : 'bg-green-100 text-green-600 shadow-sm'}
+            `}>
+                <CheckCircle2 size={48} strokeWidth={3} />
+            </div>
 
-        <div className="flex flex-1 flex-col gap-8 lg:flex-row">
-          {/* Main content */}
-          <div className="flex-1 space-y-6">
-            {/* Order summary */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-              <h2 className="mb-4 text-lg font-semibold">Order Summary</h2>
-              <div className="space-y-4">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="h-16 w-16 rounded-lg object-cover"
-                      />
-                      <div>
-                        <p className="font-medium text-white">{item.name}</p>
-                        <p className="text-xs text-slate-400">
-                          Qty: {item.quantity} × {moneyFormatter.format(item.price)}
-                        </p>
-                      </div>
+            <h1 className={`font-display text-5xl md:text-6xl mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>
+                Order Confirmed!
+            </h1>
+            <p className="text-xl text-gray-500 mb-12 max-w-lg mx-auto leading-relaxed">
+                Thanks for digging with us. We've sent a receipt to your email.
+            </p>
+
+            <div className={`p-8 md:p-12 text-left mb-12 relative overflow-hidden
+               ${isRetro 
+                 ? 'bg-white border-2 border-brand-black shadow-retro' 
+                 : 'bg-white border border-gray-200 rounded-2xl shadow-lg'}
+            `}>
+                {/* Decorative receipt jagged edge for retro */}
+                {isRetro && (
+                   <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-b from-black/5 to-transparent"></div>
+                )}
+
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-8 border-b border-dashed border-gray-300 mb-8">
+                    <div>
+                        <span className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Order Number</span>
+                        <span className="font-display text-2xl">{order.id}</span>
                     </div>
-                    <span className="font-semibold">
-                      {moneyFormatter.format(item.price * item.quantity)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 space-y-2 border-t border-white/10 pt-4 text-sm">
-                <div className="flex justify-between text-slate-300">
-                  <span>Subtotal</span>
-                  <span>{moneyFormatter.format(cartSubtotal)}</span>
+                    <div>
+                         <span className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Total Paid</span>
+                         <span className="font-display text-2xl">${order.total.toFixed(2)}</span>
+                    </div>
+                    <div>
+                         <span className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Date</span>
+                         <span className="font-bold">{order.date}</span>
+                    </div>
                 </div>
-                <div className="flex justify-between text-slate-300">
-                  <span>Shipping</span>
-                  <span>{moneyFormatter.format(estimatedShipping)}</span>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div>
+                        <h3 className="font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+                           <MapPin size={16} className="text-brand-orange" /> Delivery Details
+                        </h3>
+                        <div className="text-sm text-gray-600 leading-relaxed">
+                            {order.location === 'Milford Shop' ? (
+                                <>
+                                   <p className="font-bold text-black mb-1">Store Pickup</p>
+                                   <p>Spiral Groove Records</p>
+                                   <p>215B Main Street</p>
+                                   <p>Milford, OH 45150</p>
+                                   <p className="mt-2 text-xs text-brand-teal font-bold uppercase">Ready within 2 hours</p>
+                                </>
+                            ) : (
+                                <>
+                                   <p className="font-bold text-black mb-1">Shipping Address</p>
+                                   <p>{order.location}</p>
+                                   <p className="mt-2 text-xs text-gray-400">Via USPS Media Mail</p>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 className="font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+                           <Calendar size={16} className="text-brand-orange" /> What's Next?
+                        </h3>
+                        <p className="text-sm text-gray-600 leading-relaxed mb-4">
+                            {order.location === 'Milford Shop' 
+                               ? 'Wait for the "Ready for Pickup" email before heading over. Bring your ID!' 
+                               : 'We will pack your order with care. You will receive a tracking number within 24 hours.'}
+                        </p>
+                        <button className="text-xs font-bold uppercase tracking-widest text-brand-orange hover:underline flex items-center gap-1">
+                            <Printer size={12} /> Print Receipt
+                        </button>
+                    </div>
                 </div>
-                <div className="flex justify-between text-slate-300">
-                  <span>Tax</span>
-                  <span>{moneyFormatter.format(estimatedTax)}</span>
-                </div>
-                <div className="flex justify-between border-t border-white/10 pt-2 text-base font-semibold text-white">
-                  <span>Total</span>
-                  <span>{moneyFormatter.format(total)}</span>
-                </div>
-              </div>
             </div>
 
-            {/* Shipping info */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-              <h2 className="mb-4 text-lg font-semibold">Shipping Information</h2>
-              <div className="space-y-1 text-sm text-slate-300">
-                <p>
-                  {shippingForm.firstName} {shippingForm.lastName}
-                </p>
-                <p>{shippingForm.address}</p>
-                <p>
-                  {shippingForm.city}, {shippingForm.state} {shippingForm.zipCode}
-                </p>
-                <p>{shippingForm.email}</p>
-                {shippingForm.phone && <p>{shippingForm.phone}</p>}
-              </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button 
+                    size="lg" 
+                    onClick={() => onNavigate('catalog')}
+                    variant={isRetro ? 'primary' : 'primary'}
+                >
+                    Keep Digging <ArrowRight size={18} className="ml-2" />
+                </Button>
+                <Button 
+                    size="lg" 
+                    variant={isRetro ? 'outline' : 'ghost'}
+                    onClick={() => onNavigate('orders')}
+                >
+                    View Order History
+                </Button>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                className="flex-1 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-white shadow-brand"
-                onClick={onViewOrderStatus}
-              >
-                View Order Status
-              </button>
-              <button
-                className="flex-1 rounded-full border border-white/20 px-4 py-3 text-sm font-semibold text-white/80 hover:border-white/40"
-                onClick={onGoToDashboard}
-              >
-                Go to Dashboard
-              </button>
-              <button
-                className="flex-1 rounded-full border border-white/20 px-4 py-3 text-sm font-semibold text-white/80 hover:border-white/40"
-                onClick={handlePrintReceipt}
-              >
-                Print Receipt
-              </button>
-            </div>
-
-            <button
-              className="w-full rounded-full border border-primary/60 px-4 py-3 text-sm font-semibold text-primary hover:border-primary"
-              onClick={onContinueShopping}
-            >
-              Continue Shopping
-            </button>
-          </div>
-
-          {/* Sidebar with next steps */}
-          <div className="lg:w-80">
-            <div className="sticky top-8 rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h2 className="mb-4 text-lg font-semibold">What's Next?</h2>
-              <div className="space-y-4 text-sm">
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
-                    1
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">Confirmation Email</p>
-                    <p className="text-xs text-slate-400">
-                      Check your inbox at {shippingForm.email} for order details and tracking
-                      information.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
-                    2
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">Order Processing</p>
-                    <p className="text-xs text-slate-400">
-                      Your order will be processed within 1-2 business days.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
-                    3
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">Shipping Updates</p>
-                    <p className="text-xs text-slate-400">
-                      You'll receive email notifications when your order ships and when it's out for
-                      delivery.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
+      </Section>
     </div>
-  )
-}
-
+  );
+};

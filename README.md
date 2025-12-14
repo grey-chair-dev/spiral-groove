@@ -1,226 +1,137 @@
-# Local Commerce Template (LCT) v2.0
+# Spiral Groove Records – Coming Soon Page
 
-A modern React e-commerce application that integrates with Square POS, Neon database, and real-time data adapters. The template features a full multi-page routing structure, authentication, product catalog, checkout flow, and user dashboard—all configurable through environment variables and feature flags.
+> Minimal coming soon page for Spiral Groove Records with email capture functionality.
 
-## Features
-
-- 🛍️ **Full E-commerce Flow**: Product catalog, detail pages, shopping cart, and multi-step checkout
-- 🔐 **Authentication**: User sign-up, login, password recovery, and user dashboard
-- 📦 **Order Management**: Order tracking, order lookup, and order confirmation pages
-- 🔄 **Real-time Data**: WebSocket integration for live product updates with automatic fallback
-- 🎨 **Customizable Branding**: Easy rebranding via CSS variables and configuration files
-- 🚀 **Feature Flags**: Toggle features like wishlist, order tracking, maintenance mode, and more
-- 📱 **Responsive Design**: Modern UI built with React, TypeScript, and Tailwind CSS
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ and npm
-- A Neon database instance (for production)
-- Stack/Neon authentication credentials
-
-### Installation
+## 🚀 Quick Start
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in Neon + Stack auth values
 npm run dev
+# open http://localhost:3000
 ```
 
-The application will be available at `http://localhost:5173` (or the port shown in your terminal).
+## 📋 What's Included
 
-### Environment Variables
+### Pages
+- **Homepage (`/`)** - Coming soon page with:
+  - Spinning record logo animation
+  - Store information (address, phone, hours)
+  - Email signup form (first name, last name, email)
+  - Social media links (Facebook, Instagram, TikTok)
+  - Neon-themed gradient background
 
-**Required:**
-- `VITE_NEON_AUTH_URL` – Neon Auth endpoint that issues Better Auth tokens
-- `VITE_STACK_PROJECT_ID` – Stack/Neon project identifier passed to the auth adapter
-- `VITE_STACK_PUBLISHABLE_CLIENT_KEY` – Publishable key for client bootstrap
-- `VITE_APP_ID` – Application/tenant ID used when building the collection path
+### API Routes
+- **`/api/newsletter`** - Email signup endpoint that:
+  - Validates input with Zod
+  - Saves to Neon PostgreSQL database
+  - Optionally sends to Make.com webhook
+  - Handles both camelCase and snake_case database schemas
 
-**Data Adapter:**
-- `VITE_PRODUCTS_WS_URL` – WebSocket URL for real-time product updates (proxies `/artifacts/{appId}/public/data/products`)
-- `VITE_PRODUCTS_SNAPSHOT_URL` – HTTPS endpoint for REST fallback when WebSocket is unavailable (accepts `:appId` or `{appId}` token replacement)
-- `VITE_ADAPTER_HEALTH_URL` – Health check endpoint for the data adapter (polled every 30s)
-- `VITE_ENABLE_MOCK_DATA` – Set to `true` to enable mock data (default) or `false` for real-time only
+### Features
+- ✅ Mobile-first responsive design
+- ✅ Email capture with database storage
+- ✅ Webhook integration (Make.com)
+- ✅ SEO metadata and structured data
+- ✅ Route protection (only coming soon page accessible)
+- ✅ TypeScript for type safety
 
-**WebSocket Configuration:**
-- `VITE_WS_MAX_RETRIES` – Maximum reconnection attempts (default: 5)
-- `VITE_WS_BACKOFF_BASE_MS` – Base delay for exponential backoff (default: 1000ms)
-- `VITE_WS_BACKOFF_CAP_MS` – Maximum delay cap (default: 30000ms)
-- `VITE_SNAPSHOT_POLL_INTERVAL_MS` – Polling interval in degraded mode (default: 30000ms)
+## 🛠️ Tech Stack
 
-**Monitoring (Optional):**
-- `VITE_ERROR_WEBHOOK_URL` – HTTP endpoint for error reporting
-- `VITE_METRICS_WEBHOOK_URL` – HTTP endpoint for metrics (latency, TTI)
+- **Framework**: Next.js 15.0.3 (App Router)
+- **Styling**: Tailwind CSS
+- **Database**: Neon PostgreSQL (via `@neondatabase/serverless`)
+- **Validation**: Zod
+- **TypeScript**: Full type safety
+- **Fonts**: Inter (Google Fonts)
 
-**Feature Flags:**
-- `VITE_ENABLE_WISHLIST` – Enable/disable wishlist feature (default: `true`)
-- `VITE_ENABLE_ORDER_TRACKING` – Enable/disable order tracking (default: `true`)
-- `VITE_ENABLE_MAINTENANCE_PAGE` – Enable maintenance mode (default: `false`)
-- `VITE_ENABLE_COMING_SOON_PAGE` – Enable coming soon page (default: `false`)
-- `VITE_ENABLE_SOCIAL_LINKS` – Enable social media links (default: `true`)
-- `VITE_ENABLE_PROMO_BAR` – Enable promotional banner (default: `true`)
-- `VITE_ENABLE_NEWSLETTER` – Enable newsletter signup (default: `true`)
+## 📁 Project Structure
 
-**Runtime Injection:**
-- `window.__app_id` and `window.__neon_auth_url` are automatically honored if provided by the hosting platform
-
-## Configuration
-
-### Branding & Content
-
-All branding and content is configured in `src/config.ts`:
-
-- **Site Configuration**: Brand name, tagline, hero section, contact info, social links
-- **Feature Flags**: Toggle features like About page, Events, Maintenance mode, etc.
-- **CSS Variables**: Customize colors in `src/globals.css`:
-  - `--color-primary`
-  - `--color-secondary`
-  - `--color-accent`
-  - `--color-surface`
-  - `--color-text`
-
-### Checkout Modes
-
-Configure checkout delivery options:
-
-```bash
-npm run checkout:delivery    # Delivery only
-npm run checkout:pickup       # Pickup only
-npm run checkout:both         # Both delivery and pickup
+```
+├── app/
+│   ├── api/
+│   │   └── newsletter/
+│   │       └── route.ts      # Email signup API endpoint
+│   ├── globals.css            # Global styles
+│   ├── layout.tsx             # Root layout with SEO metadata
+│   ├── page.tsx               # Coming soon page
+│   └── sitemap.ts             # Sitemap generator
+├── lib/
+│   ├── db.ts                  # Neon database connection
+│   └── validation/
+│       └── schemas.ts         # Zod validation schemas
+├── middleware.ts              # Route protection
+└── public/                    # Static assets (logo, favicon, etc.)
 ```
 
-## Architecture
+## 🔧 Environment Variables
 
-### Routing
+Create a `.env.local` file with:
 
-The application uses React Router for multi-page navigation with the following routes:
- 
 ```env
-# Database (Vercel can use SGR_DATABASE_URL; local can use DATABASE_URL)
+# Database (Vercel uses SGR_DATABASE_URL, local uses DATABASE_URL)
 SGR_DATABASE_URL=your_neon_postgresql_connection_string
+# Or for local development:
 DATABASE_URL=your_neon_postgresql_connection_string
+
+# Optional: Make.com Webhook
+MAKE_WEBHOOK_URL=your_make_webhook_url
 ```
 
-- `/` – Home page
-- `/catalog` – Product catalog
-- `/catalog/clearance` – Clearance items
-- `/product/:id` – Product detail page
-- `/checkout/shipping` – Checkout shipping step
-- `/checkout/payment` – Checkout payment step
-- `/checkout/review` – Checkout review step
-- `/order/confirmation` – Order confirmation
-- `/order/status/:id` – Order status page
-- `/order/lookup` – Order lookup
-- `/dashboard` – User dashboard
-- `/login` – Login page
-- `/signup` – Sign up page
-- `/forgot-password` – Password recovery
-- `/contact` – Contact page
-- `/about` – About page
-- `/faq` – FAQ page
-- `/shipping-returns` – Shipping & returns
-- `/privacy-terms` – Privacy & terms
-- `/maintenance` – Maintenance page (if enabled)
-- `/coming-soon` – Coming soon page (if enabled)
+## 📊 Database Schema
 
-### Authentication
+The `email_list` table should have:
+- `id` (auto-incrementing primary key)
+- `firstName` or `first_name` (optional)
+- `lastName` or `last_name` (optional)
+- `email` (required, unique)
+- `source` (string)
+- `createdAt` or `created_at` (timestamp)
+- `updatedAt` or `updated_at` (timestamp)
 
-- **StackAuthProvider**: Wraps the app with Neon Auth adapter (Supabase-style)
-- Supports initial auth token injection via `__initial_auth_token`
-- User session management with automatic token refresh
-- Protected routes for authenticated user areas
+The code automatically handles both camelCase (Prisma default) and snake_case naming conventions.
 
-### Real-time Data
+## 🚦 Available Scripts
 
-- **WebSocket Integration**: `subscribeToProducts()` connects to the data adapter via WebSocket
-- **Automatic Fallback**: Falls back to REST snapshot or mock data if WebSocket fails
-- **Health Monitoring**: Polls adapter health endpoint and displays status in UI
-- **Exponential Backoff**: Automatic reconnection with configurable retry strategy
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
 
-### Security
+## 📦 Bundle Size
 
-- **Input Sanitization**: All product data is sanitized via `sanitizeText()` before rendering
-- **XSS Protection**: Strips HTML tags, script blocks, and non-printable characters
-- **Client-side Hardening**: Even compromised upstream data remains display-only
+- **Homepage**: 8.58 kB
+- **First Load JS**: 109 kB (includes shared React/Next.js runtime)
+- **API Route**: 135 B
 
-### Monitoring & Resilience
+## 🔒 Security
 
-- **Error Tracking**: Global error handlers capture and report client errors
-- **Metrics Collection**: Tracks latency, TTI, and adapter health
-- **Webhook Integration**: Optional error and metrics webhooks for observability
-- **Cookie Consent**: User consent banner for analytics/monitoring
+### Route Protection
+The middleware redirects all routes except `/` to the coming soon page. Only the homepage and static assets are accessible.
 
-## Scripts
+### Security Features
+- ✅ **HTTPS Enforcement**: Automatic via Vercel
+- ✅ **Security Headers**: HSTS, CSP, X-Frame-Options, and more
+- ✅ **Rate Limiting**: 5 requests per 15 minutes per IP on API routes
+- ✅ **Input Validation**: Zod schema validation on all forms
+- ✅ **SQL Injection Prevention**: Parameterized queries
+- ✅ **Privacy Policy**: Available at `/privacy`
 
-### Development
+See [SECURITY.md](./SECURITY.md) for complete security checklist.
 
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
-```
+## 📝 Notes
 
-### Feature Management
+- The site is currently locked to the coming soon page only
+- Full site development happens on the `dev` branch
+- Email signups are saved to Neon PostgreSQL
+- Make.com webhook integration is optional
 
-```bash
-npm run mock:add              # Enable mock data
-npm run mock:delete           # Disable mock data (use real-time only)
-npm run wishlist:add          # Enable wishlist feature
-npm run wishlist:delete       # Disable wishlist feature
-npm run order-tracking:add    # Enable order tracking
-npm run order-tracking:delete # Disable order tracking
-npm run maintenance:add       # Enable maintenance mode
-npm run maintenance:delete    # Disable maintenance mode
-```
+## 🎨 Design
 
-## Testing Real-time Feed Locally
+- Black background with neon gradient accents
+- Spinning record logo animation
+- Mobile-first responsive layout
+- Clean, minimal aesthetic
 
-1. Leave `VITE_PRODUCTS_WS_URL` empty to enable the mock data emitter
-2. Run `npm run dev`
-3. Modify `src/dataAdapter.ts` mock data to simulate product updates
-4. Observe the "Real-time adapter health" panel—latency should remain under 1s
+---
 
-When integrating with your actual adapter, ensure WebSocket payloads follow:
-- `{ products: Product[] }` for bulk updates
-- `{ product: Product }` for single product updates
-
-## Project Structure
-
-```
-src/
-├── components/          # React components
-│   ├── Header.tsx      # Site header with navigation
-│   ├── Footer.tsx      # Site footer
-│   ├── CatalogPage.tsx # Product catalog
-│   ├── ProductDetailPage.tsx
-│   ├── Checkout*.tsx   # Checkout flow pages
-│   ├── Order*.tsx      # Order management pages
-│   └── ...
-├── auth/               # Authentication
-│   └── StackAuthProvider.tsx
-├── config/             # Configuration
-│   └── auth.ts
-├── routes/             # Route configuration
-│   └── RouteWrapper.tsx
-├── utils/              # Utilities
-│   └── sanitize.ts     # Input sanitization
-├── config.ts           # Site configuration & feature flags
-├── dataAdapter.ts      # Real-time data adapter
-├── monitoring.ts       # Error tracking & metrics
-├── formatters.ts       # Data formatters
-└── App.tsx             # Main app component with routing
-```
-
-## Compliance & UX
-
-- **Privacy & Terms**: Footer links pull from `siteConfig.legal.*` for easy policy updates
-- **Cookie Consent**: Lightweight consent banner stores user preference in `localStorage` (`lct_cookie_consent`)
-- **Accessibility**: Built with semantic HTML and ARIA best practices
-- **Responsive**: Mobile-first design with Tailwind CSS
-
-## License
-
-[Add your license information here]
+Built with ❤️ for Spiral Groove Records

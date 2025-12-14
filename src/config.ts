@@ -81,55 +81,55 @@ const platformAppId =
     : (window as Window & { __app_id?: string }).__app_id
 
 export const siteConfig: SiteConfig = {
-  appId: import.meta.env.VITE_APP_ID ?? platformAppId ?? 'spiralgroove',
-  brandName: 'Spiral Groove',
-  tagline: 'Vinyl. Music. Community.',
+  appId: import.meta.env.VITE_APP_ID ?? platformAppId ?? 'demo-local-commerce',
+  brandName: 'Harbor Market Collective',
+  tagline: 'Local goods. Local stories. Seamless shopping.',
   hero: {
-    headline: 'Discover your next favorite record.',
+    headline: 'Local commerce that feels alive.',
     subheading:
-      'Curated vinyl collection with real-time inventory. From rare finds to new releases, we keep the groove spinning.',
-    primaryCta: 'Browse Records',
-    secondaryCta: 'Visit the shop',
+      'Square catalog syncs to Neon database, payments process securely, and orders are tracked end-to-end.',
+    primaryCta: 'Browse Live Catalog',
+    secondaryCta: 'Talk to the team',
   },
   about: {
-    heading: 'Your neighborhood record store',
-    body: "Spiral Groove is more than a record store—it's a community hub for music lovers. We curate an ever-changing selection of vinyl, from classic albums to the latest releases, all with real-time inventory so you always know what's in stock.",
+    heading: 'Neighborhood-first retail',
+    body: 'The Local Commerce Template is tuned for makers and merchants that need premium digital shelves without the enterprise lift. It pulls product truth from Neon, caches responsibly with Upstash, and keeps the UI feather-light.',
     highlights: [
-      'Curated selection of new and vintage vinyl',
-      'Real-time inventory updates',
-      'Community events and listening sessions',
+      'Branding swap in minutes via CSS vars',
+      'Square catalog sync with Neon PostgreSQL database',
+      'Full checkout flow with Square Payments integration',
     ],
   },
   events: [
     {
-      title: 'New Arrivals Listening Party',
-      date: 'First Friday of each month · 7–10 PM',
-      description: 'Join us for an evening of new releases, refreshments, and great music.',
+      title: 'First Friday Pop-up',
+      date: 'Dec 5 · 5–9 PM',
+      description: 'Live screen-printing, seasonal coffee flight, and vendor collabs.',
     },
     {
-      title: 'Vinyl Swap Meet',
-      date: 'Third Saturday · 12–4 PM',
-      description: 'Bring your records to trade, buy, or sell. Connect with fellow collectors.',
+      title: 'Makers Studio Hours',
+      date: 'Dec 12 · 2–6 PM',
+      description: 'Drop-in coaching with resident makers + Square POS onboarding clinic.',
     },
   ],
   contact: {
-    phone: '(555) 123-4567',
-    email: 'hello@spiralgroove.com',
-    location: '123 Music Street, Your City, ST 12345',
-    hours: 'Mon–Sat 10a – 8p · Sun 12p – 6p',
+    phone: '(415) 555-0112',
+    email: 'hello@harbormarket.local',
+    location: '118 Grove St, San Francisco, CA',
+    hours: 'Open daily · 8a – 8p',
   },
   legal: {
-    privacyUrl: 'https://spiralgroove.com/privacy',
-    termsUrl: 'https://spiralgroove.com/terms',
+    privacyUrl: 'https://commerce.local/privacy',
+    termsUrl: 'https://commerce.local/terms',
   },
   social: {
-    facebook: 'https://facebook.com/spiralgroove',
-    instagram: 'https://instagram.com/spiralgroove',
-    twitter: 'https://twitter.com/spiralgroove',
+    facebook: 'https://facebook.com/harbormarket',
+    instagram: 'https://instagram.com/harbormarket',
+    twitter: 'https://twitter.com/harbormarket',
   },
   promoBar: {
     enabled: true,
-    message: 'Free shipping on orders over $50 · New arrivals every week',
+    message: 'Store pickup available · New arrivals every week',
   },
 }
 

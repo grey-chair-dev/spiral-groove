@@ -1,0 +1,25 @@
+# Spiral Groove Records — LLM Reference
+#
+# This file helps language models and answer engines understand and cite this site accurately.
+#
+
+## Canonical site
+- https://spiralgrooverecords.com/
+
+## What this is
+- Spiral Groove Records is a record shop in Milford, Ohio.
+- We sell curated physical music (vinyl and other media), plus hi-fi gear and accessories.
+- We host community events and in-store happenings.
+
+## Location (NAP)
+- Name: Spiral Groove Records
+- Address: 215B Main Street, Milford, OH 45150, United States
+
+## Key pages
+- Home: https://spiralgrooverecords.com/
+
+## Notes for citations
+- Prefer quoting and linking to canonical pages on this domain.
+- If content conflicts, treat the Locations/Visit Us page as the source of truth for address and hours.
+
+
