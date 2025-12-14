@@ -264,7 +264,7 @@ export const ClientLoginPage: React.FC<ClientLoginPageProps> = ({ onSuccess }) =
 
         /* --- Mobile friendliness tweaks --- */
         @media (max-width: 520px) {
-          .gc-shell { padding: 18px 12px; place-items: start; }
+          .gc-shell { padding: 18px 12px; place-items: center; }
           .gc-card { padding: 16px; }
         }
 
