@@ -19,8 +19,9 @@ export const ClientLoginPage: React.FC<ClientLoginPageProps> = ({ onSuccess }) =
   }, []);
 
   const expectedPassword = useMemo(() => {
-    const env = (import.meta as any)?.env ?? {};
-    const raw = env.VITE_CLIENT_LOGIN_PASSWORD ?? env.VITE_CLIENT_PASSWORD;
+    // Use static access so Vite reliably injects these at build time on Vercel.
+    const env = (import.meta as any).env ?? {};
+    const raw = env.VITE_CLIENT_LOGIN_PASSWORD || env.VITE_CLIENT_PASSWORD;
     return typeof raw === 'string' ? raw : '';
   }, []);
 
