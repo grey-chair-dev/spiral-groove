@@ -185,6 +185,14 @@ function App() {
   const requireClientLogin =
     (import.meta.env.VITE_REQUIRE_CLIENT_LOGIN ?? 'false').toString().toLowerCase() === 'true';
 
+  const scrollToTop = (behavior: ScrollBehavior = 'smooth') => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior });
+    } catch {
+      // ignore
+    }
+  };
+
   const initialRoute = parseRouteFromLocation({
     pathname: window.location.pathname,
     search: window.location.search,
@@ -423,9 +431,14 @@ function App() {
       }
     };
 
+    const onPopState = () => {
+      applyLocation();
+      scrollToTop('auto');
+    };
+
     applyLocation(); // On mount
-    window.addEventListener('popstate', applyLocation);
-    return () => window.removeEventListener('popstate', applyLocation);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, [products, requireClientLogin, clientAuthed]);
 
   // If we just authenticated the client gate, go to the intended route (or catalog).
@@ -618,9 +631,13 @@ function App() {
       searchQuery: page === 'search' ? (filter ?? searchQuery) : undefined,
       orderStatusParams: page === 'order-status' ? orderStatusParams : undefined,
     });
-    window.history.pushState(null, '', nextPath);
-    
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    if (nextPath !== currentPath) {
+      window.history.pushState(null, '', nextPath);
+    }
+
+    // Always scroll to the top for navigation requests, even if staying on the same route.
+    scrollToTop('smooth');
   };
 
   const handleViewReceipt = (order: Order) => {
