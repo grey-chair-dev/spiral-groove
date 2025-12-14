@@ -49,22 +49,22 @@ const server = createServer(async (req, res) => {
           // Handle simple routes
           if (route === 'products') {
             const module = await import('./api/products.js')
-            handler = module.default
+            handler = module.webHandler ?? module.default
           } else if (route === 'webhook/test') {
             const module = await import('./api/webhook/test.js')
-            handler = module.default
+            handler = module.webHandler ?? module.default
           } else if (route === 'pay') {
             const module = await import('./api/pay.js')
-            handler = module.default
+            handler = module.webHandler ?? module.default
           } else if (route === 'orders') {
             const module = await import('./api/orders.js')
-            handler = module.default
+            handler = module.webHandler ?? module.default
           } else if (route === 'orders/update') {
             const module = await import('./api/orders/update.js')
-            handler = module.default
+            handler = module.webHandler ?? module.default
           } else if (route === 'inventory/log') {
             const module = await import('./api/inventory/log.js')
-            handler = module.default
+            handler = module.webHandler ?? module.default
           } else {
             res.writeHead(404, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ error: 'Not found', route }))
@@ -75,7 +75,11 @@ const server = createServer(async (req, res) => {
       const request = {
         method: req.method,
         url: url.toString(),
-        headers: req.headers,
+        headers: new Headers(Object.entries(req.headers).flatMap(([k, v]) => {
+          if (typeof v === 'undefined') return []
+          if (Array.isArray(v)) return v.map(val => [k, String(val)])
+          return [[k, String(v)]]
+        })),
         json: async () => {
           return new Promise((resolve, reject) => {
             let body = ''
