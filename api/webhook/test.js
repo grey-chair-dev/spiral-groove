@@ -1,6 +1,8 @@
+import crypto from 'crypto'
 import { notifyWebhook } from '../notifyWebhook.js'
+import { withWebHandler } from '../_vercelNodeAdapter.js'
 
-export default async function handler(request) {
+export async function webHandler(request) {
   if (request.method !== 'GET') {
     return new Response(JSON.stringify({ success: false, error: 'Method not allowed. Use GET.' }), {
       status: 405,
@@ -38,5 +40,7 @@ export default async function handler(request) {
     headers: { 'Content-Type': 'application/json' },
   })
 }
+
+export default withWebHandler(webHandler)
 
 

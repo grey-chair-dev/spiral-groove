@@ -14,6 +14,7 @@
 
 import { query } from './db.js'
 import { notifyWebhook } from './notifyWebhook.js'
+import { withWebHandler } from './_vercelNodeAdapter.js'
 
 // Simple in-memory cache to avoid transient Neon outages causing empty inventory.
 // - TTL: serve fresh cache for a short window
@@ -50,7 +51,7 @@ function mapRowToProduct(row) {
  * @param {Request} request
  * @returns {Promise<Response>}
  */
-export default async function handler(request) {
+export async function webHandler(request) {
   // Only allow GET requests
   if (request.method !== 'GET') {
     return new Response(
@@ -223,4 +224,7 @@ export default async function handler(request) {
 export const config = {
   runtime: 'nodejs',
 }
+
+// Vercel Node entrypoint
+export default withWebHandler(webHandler)
 

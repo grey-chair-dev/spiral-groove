@@ -1,5 +1,6 @@
 
 import { query } from '../db.js'
+import { withWebHandler } from '../_vercelNodeAdapter.js'
 
 export const config = {
   runtime: 'nodejs',
@@ -21,7 +22,7 @@ export const config = {
  * 
  * Note: Also accepts 'variation_id' or 'product_id' for backwards compatibility
  */
-export default async function handler(request) {
+export async function webHandler(request) {
   // Only allow POST requests
   if (request.method !== 'POST') {
     return new Response(
@@ -138,3 +139,5 @@ export default async function handler(request) {
     )
   }
 }
+
+export default withWebHandler(webHandler)

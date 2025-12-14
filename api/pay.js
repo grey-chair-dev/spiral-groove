@@ -18,6 +18,7 @@
 import { createRequire } from 'module';
 import crypto from 'crypto';
 import { query } from './db.js';
+import { withWebHandler } from './_vercelNodeAdapter.js'
 
 const require = createRequire(import.meta.url);
 const { SquareClient, SquareEnvironment, SquareError } = require('square');
@@ -34,7 +35,7 @@ const jsonReplacer = (key, value) => {
  * @param {Request} request
  * @returns {Promise<Response>}
  */
-export default async function handler(request) {
+export async function webHandler(request) {
   // Only allow POST requests
   if (request.method !== 'POST') {
     return new Response(
@@ -605,3 +606,5 @@ export default async function handler(request) {
 export const config = {
   runtime: 'nodejs',
 }
+
+export default withWebHandler(webHandler)

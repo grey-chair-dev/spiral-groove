@@ -1,5 +1,6 @@
 
 import { query } from './db.js'
+import { withWebHandler } from './_vercelNodeAdapter.js'
 
 export const config = {
   runtime: 'nodejs',
@@ -11,7 +12,7 @@ export const config = {
  * Fetches orders from Neon database.
  * Requires one of: email, phone, or order_number query param.
  */
-export default async function handler(request) {
+export async function webHandler(request) {
   // Only allow GET requests
   if (request.method !== 'GET') {
     return new Response(
@@ -123,4 +124,6 @@ export default async function handler(request) {
     )
   }
 }
+
+export default withWebHandler(webHandler)
 

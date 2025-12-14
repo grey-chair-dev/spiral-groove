@@ -1,5 +1,6 @@
 
 import { query } from '../db.js'
+import { withWebHandler } from '../_vercelNodeAdapter.js'
 
 export const config = {
   runtime: 'nodejs',
@@ -17,7 +18,7 @@ export const config = {
  *   status: string,          // New status (e.g., 'COMPLETED', 'SHIPPED', 'CANCELLED')
  * }
  */
-export default async function handler(request) {
+export async function webHandler(request) {
   // Only allow PATCH requests
   if (request.method !== 'PATCH') {
     return new Response(
@@ -152,3 +153,5 @@ export default async function handler(request) {
     )
   }
 }
+
+export default withWebHandler(webHandler)
