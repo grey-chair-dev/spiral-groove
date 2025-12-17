@@ -9,7 +9,19 @@
       name="description"
       content="Curated vinyl records, hi-fi gear, and events in Milford, Ohio. Shop new arrivals, staff picks, and local pickup."
     />
-    <link rel="canonical" href="https://spiralgrooverecords.com/" />
+    <link rel="canonical" href="https://spiralgrooverecords.com/" id="canonical-link" />
+    <script>
+      // Update canonical link based on current hostname
+      (function() {
+        const hostname = window.location.hostname;
+        const canonicalLink = document.getElementById('canonical-link');
+        if (canonicalLink && !hostname.includes('greychair.io')) {
+          // Only update if not staging - production should use spiralgrooverecords.com
+          const currentPath = window.location.pathname;
+          canonicalLink.href = 'https://spiralgrooverecords.com' + (currentPath === '/' ? '/' : currentPath);
+        }
+      })();
+    </script>
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -32,8 +44,17 @@
     <meta name="twitter:image" content="https://spiralgrooverecords.com/og.svg" />
 
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <script>
+      // Make staging non-indexable
+      if (window.location.hostname.includes('greychair.io')) {
+        const meta = document.createElement('meta');
+        meta.name = 'robots';
+        meta.content = 'noindex,nofollow';
+        document.head.appendChild(meta);
+      }
+    </script>
     <meta name="theme-color" content="#231F20" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS is now built via PostCSS - CDN removed for production -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Shrikhand&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
@@ -147,45 +168,7 @@
         }
       }
     </style>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                black: '#231F20',   /* Vector Outline Black */
-                cream: '#FFF9F0',   /* Warm Background */
-                orange: '#00C2CB',  /* Neon Cyan */
-                mustard: '#F9D776', /* Vintage Yellow */
-                pink: '#FF99C8',    /* Bubblegum Pink */
-                teal: '#3AB795',    /* Globe Teal */
-                red: '#FF2E63',     /* Neon Pink */
-                blue: '#3A86FF',    /* Sky Blue */
-              }
-            },
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              display: ['Shrikhand', 'cursive'],
-              header: ['Montserrat', 'sans-serif'],
-              hand: ['Gloria Hallelujah', 'cursive'],
-            },
-            boxShadow: {
-              'retro': '4px 4px 0px 0px #231F20',
-              'retro-hover': '6px 6px 0px 0px #231F20',
-              'retro-sm': '2px 2px 0px 0px #231F20',
-            },
-            borderRadius: {
-              'xl': '1rem',
-              '2xl': '1.5rem',
-              '3xl': '2rem',
-            },
-            animation: {
-              'spin-slow': 'spin 12s linear infinite',
-            }
-          }
-        }
-      }
-    </script>
+    <!-- Tailwind config moved to tailwind.config.js -->
   <script type="importmap">
 {
   "imports": {
@@ -202,7 +185,7 @@
   }
 }
 </script>
-<!-- No local stylesheet: Tailwind is loaded via CDN above -->
+<!-- Tailwind CSS is imported via globals.css and built with PostCSS -->
 </head>
   <body class="bg-brand-cream text-brand-black antialiased selection:bg-brand-orange selection:text-white">
     <div id="root"></div>

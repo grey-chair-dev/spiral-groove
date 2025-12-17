@@ -30,10 +30,14 @@ import { OrderConfirmationPage } from './components/OrderConfirmationPage';
 import { SettingsPage } from './components/SettingsPage';
 import { SearchPage } from './components/SearchPage';
 import { ClientLoginPage } from './components/ClientLoginPage';
+import { PrivacyPage } from './components/PrivacyPage';
+import { TermsPage } from './components/TermsPage';
+import { AccessibilityPage } from './components/AccessibilityPage';
 import { PRODUCTS, STAFF_PICKS, EVENTS } from '../constants';
 import { Product, ViewMode, User, Page, Order, Event, CartItem } from '../types';
 import { fetchProducts as fetchApiProducts, Product as ApiProduct } from './dataAdapter';
 import { getDefaultProductImage } from './utils/defaultProductImage';
+import { trackAddToCart, trackPurchase, trackPageView } from './utils/analytics';
 
 const VALID_PAGES: Page[] = [
   'home',
@@ -56,6 +60,9 @@ const VALID_PAGES: Page[] = [
   'order-confirmation',
   'settings',
   'search',
+  'privacy',
+  'terms',
+  'accessibility',
 ];
 
 function parseRouteFromLocation(input: {
@@ -143,6 +150,12 @@ function parseRouteFromLocation(input: {
       return { page: 'order-confirmation' };
     case 'settings':
       return { page: 'settings' };
+    case 'privacy':
+      return { page: 'privacy' };
+    case 'terms':
+      return { page: 'terms' };
+    case 'accessibility':
+      return { page: 'accessibility' };
     default:
       return { page: 'home' };
   }
@@ -176,6 +189,12 @@ function toPathFromState(args: {
       const email = args.orderStatusParams?.email ? encodeURIComponent(args.orderStatusParams.email) : '';
       return id && email ? `/order-status/${id}/${email}` : '/order-status';
     }
+    case 'privacy':
+      return '/privacy';
+    case 'terms':
+      return '/terms';
+    case 'accessibility':
+      return '/accessibility';
     default:
       return `/${page}`;
   }
@@ -418,6 +437,10 @@ function App() {
       setCurrentFilter(route.filter);
       setSearchQuery(route.searchQuery ?? '');
       setOrderStatusParams(route.orderStatusParams ?? { id: '', email: '' });
+      
+      // Track page view
+      const currentPath = window.location.pathname + window.location.search;
+      trackPageView(currentPath);
 
       if (route.page === 'product') {
         const id = route.productId ?? null;
@@ -529,6 +552,8 @@ function App() {
         }
         return [...prev, { product, quantity: 1 }];
     });
+    // Track add to cart event
+    trackAddToCart(product.id, product.title, product.salePrice || product.price);
     setToast({ show: true, message: `"${product.title}" added to crate!` });
   };
 
@@ -570,6 +595,19 @@ function App() {
         })),
         location: details.deliveryMethod === 'pickup' ? 'Milford Shop' : 'Shipping Address'
     };
+
+    // Track purchase event
+    trackPurchase(
+      effectiveOrderId,
+      details.total,
+      'USD',
+      cartItems.map(item => ({
+        item_id: item.product.id,
+        item_name: item.product.title,
+        price: item.product.salePrice || item.product.price,
+        quantity: item.quantity,
+      }))
+    );
 
     setLastPlacedOrder(newOrder);
     setCartItems([]); // Clear cart
@@ -888,6 +926,15 @@ function App() {
                 onLogout={handleLogout}
                 onUpdateUser={handleUpdateUser}
             />
+        )}
+        {currentPage === 'privacy' && (
+            <PrivacyPage viewMode={viewMode} />
+        )}
+        {currentPage === 'terms' && (
+            <TermsPage viewMode={viewMode} />
+        )}
+        {currentPage === 'accessibility' && (
+            <AccessibilityPage viewMode={viewMode} />
         )}
       </main>
 

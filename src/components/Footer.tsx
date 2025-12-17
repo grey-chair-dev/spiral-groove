@@ -129,13 +129,31 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
               <h4 className="font-display text-xl mb-4 text-brand-orange drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">Vibe With Us</h4>
               
               <div className="flex items-center gap-4 mb-6">
-                <a href="#" className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-pink hover:border-brand-pink hover:bg-brand-pink/10 transition-all hover:scale-110">
+                <a 
+                  href={import.meta.env.VITE_INSTAGRAM_URL || 'https://instagram.com/spiralgrooverecords'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-pink hover:border-brand-pink hover:bg-brand-pink/10 transition-all hover:scale-110"
+                  aria-label="Follow us on Instagram"
+                >
                   <Instagram size={18} />
                 </a>
-                <a href="#" className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-orange hover:border-brand-orange hover:bg-brand-orange/10 transition-all hover:scale-110">
+                <a 
+                  href={import.meta.env.VITE_TWITTER_URL || 'https://twitter.com/spiralgrooverecords'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-orange hover:border-brand-orange hover:bg-brand-orange/10 transition-all hover:scale-110"
+                  aria-label="Follow us on Twitter"
+                >
                   <Twitter size={18} />
                 </a>
-                <a href="#" className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-blue hover:border-brand-blue hover:bg-brand-blue/10 transition-all hover:scale-110">
+                <a 
+                  href={import.meta.env.VITE_FACEBOOK_URL || 'https://facebook.com/spiralgrooverecords'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-blue hover:border-brand-blue hover:bg-brand-blue/10 transition-all hover:scale-110"
+                  aria-label="Follow us on Facebook"
+                >
                   <Facebook size={18} />
                 </a>
               </div>
@@ -158,9 +176,27 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">© {new Date().getFullYear()} Spiral Groove Records.</p>
           <div className="flex gap-6">
-             <a href="#" className="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-brand-orange transition-colors">Privacy</a>
-             <a href="#" className="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-brand-orange transition-colors">Terms</a>
-             <a href="#" className="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-brand-orange transition-colors">Accessibility</a>
+             <a 
+               href={hrefFor('privacy')} 
+               onClick={(e) => { e.preventDefault(); onNavigate('privacy'); }}
+               className="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-brand-orange transition-colors"
+             >
+               Privacy
+             </a>
+             <a 
+               href={hrefFor('terms')} 
+               onClick={(e) => { e.preventDefault(); onNavigate('terms'); }}
+               className="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-brand-orange transition-colors"
+             >
+               Terms
+             </a>
+             <a 
+               href={hrefFor('accessibility')} 
+               onClick={(e) => { e.preventDefault(); onNavigate('accessibility'); }}
+               className="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-brand-orange transition-colors"
+             >
+               Accessibility
+             </a>
           </div>
         </div>
       </div>
