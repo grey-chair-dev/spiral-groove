@@ -8,6 +8,7 @@ import { StaffPicks } from './components/StaffPicks';
 import { StorySection } from './components/StorySection';
 import { EventsSection } from './components/EventsSection';
 import { Footer } from './components/Footer';
+import { Chatbot } from './components/Chatbot';
 import { ProductModal } from './components/ProductModal';
 import { AuthModal } from './components/AuthModal';
 import { Toast } from './components/ui/Toast';
@@ -1066,6 +1067,8 @@ function App() {
         onClose={() => setToast({ ...toast, show: false })}
         viewMode={viewMode}
       />
+
+      <Chatbot />
     </div>
   );
 }

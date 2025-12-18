@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { Header } from './Header'
 import { Footer } from './Footer'
+import { Chatbot } from './Chatbot'
 import type { Product } from '../dataAdapter'
 
 type LayoutProps = {
@@ -79,6 +80,7 @@ export function Layout({
         onPrivacyPolicy={onPrivacyPolicy}
         onTermsOfService={onTermsOfService}
       />
+      <Chatbot />
     </div>
   )
 }
