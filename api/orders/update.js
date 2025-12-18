@@ -80,9 +80,20 @@ export async function webHandler(request) {
     }
 
     // Try to find order by square_order_id first, then by order_number
+    // Also fetch customer email and order details for email notification
     const orderResult = await query(
-      `SELECT id FROM orders 
-       WHERE square_order_id = $1 OR order_number = $1 
+      `SELECT 
+         o.id,
+         o.order_number,
+         o.square_order_id,
+         o.status as current_status,
+         o.total_cents,
+         o.pickup_details,
+         c.email as customer_email,
+         CONCAT(c.first_name, ' ', c.last_name) as customer_name
+       FROM orders o
+       LEFT JOIN customers c ON o.customer_id = c.id
+       WHERE o.square_order_id = $1 OR o.order_number = $1 
        LIMIT 1`,
       [order_id]
     )
@@ -100,7 +111,9 @@ export async function webHandler(request) {
       )
     }
 
-    const dbOrderId = orderResult.rows[0].id
+    const order = orderResult.rows[0]
+    const dbOrderId = order.id
+    const previousStatus = order.current_status
 
     // Update the order status
     await query(
@@ -110,18 +123,87 @@ export async function webHandler(request) {
       [status, dbOrderId]
     )
 
-    // Fetch updated order
+    // Fetch updated order with items for email
     const updatedOrder = await query(
       `SELECT 
-         id,
-         order_number,
-         square_order_id,
-         status,
-         updated_at
-       FROM orders
-       WHERE id = $1`,
+         o.id,
+         o.order_number,
+         o.square_order_id,
+         o.status,
+         o.total_cents,
+         o.updated_at,
+         c.email as customer_email,
+         CONCAT(c.first_name, ' ', c.last_name) as customer_name
+       FROM orders o
+       LEFT JOIN customers c ON o.customer_id = c.id
+       WHERE o.id = $1`,
       [dbOrderId]
     )
+
+    // Fetch order items for email
+    const orderItems = await query(
+      `SELECT 
+         name,
+         quantity,
+         price_cents
+       FROM order_items
+       WHERE order_id = $1`,
+      [dbOrderId]
+    )
+
+    // Send email notification if status changed and customer email exists
+    console.log(`[Orders Update API] Checking email conditions:`, {
+      previousStatus,
+      newStatus: status,
+      statusChanged: previousStatus !== status,
+      customerEmail: order.customer_email ? 'exists' : 'missing',
+      orderNumber: order.order_number,
+    })
+    
+    if (previousStatus !== status && order.customer_email) {
+      try {
+        const { sendEmail } = await import('../sendEmail.js')
+        const total = order.total_cents ? (Number(order.total_cents) / 100).toFixed(2) : '0.00'
+        const pickupDetails = order.pickup_details ? JSON.parse(order.pickup_details) : {}
+        
+        console.log(`[Orders Update API] Sending status update email to ${order.customer_email} for order ${order.order_number}`)
+        
+        await sendEmail({
+          type: 'order_status_update',
+          to: order.customer_email,
+          subject: `Order Status Update ${order.order_number} - Spiral Groove Records`,
+          data: {
+            orderNumber: order.order_number,
+            customerName: order.customer_name || 'Valued Customer',
+            customerEmail: order.customer_email,
+            status: status,
+            previousStatus: previousStatus,
+            items: orderItems.rows.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price_cents ? (Number(item.price_cents) / 100) : 0,
+            })),
+            total: total,
+            currency: 'USD',
+            deliveryMethod: 'pickup',
+            pickupLocation: pickupDetails.address || '215B Main Street, Milford, OH 45150',
+          },
+          dedupeKey: `order_status_update:${order.order_number}:${status}`,
+        })
+        console.log(`[Orders Update API] ✅ Status update email sent for order ${order.order_number}`)
+      } catch (emailError) {
+        console.error('[Orders Update API] ❌ Failed to send status update email:', emailError)
+        console.error('[Orders Update API] Error details:', emailError.stack)
+        // Don't fail the request if email fails
+      }
+    } else {
+      if (previousStatus === status) {
+        console.log(`[Orders Update API] ⚠️  Status unchanged (${status}), skipping email`)
+      }
+      if (!order.customer_email) {
+        console.log(`[Orders Update API] ⚠️  No customer email found for order ${order.order_number}, skipping email`)
+      }
+    }
 
     return new Response(
       JSON.stringify({ 

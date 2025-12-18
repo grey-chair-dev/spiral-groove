@@ -1,12 +1,100 @@
 
-import React from 'react';
-import { Disc, Instagram, Twitter, Facebook, ArrowUpRight, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Disc, Instagram, Twitter, Facebook, ArrowUpRight, ArrowRight, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { ViewMode, Page } from '../../types';
+import { trackNewsletterSignup } from '../utils/analytics';
 
 interface FooterProps {
     viewMode: ViewMode;
     onNavigate: (page: Page, filter?: string) => void;
 }
+
+const NewsletterForm: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      setMessage({ type: 'error', text: 'Please enter your email' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setMessage({ type: 'success', text: 'Subscribed!' });
+        setEmail('');
+        // Track newsletter signup
+        trackNewsletterSignup('footer');
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to subscribe' });
+      }
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      setMessage({ type: 'error', text: 'Network error' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <form className="relative group" onSubmit={handleSubmit}>
+        <input 
+          type="email" 
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email" 
+          disabled={isSubmitting}
+          required
+          className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:bg-white/10 transition-colors disabled:opacity-50"
+        />
+        <button 
+          type="submit"
+          disabled={isSubmitting}
+          className="absolute right-1 top-1 bottom-1 px-3 bg-brand-orange text-brand-black font-bold uppercase text-[10px] tracking-wider hover:bg-brand-mustard transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? '...' : 'Join'}
+        </button>
+      </form>
+      
+      {/* Message Display */}
+      {message && (
+        <div className={`mt-2 flex items-center gap-2 text-xs font-medium
+          ${message.type === 'success' ? 'text-brand-teal' : 'text-brand-red'}
+        `}>
+          {message.type === 'success' ? (
+            <CheckCircle2 size={12} />
+          ) : (
+            <AlertCircle size={12} />
+          )}
+          <span>{message.text}</span>
+          <button
+            onClick={() => setMessage(null)}
+            className="ml-1 hover:opacity-70"
+          >
+            <X size={10} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
   const hrefFor = (page: Page, filter?: string) => {
@@ -109,19 +197,7 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
             <div className="relative">
                <h4 className="font-display text-xl mb-3 text-white">Stay in the Groove</h4>
                <p className="text-gray-400 text-xs font-medium mb-4">Join the community. No spam, just jams.</p>
-               <form className="relative group" onSubmit={(e) => e.preventDefault()}>
-                  <input 
-                    type="email" 
-                    placeholder="Enter your email" 
-                    className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:bg-white/10 transition-colors"
-                  />
-                  <button 
-                    type="submit"
-                    className="absolute right-1 top-1 bottom-1 px-3 bg-brand-orange text-brand-black font-bold uppercase text-[10px] tracking-wider hover:bg-brand-mustard transition-colors flex items-center justify-center"
-                  >
-                    Join
-                  </button>
-               </form>
+               <NewsletterForm />
             </div>
 
             {/* Separated Vibe With Us Section */}
@@ -129,31 +205,13 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
               <h4 className="font-display text-xl mb-4 text-brand-orange drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">Vibe With Us</h4>
               
               <div className="flex items-center gap-4 mb-6">
-                <a 
-                  href={import.meta.env.VITE_INSTAGRAM_URL || 'https://instagram.com/spiralgrooverecords'} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-pink hover:border-brand-pink hover:bg-brand-pink/10 transition-all hover:scale-110"
-                  aria-label="Follow us on Instagram"
-                >
+                <a href="#" className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-pink hover:border-brand-pink hover:bg-brand-pink/10 transition-all hover:scale-110">
                   <Instagram size={18} />
                 </a>
-                <a 
-                  href={import.meta.env.VITE_TWITTER_URL || 'https://twitter.com/spiralgrooverecords'} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-orange hover:border-brand-orange hover:bg-brand-orange/10 transition-all hover:scale-110"
-                  aria-label="Follow us on Twitter"
-                >
+                <a href="#" className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-orange hover:border-brand-orange hover:bg-brand-orange/10 transition-all hover:scale-110">
                   <Twitter size={18} />
                 </a>
-                <a 
-                  href={import.meta.env.VITE_FACEBOOK_URL || 'https://facebook.com/spiralgrooverecords'} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-blue hover:border-brand-blue hover:bg-brand-blue/10 transition-all hover:scale-110"
-                  aria-label="Follow us on Facebook"
-                >
+                <a href="#" className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-blue hover:border-brand-blue hover:bg-brand-blue/10 transition-all hover:scale-110">
                   <Facebook size={18} />
                 </a>
               </div>
@@ -177,21 +235,21 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
           <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">© {new Date().getFullYear()} Spiral Groove Records.</p>
           <div className="flex gap-6">
              <a 
-               href={hrefFor('privacy')} 
+               href="/privacy" 
                onClick={(e) => { e.preventDefault(); onNavigate('privacy'); }}
                className="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-brand-orange transition-colors"
              >
                Privacy
              </a>
              <a 
-               href={hrefFor('terms')} 
+               href="/terms" 
                onClick={(e) => { e.preventDefault(); onNavigate('terms'); }}
                className="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-brand-orange transition-colors"
              >
                Terms
              </a>
              <a 
-               href={hrefFor('accessibility')} 
+               href="/accessibility" 
                onClick={(e) => { e.preventDefault(); onNavigate('accessibility'); }}
                className="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-brand-orange transition-colors"
              >

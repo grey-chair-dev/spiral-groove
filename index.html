@@ -9,19 +9,7 @@
       name="description"
       content="Curated vinyl records, hi-fi gear, and events in Milford, Ohio. Shop new arrivals, staff picks, and local pickup."
     />
-    <link rel="canonical" href="https://spiralgrooverecords.com/" id="canonical-link" />
-    <script>
-      // Update canonical link based on current hostname
-      (function() {
-        const hostname = window.location.hostname;
-        const canonicalLink = document.getElementById('canonical-link');
-        if (canonicalLink && !hostname.includes('greychair.io')) {
-          // Only update if not staging - production should use spiralgrooverecords.com
-          const currentPath = window.location.pathname;
-          canonicalLink.href = 'https://spiralgrooverecords.com' + (currentPath === '/' ? '/' : currentPath);
-        }
-      })();
-    </script>
+    <link rel="canonical" href="https://spiralgrooverecords.com/" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -43,21 +31,35 @@
     />
     <meta name="twitter:image" content="https://spiralgrooverecords.com/og.svg" />
 
-    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" id="robots-meta" />
     <script>
-      // Make staging non-indexable
-      if (window.location.hostname.includes('greychair.io')) {
-        const meta = document.createElement('meta');
-        meta.name = 'robots';
-        meta.content = 'noindex,nofollow';
-        document.head.appendChild(meta);
-      }
+      // Set robots meta tag based on hostname
+      (function() {
+        const hostname = window.location.hostname;
+        const isStaging = hostname.includes('greychair.io') || hostname.includes('vercel.app') && !hostname.includes('spiralgrooverecords.com');
+        const robotsMeta = document.getElementById('robots-meta');
+        if (robotsMeta && isStaging) {
+          robotsMeta.setAttribute('content', 'noindex,nofollow');
+        }
+      })();
     </script>
     <meta name="theme-color" content="#231F20" />
-    <!-- Tailwind CSS is now built via PostCSS - CDN removed for production -->
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7VV4DCV276"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-7VV4DCV276', {
+        send_page_view: false // We'll track pageviews manually
+      });
+    </script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Shrikhand&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/tailwind.css">
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -168,8 +170,7 @@
         }
       }
     </style>
-    <!-- Tailwind config moved to tailwind.config.js -->
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.1",
@@ -185,7 +186,7 @@
   }
 }
 </script>
-<!-- Tailwind CSS is imported via globals.css and built with PostCSS -->
+<!-- Tailwind CSS is compiled via PostCSS from src/globals.css -->
 </head>
   <body class="bg-brand-cream text-brand-black antialiased selection:bg-brand-orange selection:text-white">
     <div id="root"></div>

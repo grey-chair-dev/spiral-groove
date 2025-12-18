@@ -1,66 +1,89 @@
-# Spiral Groove Records – Coming Soon Page
+# Spiral Groove Records – E-Commerce Website
 
-> Minimal coming soon page for Spiral Groove Records with email capture functionality.
+> Full-featured e-commerce website for Spiral Groove Records with Square payment integration, order management, and analytics tracking.
 
 ## 🚀 Quick Start
 
 ```bash
 npm install
 npm run dev
-# open http://localhost:3000
+# open http://localhost:5173
 ```
 
 ## 📋 What's Included
 
-### Pages
-- **Homepage (`/`)** - Coming soon page with:
-  - Spinning record logo animation
-  - Store information (address, phone, hours)
-  - Email signup form (first name, last name, email)
-  - Social media links (Facebook, Instagram, TikTok)
-  - Neon-themed gradient background
+### Pages & Features
+- **Homepage** - Hero section, featured products, store information
+- **Catalog** - Browse all products with filtering and search
+- **Product Details** - Individual product pages with add to cart
+- **Shopping Cart** - View and manage cart items
+- **Checkout** - Multi-step checkout with Square payment integration
+- **Order Management** - Order confirmation, status lookup, order history
+- **User Accounts** - Sign up, login, user dashboard
+- **Newsletter** - Email signup with database storage
+- **Search** - Full-text product search
+- **About/Contact** - Store information and contact forms
 
 ### API Routes
-- **`/api/newsletter`** - Email signup endpoint that:
-  - Validates input with Zod
-  - Saves to Neon PostgreSQL database
-  - Optionally sends to Make.com webhook
-  - Handles both camelCase and snake_case database schemas
+- **`/api/newsletter`** - Newsletter signup endpoint
+- **`/api/pay`** - Square payment processing
+- **`/api/orders`** - Order lookup and management
+- **`/api/orders/update`** - Order status updates (webhook)
+- **`/api/products`** - Product catalog API
+- **`/api/signup`** - User registration
+- **`/api/forgot-password`** - Password reset
 
-### Features
-- ✅ Mobile-first responsive design
-- ✅ Email capture with database storage
-- ✅ Webhook integration (Make.com)
-- ✅ SEO metadata and structured data
-- ✅ Route protection (only coming soon page accessible)
-- ✅ TypeScript for type safety
+### Email System
+- **Unified Email Webhook** - All emails sent via `MAKE_EMAIL_WEBHOOK_URL`
+- **Email Types Supported:**
+  - Newsletter signup confirmations
+  - Order confirmations
+  - Order status updates
+  - User signup confirmations
+  - Password reset emails
+
+### Analytics
+- **Google Analytics 4** - Full e-commerce tracking
+- **Events Tracked:**
+  - Page views
+  - Product views
+  - Add to cart / Remove from cart
+  - Checkout initiation
+  - Purchase completion
+  - Search queries
+  - Newsletter signups
+  - User signups and logins
 
 ## 🛠️ Tech Stack
 
-- **Framework**: Next.js 15.0.3 (App Router)
-- **Styling**: Tailwind CSS
-- **Database**: Neon PostgreSQL (via `@neondatabase/serverless`)
-- **Validation**: Zod
+- **Framework**: React 19.2.1 with React Router
+- **Build Tool**: Vite 5.4.21
+- **Styling**: Tailwind CSS 3.4.19
+- **Database**: Neon PostgreSQL
+- **Payment**: Square Web SDK
+- **Analytics**: Google Analytics 4
+- **Deployment**: Vercel (Serverless Functions)
 - **TypeScript**: Full type safety
-- **Fonts**: Inter (Google Fonts)
 
 ## 📁 Project Structure
 
 ```
-├── app/
-│   ├── api/
-│   │   └── newsletter/
-│   │       └── route.ts      # Email signup API endpoint
-│   ├── globals.css            # Global styles
-│   ├── layout.tsx             # Root layout with SEO metadata
-│   ├── page.tsx               # Coming soon page
-│   └── sitemap.ts             # Sitemap generator
-├── lib/
-│   ├── db.ts                  # Neon database connection
-│   └── validation/
-│       └── schemas.ts         # Zod validation schemas
-├── middleware.ts              # Route protection
-└── public/                    # Static assets (logo, favicon, etc.)
+├── api/                      # Vercel serverless functions
+│   ├── pay.js               # Square payment processing
+│   ├── orders.js            # Order lookup
+│   ├── orders/update.js     # Order status updates
+│   ├── newsletter.js        # Newsletter signup
+│   ├── sendEmail.js         # Unified email webhook
+│   ├── emailTemplates.js    # HTML email templates
+│   └── db.js                # Database connection
+├── src/
+│   ├── components/          # React components
+│   ├── utils/               # Utilities (analytics, etc.)
+│   ├── services/            # Square integration
+│   └── App.tsx             # Main app component
+├── public/                  # Static assets
+├── scripts/                # Utility scripts
+└── index.html              # Entry point
 ```
 
 ## 🔧 Environment Variables
@@ -68,69 +91,107 @@ npm run dev
 Create a `.env.local` file with:
 
 ```env
-# Database (Vercel uses SGR_DATABASE_URL, local uses DATABASE_URL)
-SGR_DATABASE_URL=your_neon_postgresql_connection_string
-# Or for local development:
+# Database
 DATABASE_URL=your_neon_postgresql_connection_string
 
-# Optional: Make.com Webhook
-MAKE_WEBHOOK_URL=your_make_webhook_url
+# Square Payment
+VITE_SQUARE_APPLICATION_ID=your_square_app_id
+VITE_SQUARE_LOCATION_ID=your_square_location_id
+SQUARE_ACCESS_TOKEN=your_square_access_token
+VITE_SQUARE_ENVIRONMENT=sandbox  # or 'production'
+
+# Email Webhook
+MAKE_EMAIL_WEBHOOK_URL=https://hook.us2.make.com/...
+
+# Analytics
+VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXXX
+
+# Optional: Webhook Secret
+WEBHOOK_SECRET=your_webhook_secret
 ```
 
 ## 📊 Database Schema
 
-The `email_list` table should have:
-- `id` (auto-incrementing primary key)
-- `firstName` or `first_name` (optional)
-- `lastName` or `last_name` (optional)
-- `email` (required, unique)
-- `source` (string)
-- `createdAt` or `created_at` (timestamp)
-- `updatedAt` or `updated_at` (timestamp)
+### Tables
+- **`email_list`** - Newsletter subscribers
+- **`users`** - User accounts
+- **`password_reset_tokens`** - Password reset tokens
+- **`customers`** - Customer information
+- **`orders`** - Order records
+- **`order_items`** - Order line items
 
-The code automatically handles both camelCase (Prisma default) and snake_case naming conventions.
+See database migration files or schema documentation for details.
 
 ## 🚦 Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+- `npm run dev` - Start development server (runs `build:css` first)
+- `npm run build` - Build for production (runs `build:css` first)
+- `npm run build:css` - Generate Tailwind CSS
+- `npm run dev:api` - Start API development server
+- `npm run preview` - Preview production build
 
-## 📦 Bundle Size
+## 📧 Email System
 
-- **Homepage**: 8.58 kB
-- **First Load JS**: 109 kB (includes shared React/Next.js runtime)
-- **API Route**: 135 B
+All emails are sent through a unified webhook system:
+
+1. **Email Types:**
+   - `newsletter` - Newsletter signup confirmation
+   - `order_confirmation` - Order confirmation email
+   - `order_status_update` - Order status change notifications
+   - `signup` - User account creation
+   - `forgot_password` - Password reset
+
+2. **Configuration:**
+   - Set `MAKE_EMAIL_WEBHOOK_URL` environment variable
+   - All emails include full HTML content
+   - Emails match website design (fonts, colors, branding)
+
+3. **Testing:**
+   - Run `node scripts/test-emails.mjs [email]` to test all email types
+
+## 📈 Analytics
+
+Google Analytics 4 is integrated with comprehensive e-commerce tracking:
+
+- **Measurement ID:** `G-7VV4DCV276`
+- **Events:** All user interactions tracked
+- **E-commerce:** Full purchase funnel tracking
+- **Reporting:** Monthly analytics reports (see `MONTHLY_ANALYTICS_REPORTING.md`)
 
 ## 🔒 Security
 
-### Route Protection
-The middleware redirects all routes except `/` to the coming soon page. Only the homepage and static assets are accessible.
-
-### Security Features
 - ✅ **HTTPS Enforcement**: Automatic via Vercel
-- ✅ **Security Headers**: HSTS, CSP, X-Frame-Options, and more
-- ✅ **Rate Limiting**: 5 requests per 15 minutes per IP on API routes
-- ✅ **Input Validation**: Zod schema validation on all forms
+- ✅ **Input Validation**: All forms validated
 - ✅ **SQL Injection Prevention**: Parameterized queries
-- ✅ **Privacy Policy**: Available at `/privacy`
+- ✅ **Payment Security**: Square PCI-compliant processing
+- ✅ **Environment Variables**: Sensitive data in env vars
+- ✅ **Webhook Secrets**: Optional webhook authentication
 
-See [SECURITY.md](./SECURITY.md) for complete security checklist.
+## 📝 Documentation
 
-## 📝 Notes
-
-- The site is currently locked to the coming soon page only
-- Full site development happens on the `dev` branch
-- Email signups are saved to Neon PostgreSQL
-- Make.com webhook integration is optional
+- **`REMAINING_TASKS.md`** - Current project status and tasks
+- **`MONTHLY_ANALYTICS_REPORTING.md`** - Analytics reporting process
+- **`GA4_REALTIME_VERIFICATION.md`** - GA4 verification guide
+- **`SQUARE_SETUP.md`** - Square integration setup
 
 ## 🎨 Design
 
-- Black background with neon gradient accents
-- Spinning record logo animation
+- Retro-inspired design with bold colors
+- Custom fonts: Inter, Montserrat, Shrikhand, Gloria Hallelujah
 - Mobile-first responsive layout
-- Clean, minimal aesthetic
+- Accessible components and navigation
+
+## 🚀 Deployment
+
+The site is deployed on Vercel:
+
+- **Staging:** `spiralgrooverecords.greychair.io`
+- **Production:** `spiralgrooverecords.com` (when live)
+
+### Build Process
+1. Generate Tailwind CSS (`npm run build:css`)
+2. Build Vite app (`vite build`)
+3. Deploy to Vercel (automatic on push to main)
 
 ---
 

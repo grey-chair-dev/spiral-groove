@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { trackPageView, trackProductView, trackAddToCart, trackRemoveFromCart, trackBeginCheckout, trackPurchase, trackSearch, trackNewsletterSignup, trackSignup, trackLogin } from './utils/analytics';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ProductGrid } from './components/ProductGrid';
@@ -37,7 +38,6 @@ import { PRODUCTS, STAFF_PICKS, EVENTS } from '../constants';
 import { Product, ViewMode, User, Page, Order, Event, CartItem } from '../types';
 import { fetchProducts as fetchApiProducts, Product as ApiProduct } from './dataAdapter';
 import { getDefaultProductImage } from './utils/defaultProductImage';
-import { trackAddToCart, trackPurchase, trackPageView } from './utils/analytics';
 
 const VALID_PAGES: Page[] = [
   'home',
@@ -396,6 +396,48 @@ function App() {
     };
   };
 
+  // Helper function to get page title for analytics
+  const getPageTitle = (page: Page): string => {
+    const titles: Record<Page, string> = {
+      'home': 'Home - Spiral Groove Records',
+      'events': 'Events - Spiral Groove Records',
+      'about': 'About - Spiral Groove Records',
+      'locations': 'Locations - Spiral Groove Records',
+      'sales': 'Sales - Spiral Groove Records',
+      'we-buy': 'We Buy Records - Spiral Groove Records',
+      'catalog': 'Catalog - Spiral Groove Records',
+      'product': selectedProduct ? `${selectedProduct.title} - Spiral Groove Records` : 'Product - Spiral Groove Records',
+      'orders': 'Orders - Spiral Groove Records',
+      'receipt': 'Receipt - Spiral Groove Records',
+      'order-status': 'Order Status - Spiral Groove Records',
+      'faq': 'FAQ - Spiral Groove Records',
+      'contact': 'Contact - Spiral Groove Records',
+      'staff-picks': 'Staff Picks - Spiral Groove Records',
+      'rsvp': 'RSVP - Spiral Groove Records',
+      'cart': 'Cart - Spiral Groove Records',
+      'checkout': 'Checkout - Spiral Groove Records',
+      'order-confirmation': 'Order Confirmation - Spiral Groove Records',
+      'settings': 'Settings - Spiral Groove Records',
+      'search': 'Search - Spiral Groove Records',
+      'privacy': 'Privacy Policy - Spiral Groove Records',
+      'terms': 'Terms of Service - Spiral Groove Records',
+      'accessibility': 'Accessibility - Spiral Groove Records',
+    };
+    return titles[page] || 'Spiral Groove Records';
+  };
+
+  // Track initial pageview
+  useEffect(() => {
+    const initialPath = toPathFromState({
+      page: currentPage,
+      selectedProductId: selectedProduct?.id ?? null,
+      filter: currentFilter,
+      searchQuery: searchQuery || undefined,
+      orderStatusParams: orderStatusParams.id ? orderStatusParams : undefined,
+    });
+    trackPageView(initialPath, getPageTitle(currentPage));
+  }, []); // Only run once on mount
+
   // Initialize / sync page from URL (supports back/forward). Also migrates old hash URLs to real paths.
   useEffect(() => {
     const applyLocation = () => {
@@ -437,10 +479,6 @@ function App() {
       setCurrentFilter(route.filter);
       setSearchQuery(route.searchQuery ?? '');
       setOrderStatusParams(route.orderStatusParams ?? { id: '', email: '' });
-      
-      // Track page view
-      const currentPath = window.location.pathname + window.location.search;
-      trackPageView(currentPath);
 
       if (route.page === 'product') {
         const id = route.productId ?? null;
@@ -535,6 +573,15 @@ function App() {
     setCurrentPage('product');
     setPendingProductId(null);
 
+    // Track product view
+    trackProductView({
+      id: product.id,
+      name: product.title,
+      price: product.salePrice || product.price,
+      category: product.format || 'Unknown',
+      brand: product.artist || 'Spiral Groove Records',
+    });
+
     window.history.pushState(null, '', toPathFromState({ page: 'product', selectedProductId: product.id }));
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -544,21 +591,50 @@ function App() {
     setCartItems(prev => {
         const existing = prev.find(item => item.product.id === product.id);
         if (existing) {
-            return prev.map(item => 
+            const updated = prev.map(item => 
                 item.product.id === product.id 
                     ? { ...item, quantity: item.quantity + 1 }
                     : item
             );
+            // Track add to cart
+            trackAddToCart({
+              id: product.id,
+              name: product.title,
+              price: product.salePrice || product.price,
+              quantity: existing.quantity + 1,
+              category: product.format || 'Unknown',
+              brand: product.artist || 'Spiral Groove Records',
+            });
+            return updated;
         }
+        // Track add to cart
+        trackAddToCart({
+          id: product.id,
+          name: product.title,
+          price: product.salePrice || product.price,
+          quantity: 1,
+          category: product.format || 'Unknown',
+          brand: product.artist || 'Spiral Groove Records',
+        });
         return [...prev, { product, quantity: 1 }];
     });
-    // Track add to cart event
-    trackAddToCart(product.id, product.title, product.salePrice || product.price);
     setToast({ show: true, message: `"${product.title}" added to crate!` });
   };
 
   const removeFromCart = (productId: string) => {
-      setCartItems(prev => prev.filter(item => item.product.id !== productId));
+      setCartItems(prev => {
+        const itemToRemove = prev.find(item => item.product.id === productId);
+        if (itemToRemove) {
+          // Track remove from cart
+          trackRemoveFromCart({
+            id: itemToRemove.product.id,
+            name: itemToRemove.product.title,
+            price: itemToRemove.product.salePrice || itemToRemove.product.price,
+            quantity: itemToRemove.quantity,
+          });
+        }
+        return prev.filter(item => item.product.id !== productId);
+      });
   };
 
   const updateQuantity = (productId: string, delta: number) => {
@@ -596,18 +672,20 @@ function App() {
         location: details.deliveryMethod === 'pickup' ? 'Milford Shop' : 'Shipping Address'
     };
 
-    // Track purchase event
-    trackPurchase(
-      effectiveOrderId,
-      details.total,
-      'USD',
-      cartItems.map(item => ({
-        item_id: item.product.id,
-        item_name: item.product.title,
+    // Track purchase
+    trackPurchase({
+      transaction_id: effectiveOrderId,
+      value: details.total || details.subtotal || 0,
+      tax: details.tax || 0,
+      shipping: details.shipping || 0,
+      items: cartItems.map(item => ({
+        id: item.product.id,
+        name: item.product.title,
         price: item.product.salePrice || item.product.price,
         quantity: item.quantity,
-      }))
-    );
+        category: item.product.format || 'Unknown',
+      })),
+    });
 
     setLastPlacedOrder(newOrder);
     setCartItems([]); // Clear cart
@@ -625,6 +703,8 @@ function App() {
     setUser(userData);
     setIsAuthModalOpen(false);
     setToast({ show: true, message: `Welcome back, ${userData.name}!` });
+    // Track login
+    trackLogin('email');
   };
 
   const handleLogout = () => {
@@ -661,7 +741,27 @@ function App() {
     if (page === 'search' && filter) {
       // For search page, the 'filter' arg is treated as the search query
       setSearchQuery(filter);
+      // Track search
+      trackSearch(filter);
     }
+    
+    // Track begin checkout
+    if (page === 'checkout' && cartItems.length > 0) {
+      const cartValue = cartItems.reduce((sum, item) => {
+        return sum + (item.product.salePrice || item.product.price) * item.quantity;
+      }, 0);
+      trackBeginCheckout(
+        cartItems.map(item => ({
+          id: item.product.id,
+          name: item.product.title,
+          price: item.product.salePrice || item.product.price,
+          quantity: item.quantity,
+          category: item.product.format || 'Unknown',
+        })),
+        cartValue
+      );
+    }
+    
     const nextPath = toPathFromState({
       page,
       selectedProductId: selectedProduct?.id ?? null,
@@ -673,6 +773,9 @@ function App() {
     if (nextPath !== currentPath) {
       window.history.pushState(null, '', nextPath);
     }
+
+    // Track pageview
+    trackPageView(nextPath, getPageTitle(page));
 
     // Always scroll to the top for navigation requests, even if staying on the same route.
     scrollToTop('smooth');
@@ -928,13 +1031,22 @@ function App() {
             />
         )}
         {currentPage === 'privacy' && (
-            <PrivacyPage viewMode={viewMode} />
+            <PrivacyPage 
+                viewMode={viewMode}
+                onNavigate={handleNavigate}
+            />
         )}
         {currentPage === 'terms' && (
-            <TermsPage viewMode={viewMode} />
+            <TermsPage 
+                viewMode={viewMode}
+                onNavigate={handleNavigate}
+            />
         )}
         {currentPage === 'accessibility' && (
-            <AccessibilityPage viewMode={viewMode} />
+            <AccessibilityPage 
+                viewMode={viewMode}
+                onNavigate={handleNavigate}
+            />
         )}
       </main>
 

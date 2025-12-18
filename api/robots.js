@@ -1,35 +1,56 @@
 /**
- * Dynamic robots.txt endpoint
- * Serves noindex for staging, normal for production
+ * Dynamic robots.txt handler
+ * Returns different robots.txt content based on hostname
  */
 
-import { withWebHandler } from './_vercelNodeAdapter.js';
+import { withWebHandler } from './_vercelNodeAdapter.js'
 
 export async function webHandler(request) {
-  const hostname = request.headers.get('host') || '';
-  const isStaging = hostname.includes('greychair.io');
+  const url = new URL(request.url)
+  const hostname = url.hostname
   
-  const robotsContent = isStaging
-    ? `User-agent: *
+  // Check if staging/preview environment
+  const isStaging = hostname.includes('greychair.io') || 
+                    (hostname.includes('vercel.app') && !hostname.includes('spiralgrooverecords.com'))
+  
+  if (isStaging) {
+    // Staging: Disallow indexing
+    return new Response(
+      `User-agent: *
 Disallow: /
 
-# Staging environment - not for indexing`
-    : `User-agent: *
+# Staging environment - not for indexing
+`,
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain',
+          'X-Robots-Tag': 'noindex,nofollow',
+        },
+      }
+    )
+  } else {
+    // Production: Allow indexing
+    return new Response(
+      `User-agent: *
 Allow: /
 
-Sitemap: https://spiralgrooverecords.com/sitemap.xml`;
-
-  return new Response(robotsContent, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/plain',
-      'Cache-Control': 'public, max-age=3600',
-    },
-  });
+Sitemap: https://spiralgrooverecords.com/sitemap.xml
+`,
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain',
+          'X-Robots-Tag': 'index,follow',
+        },
+      }
+    )
+  }
 }
 
 export const config = {
   runtime: 'nodejs',
-};
+}
 
-export default withWebHandler(webHandler);
+export default withWebHandler(webHandler)
+

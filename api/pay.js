@@ -520,6 +520,41 @@ export async function webHandler(request) {
         }
 
         console.log('[Payment API] Order saved to Neon successfully')
+
+        // Send order confirmation email
+        const email = pickupForm?.email
+        if (email) {
+          try {
+            const { sendEmail } = await import('./sendEmail.js')
+            await sendEmail({
+              type: 'order_confirmation',
+              to: email,
+              subject: `Order Confirmation ${orderNumber} - Spiral Groove Records`,
+              data: {
+                orderNumber: orderNumber,
+                orderId: dbOrderId,
+                squareOrderId: payment.orderId || orderId,
+                squarePaymentId: payment.id,
+                total: payment.amountMoney?.amount ? (Number(payment.amountMoney.amount) / 100).toFixed(2) : '0.00',
+                currency: payment.amountMoney?.currency || 'USD',
+                customerName: `${pickupForm?.firstName || ''} ${pickupForm?.lastName || ''}`.trim(),
+                customerEmail: email,
+                customerPhone: pickupForm?.phone || null,
+                items: cartItems?.map(item => ({
+                  name: item.name,
+                  quantity: item.quantity,
+                  price: item.price,
+                })) || [],
+                deliveryMethod: 'pickup',
+                pickupLocation: '215B Main Street, Milford, OH 45150',
+              },
+              dedupeKey: `order_confirmation:${orderNumber}`,
+            })
+          } catch (emailError) {
+            console.error('[Payment API] Failed to send order confirmation email:', emailError)
+            // Don't fail the request if email fails
+          }
+        }
       } catch (dbError) {
         console.error('[Payment API] Failed to save order to Neon:', dbError)
         // Don't fail the request, just log it. The Square payment succeeded.

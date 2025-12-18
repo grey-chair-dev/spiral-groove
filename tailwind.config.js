@@ -5,20 +5,15 @@ export default {
     extend: {
       colors: {
         brand: {
-          black: '#231F20',
-          cream: '#FFF9F0',
-          orange: '#00C2CB',
-          mustard: '#F9D776',
-          pink: '#FF99C8',
-          teal: '#3AB795',
-          red: '#FF2E63',
-          blue: '#3A86FF',
+          black: '#231F20',   // Vector Outline Black
+          cream: '#FFF9F0',   // Warm Background
+          orange: '#00C2CB',  // Neon Cyan
+          mustard: '#F9D776', // Vintage Yellow
+          pink: '#FF99C8',    // Bubblegum Pink
+          teal: '#3AB795',    // Globe Teal
+          red: '#FF2E63',     // Neon Pink
+          blue: '#3A86FF',    // Sky Blue
         },
-        primary: 'var(--color-primary)',
-        secondary: 'var(--color-secondary)',
-        accent: 'var(--color-accent)',
-        surface: 'var(--color-surface)',
-        text: 'var(--color-text)',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
@@ -30,7 +25,6 @@ export default {
         'retro': '4px 4px 0px 0px #231F20',
         'retro-hover': '6px 6px 0px 0px #231F20',
         'retro-sm': '2px 2px 0px 0px #231F20',
-        brand: '0 10px 40px rgba(15, 23, 42, 0.60)',
       },
       borderRadius: {
         'xl': '1rem',

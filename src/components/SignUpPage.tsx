@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { getOAuthProvidersOnly, getAuthConfig } from '../config/auth'
+import { trackSignup } from '../utils/analytics'
 
 type SignUpPageProps = {
   onSignUp: (provider?: string) => Promise<void>
@@ -22,10 +23,43 @@ export function SignUpPage({
   const authConfig = useMemo(() => getAuthConfig(), [])
   const oauthProviders = useMemo(() => getOAuthProvidersOnly(), [])
 
+  const [signupError, setSignupError] = useState<string | null>(null)
+  const [signupSuccess, setSignupSuccess] = useState(false)
+
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    // In production, this would call an email/password signup method
-    alert('Email/password signup is not configured. Please use social signup.')
+    setSignupError(null)
+    
+    try {
+      const response = await fetch('/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          name: name.trim(),
+          password: password, // In production, this should be hashed client-side or handled by auth service
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setSignupSuccess(true)
+        // Track signup
+        trackSignup('email')
+        // Optionally redirect to sign in or show success message
+        setTimeout(() => {
+          onSignIn()
+        }, 2000)
+      } else {
+        setSignupError(data.error || 'Failed to create account. Please try again.')
+      }
+    } catch (err) {
+      console.error('Signup error:', err)
+      setSignupError('Network error. Please try again later.')
+    }
   }
 
   return (
@@ -134,6 +168,16 @@ export function SignUpPage({
             {/* Email/Password Form */}
             {authConfig.emailPasswordEnabled && (
               <form onSubmit={handleEmailSignUp} className="space-y-4">
+                {signupSuccess && (
+                  <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-400">
+                    Account created! Redirecting to sign in...
+                  </div>
+                )}
+                {signupError && (
+                  <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+                    {signupError}
+                  </div>
+                )}
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-300">Full name</label>
                 <input

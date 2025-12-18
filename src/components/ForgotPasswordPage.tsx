@@ -8,13 +8,36 @@ type ForgotPasswordPageProps = {
 export function ForgotPasswordPage({ onBack, onSignIn }: ForgotPasswordPageProps) {
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // In production, this would call a password reset API
-    setIsSubmitted(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setIsSubmitted(true)
+      } else {
+        setError(data.error || 'Failed to send reset link. Please try again.')
+      }
+    } catch (err) {
+      console.error('Forgot password error:', err)
+      setError('Network error. Please try again later.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (isSubmitted) {
@@ -108,12 +131,17 @@ export function ForgotPasswordPage({ onBack, onSignIn }: ForgotPasswordPageProps
                 </p>
               </div>
 
+              {error && (
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+                  {error}
+                </div>
+              )}
               <button
                 type="submit"
                 className="w-full rounded-full bg-primary px-4 py-3 text-sm font-semibold text-white shadow-brand disabled:opacity-50"
-                disabled={!email}
+                disabled={!email || isSubmitting}
               >
-                Send Reset Link
+                {isSubmitting ? 'Sending...' : 'Send Reset Link'}
               </button>
             </form>
 

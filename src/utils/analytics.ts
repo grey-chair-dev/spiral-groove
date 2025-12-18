@@ -1,94 +1,229 @@
 /**
- * Google Analytics 4 (GA4) integration
+ * Google Analytics 4 (GA4) Event Tracking
  * 
- * To enable analytics, set VITE_GA4_MEASUREMENT_ID in your environment variables.
- * Example: VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXXX
+ * Provides helper functions for tracking pageviews and events.
+ * Configure with VITE_GA4_MEASUREMENT_ID environment variable.
  */
 
 declare global {
   interface Window {
-    gtag?: (...args: any[]) => void;
-    dataLayer?: any[];
+    gtag?: (
+      command: 'config' | 'event' | 'set' | 'js',
+      targetId: string | Date,
+      config?: Record<string, any>
+    ) => void
+    dataLayer?: any[]
   }
 }
 
-const GA4_MEASUREMENT_ID = import.meta.env.VITE_GA4_MEASUREMENT_ID;
+const GA4_MEASUREMENT_ID = import.meta.env.VITE_GA4_MEASUREMENT_ID || 'G-7VV4DCV276'
 
 /**
  * Initialize Google Analytics 4
+ * Note: GA4 script is loaded in index.html, this just ensures gtag is available
  */
 export function initAnalytics() {
-  if (!GA4_MEASUREMENT_ID || typeof window === 'undefined') {
-    return;
+  // Ensure gtag function exists (it's loaded in index.html)
+  if (typeof window.gtag === 'undefined') {
+    window.dataLayer = window.dataLayer || []
+    window.gtag = function(...args: any[]) {
+      window.dataLayer.push(args)
+    }
   }
 
-  // Create dataLayer
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function(...args: any[]) {
-    window.dataLayer.push(args);
-  };
+  if (import.meta.env.DEV) {
+    console.log('[Analytics] Google Analytics 4 initialized:', GA4_MEASUREMENT_ID)
+  }
+}
 
-  // Load GA4 script
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`;
-  document.head.appendChild(script);
+/**
+ * Track a pageview
+ */
+export function trackPageView(pagePath: string, pageTitle?: string) {
+  if (!window.gtag) return
 
-  // Initialize GA4
-  window.gtag('js', new Date());
   window.gtag('config', GA4_MEASUREMENT_ID, {
-    page_path: window.location.pathname,
-  });
+    page_path: pagePath,
+    page_title: pageTitle || document.title,
+  })
 }
 
 /**
- * Track page views
+ * Track a custom event
  */
-export function trackPageView(path: string) {
-  if (!GA4_MEASUREMENT_ID || !window.gtag) return;
-  
-  window.gtag('config', GA4_MEASUREMENT_ID, {
-    page_path: path,
-  });
+export function trackEvent(
+  eventName: string,
+  eventParams?: Record<string, any>
+) {
+  if (!window.gtag) return
+
+  window.gtag('event', eventName, eventParams)
 }
 
 /**
- * Track custom events
+ * Track product view
  */
-export function trackEvent(eventName: string, eventParams?: Record<string, any>) {
-  if (!GA4_MEASUREMENT_ID || !window.gtag) return;
-  
-  window.gtag('event', eventName, eventParams);
+export function trackProductView(product: {
+  id: string
+  name: string
+  price?: number
+  category?: string
+  brand?: string
+}) {
+  trackEvent('view_item', {
+    currency: 'USD',
+    value: product.price || 0,
+    items: [
+      {
+        item_id: product.id,
+        item_name: product.name,
+        item_category: product.category || 'Unknown',
+        item_brand: product.brand || 'Spiral Groove Records',
+        price: product.price || 0,
+        quantity: 1,
+      },
+    ],
+  })
 }
 
 /**
- * Track ecommerce events
+ * Track add to cart
  */
-export function trackPurchase(orderId: string, value: number, currency: string = 'USD', items?: any[]) {
-  if (!GA4_MEASUREMENT_ID || !window.gtag) return;
-  
-  window.gtag('event', 'purchase', {
-    transaction_id: orderId,
-    value: value,
-    currency: currency,
-    items: items,
-  });
+export function trackAddToCart(item: {
+  id: string
+  name: string
+  price: number
+  quantity: number
+  category?: string
+  brand?: string
+}) {
+  trackEvent('add_to_cart', {
+    currency: 'USD',
+    value: item.price * item.quantity,
+    items: [
+      {
+        item_id: item.id,
+        item_name: item.name,
+        item_category: item.category || 'Unknown',
+        item_brand: item.brand || 'Spiral Groove Records',
+        price: item.price,
+        quantity: item.quantity,
+      },
+    ],
+  })
 }
 
 /**
- * Track add to cart events
+ * Track remove from cart
  */
-export function trackAddToCart(productId: string, productName: string, value: number) {
-  if (!GA4_MEASUREMENT_ID || !window.gtag) return;
-  
-  window.gtag('event', 'add_to_cart', {
+export function trackRemoveFromCart(item: {
+  id: string
+  name: string
+  price: number
+  quantity: number
+}) {
+  trackEvent('remove_from_cart', {
+    currency: 'USD',
+    value: item.price * item.quantity,
+    items: [
+      {
+        item_id: item.id,
+        item_name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      },
+    ],
+  })
+}
+
+/**
+ * Track begin checkout
+ */
+export function trackBeginCheckout(items: Array<{
+  id: string
+  name: string
+  price: number
+  quantity: number
+  category?: string
+}>, value: number) {
+  trackEvent('begin_checkout', {
     currency: 'USD',
     value: value,
-    items: [{
-      item_id: productId,
-      item_name: productName,
-      price: value,
-      quantity: 1,
-    }],
-  });
+    items: items.map(item => ({
+      item_id: item.id,
+      item_name: item.name,
+      item_category: item.category || 'Unknown',
+      price: item.price,
+      quantity: item.quantity,
+    })),
+  })
 }
+
+/**
+ * Track purchase completion
+ */
+export function trackPurchase(order: {
+  transaction_id: string
+  value: number
+  tax?: number
+  shipping?: number
+  items: Array<{
+    id: string
+    name: string
+    price: number
+    quantity: number
+    category?: string
+  }>
+}) {
+  trackEvent('purchase', {
+    transaction_id: order.transaction_id,
+    value: order.value,
+    tax: order.tax || 0,
+    shipping: order.shipping || 0,
+    currency: 'USD',
+    items: order.items.map(item => ({
+      item_id: item.id,
+      item_name: item.name,
+      item_category: item.category || 'Unknown',
+      price: item.price,
+      quantity: item.quantity,
+    })),
+  })
+}
+
+/**
+ * Track search
+ */
+export function trackSearch(searchTerm: string) {
+  trackEvent('search', {
+    search_term: searchTerm,
+  })
+}
+
+/**
+ * Track newsletter signup
+ */
+export function trackNewsletterSignup(source?: string) {
+  trackEvent('newsletter_signup', {
+    source: source || 'website',
+  })
+}
+
+/**
+ * Track user signup
+ */
+export function trackSignup(method?: string) {
+  trackEvent('sign_up', {
+    method: method || 'email',
+  })
+}
+
+/**
+ * Track login
+ */
+export function trackLogin(method?: string) {
+  trackEvent('login', {
+    method: method || 'email',
+  })
+}
+
