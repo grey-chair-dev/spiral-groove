@@ -67,6 +67,7 @@ export type SiteConfig = {
     facebook?: string
     instagram?: string
     twitter?: string
+    tiktok?: string
     linkedin?: string
   }
   promoBar?: {
@@ -113,19 +114,19 @@ export const siteConfig: SiteConfig = {
     },
   ],
   contact: {
-    phone: '(415) 555-0112',
-    email: 'hello@harbormarket.local',
-    location: '118 Grove St, San Francisco, CA',
-    hours: 'Open daily · 8a – 8p',
+    phone: '(513) 248-0000',
+    email: 'hello@spiralgrooverecords.com',
+    location: '215B Main Street, Milford, OH 45150',
+    hours: 'Open daily · 10a – 8p',
   },
   legal: {
-    privacyUrl: 'https://commerce.local/privacy',
-    termsUrl: 'https://commerce.local/terms',
+    privacyUrl: 'https://spiralgrooverecords.com/privacy',
+    termsUrl: 'https://spiralgrooverecords.com/terms',
   },
   social: {
-    facebook: 'https://facebook.com/harbormarket',
-    instagram: 'https://instagram.com/harbormarket',
-    twitter: 'https://twitter.com/harbormarket',
+    facebook: 'https://www.facebook.com/spiralgrooverecords',
+    instagram: 'https://www.instagram.com/spiral_groove_records_/?hl=en',
+    tiktok: 'https://www.tiktok.com/@spiral_groove',
   },
   promoBar: {
     enabled: true,
