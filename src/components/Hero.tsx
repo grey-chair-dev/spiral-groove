@@ -101,7 +101,7 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate }) => {
              className="w-full h-full object-cover"
            />
            
-           {/* Gradient Scrim for Readability - Heavier gradient in Modern mode for contrast */}
+          {/* Gradient Scrim for Readability */}
            <div className={`absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r 
              ${isRetro 
                 ? 'from-brand-black/95 via-brand-black/60 to-brand-black/20 mix-blend-hard-light' 
@@ -137,7 +137,7 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate }) => {
                  {/* Title */}
                  <h1 className={`block leading-[0.95] mb-4 text-white animate-in slide-in-from-bottom-4 fade-in duration-700 delay-200 break-words
                    ${isRetro 
-                     ? 'font-display text-3xl xs:text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[2px_2px_0px_#231F20] md:drop-shadow-[4px_4px_0px_#231F20]' 
+                     ? 'font-display text-3xl xs:text-4xl sm:text-6xl md:text-7xl lg:text-8xl drop-shadow-[2px_2px_0px_#231F20] md:drop-shadow-[4px_4px_0px_#231F20]'
                      : 'font-sans font-black text-3xl xs:text-4xl sm:text-6xl md:text-7xl lg:text-8xl uppercase tracking-tighter drop-shadow-lg'
                    }
                  `}>

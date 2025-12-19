@@ -219,6 +219,9 @@ function App() {
     hash: window.location.hash,
   });
   const [viewMode, setViewMode] = useState<ViewMode>('retro');
+  // "Modern mode" has been removed. We keep the toggle state for UI copy,
+  // but force the styling to always use the Electric (retro) theme.
+  const effectiveViewMode: ViewMode = 'retro';
   const [currentPage, setCurrentPage] = useState<Page>(initialRoute.page);
   const [currentFilter, setCurrentFilter] = useState<string | undefined>(initialRoute.filter);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -814,7 +817,7 @@ function App() {
   if (requireClientLogin && !clientAuthed) {
     return (
       <ClientLoginPage
-        viewMode={viewMode}
+        viewMode={effectiveViewMode}
         onSuccess={() => {
           setClientAuthed(true);
         }}
@@ -823,10 +826,10 @@ function App() {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 overflow-x-hidden w-full ${viewMode === 'retro' ? 'bg-brand-cream selection:bg-brand-orange selection:text-white' : 'bg-white selection:bg-brand-black selection:text-white'}`}>
+    <div className={`min-h-screen transition-colors duration-500 overflow-x-hidden w-full ${effectiveViewMode === 'retro' ? 'bg-brand-cream selection:bg-brand-orange selection:text-white' : 'bg-white selection:bg-brand-black selection:text-white'}`}>
       
       {/* Noise Texture for Retro Mode */}
-      {viewMode === 'retro' && <div className="grain-overlay"></div>}
+      {effectiveViewMode === 'retro' && <div className="grain-overlay"></div>}
 
       <Header 
         viewMode={viewMode} 
@@ -847,7 +850,7 @@ function App() {
         {currentPage === 'home' && (
             <>
                 <Hero 
-                    viewMode={viewMode} 
+                    viewMode={effectiveViewMode} 
                     onNavigate={handleNavigate}
                 />
                 {productsLoading ? (
@@ -864,7 +867,7 @@ function App() {
                         products={products} 
                         onProductClick={handleProductClick}
                         onQuickAdd={addToCart} 
-                        viewMode={viewMode}
+                        viewMode={effectiveViewMode}
                         initialFilter="New Arrivals"
                         showFilters={false}
                         onViewCatalog={() => handleNavigate('catalog', 'All')}
@@ -874,16 +877,16 @@ function App() {
                 )}
                 <StaffPicks 
                     picks={STAFF_PICKS} 
-                    viewMode={viewMode}
+                    viewMode={effectiveViewMode}
                     onProductClick={handleProductClick}
                 />
                 <StorySection 
-                    viewMode={viewMode} 
+                    viewMode={effectiveViewMode} 
                     onNavigate={handleNavigate}
                 />
                 <EventsSection 
                     events={EVENTS} 
-                    viewMode={viewMode}
+                    viewMode={effectiveViewMode}
                     onNavigate={handleNavigate}
                     onRSVP={handleRSVP}
                 />
@@ -892,14 +895,14 @@ function App() {
 
         {currentPage === 'events' && (
             <EventsPage 
-                viewMode={viewMode} 
+                viewMode={effectiveViewMode} 
                 onRSVP={handleRSVP}
             />
         )}
-        {currentPage === 'about' && <AboutPage viewMode={viewMode} />}
-        {currentPage === 'locations' && <LocationsPage viewMode={viewMode} />}
-        {currentPage === 'sales' && <SalesPage viewMode={viewMode} onNavigate={handleNavigate} />}
-        {currentPage === 'we-buy' && <WeBuyPage viewMode={viewMode} onNavigate={handleNavigate} />}
+        {currentPage === 'about' && <AboutPage viewMode={effectiveViewMode} />}
+        {currentPage === 'locations' && <LocationsPage viewMode={effectiveViewMode} />}
+        {currentPage === 'sales' && <SalesPage viewMode={effectiveViewMode} onNavigate={handleNavigate} />}
+        {currentPage === 'we-buy' && <WeBuyPage viewMode={effectiveViewMode} onNavigate={handleNavigate} />}
         {currentPage === 'catalog' && (
             <>
                 {productsLoading ? (
@@ -913,7 +916,7 @@ function App() {
                     </div>
                 ) : (
                     <CatalogPage 
-                        viewMode={viewMode} 
+                        viewMode={effectiveViewMode} 
                         products={products}
                         onProductClick={handleProductClick}
                         onQuickAdd={addToCart}
@@ -928,7 +931,7 @@ function App() {
         )}
         {currentPage === 'search' && (
             <SearchPage 
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 products={products}
                 searchQuery={searchQuery}
                 onProductClick={handleProductClick}
@@ -940,7 +943,7 @@ function App() {
         {currentPage === 'product' && selectedProduct && (
             <ProductDetailsPage
                 product={selectedProduct}
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 onAddToCart={addToCart}
                 // When going back, return to catalog with the preserved filter
                 onBack={() => handleNavigate('catalog', currentFilter || 'All')}
@@ -953,7 +956,7 @@ function App() {
         {currentPage === 'cart' && (
             <CartPage 
                 cartItems={cartItems}
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 onUpdateQuantity={updateQuantity}
                 onRemoveItem={removeFromCart}
                 onNavigate={handleNavigate}
@@ -963,7 +966,7 @@ function App() {
         {currentPage === 'checkout' && (
             <CheckoutPage 
                 cartItems={cartItems}
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 user={user}
                 onLoginClick={() => setIsAuthModalOpen(true)}
                 onBack={() => handleNavigate('cart')}
@@ -973,14 +976,14 @@ function App() {
         {currentPage === 'order-confirmation' && lastPlacedOrder && (
             <OrderConfirmationPage 
                 order={lastPlacedOrder}
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 onNavigate={handleNavigate}
                 onPrintReceipt={handlePrintReceiptFromOrderConfirmation}
             />
         )}
         {currentPage === 'orders' && (
             <OrdersPage 
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 onNavigate={handleNavigate}
                 onViewReceipt={handleViewReceipt}
                 onLoginClick={() => setIsAuthModalOpen(true)}
@@ -989,13 +992,13 @@ function App() {
         {currentPage === 'receipt' && selectedOrder && (
             <ReceiptPage 
                 order={selectedOrder}
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 onBack={() => handleNavigate('orders')}
             />
         )}
         {currentPage === 'order-status' && (
             <OrderStatusPage 
-                viewMode={viewMode} 
+                viewMode={effectiveViewMode} 
                 onNavigate={handleNavigate}
                 onViewReceipt={handleViewReceipt}
                 initialOrderNumber={orderStatusParams.id}
@@ -1003,21 +1006,21 @@ function App() {
             />
         )}
         {currentPage === 'faq' && (
-            <FAQPage viewMode={viewMode} />
+            <FAQPage viewMode={effectiveViewMode} />
         )}
         {currentPage === 'contact' && (
-            <ContactPage viewMode={viewMode} />
+            <ContactPage viewMode={effectiveViewMode} />
         )}
         {currentPage === 'staff-picks' && (
             <StaffPicksPage 
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 onProductClick={handleProductClick}
                 onNavigate={handleNavigate}
             />
         )}
         {currentPage === 'rsvp' && selectedEvent && (
             <RSVPPage 
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 event={selectedEvent}
                 onBack={() => handleNavigate('events')}
             />
@@ -1025,7 +1028,7 @@ function App() {
         {currentPage === 'settings' && (
             <SettingsPage 
                 user={user}
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 onNavigate={handleNavigate}
                 onLogout={handleLogout}
                 onUpdateUser={handleUpdateUser}
@@ -1033,39 +1036,39 @@ function App() {
         )}
         {currentPage === 'privacy' && (
             <PrivacyPage 
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 onNavigate={handleNavigate}
             />
         )}
         {currentPage === 'terms' && (
             <TermsPage 
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 onNavigate={handleNavigate}
             />
         )}
         {currentPage === 'accessibility' && (
             <AccessibilityPage 
-                viewMode={viewMode}
+                viewMode={effectiveViewMode}
                 onNavigate={handleNavigate}
             />
         )}
       </main>
 
-      <Footer viewMode={viewMode} onNavigate={handleNavigate} />
+      <Footer viewMode={effectiveViewMode} onNavigate={handleNavigate} />
 
       {/* Auth Modal */}
       <AuthModal 
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onLogin={handleLogin}
-        viewMode={viewMode}
+        viewMode={effectiveViewMode}
       />
 
       <Toast 
         isVisible={toast.show} 
         message={toast.message} 
         onClose={() => setToast({ ...toast, show: false })}
-        viewMode={viewMode}
+        viewMode={effectiveViewMode}
       />
 
       <Chatbot />

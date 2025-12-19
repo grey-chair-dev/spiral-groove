@@ -922,7 +922,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                                          ${product.price.toFixed(2)}
                                                    </span>
                                                    <span className={`font-display text-lg tracking-wide leading-none
-                                                       ${viewMode === 'retro' ? 'text-brand-red drop-shadow-[1px_1px_0px_#231F20]' : 'text-brand-red'}
+                                                      ${viewMode === 'retro' ? 'text-brand-red drop-shadow-[1px_1px_0px_#231F20]' : 'text-brand-red'}
                                                    `}>
                                                        ${product.salePrice.toFixed(2)}
                                                    </span>
@@ -930,7 +930,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                             ) : (
                                                <div className="flex items-baseline gap-2">
                                                  <span className={`font-display text-lg tracking-wide leading-none
-                                                   ${viewMode === 'retro' ? 'text-brand-orange drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
+                                                  ${viewMode === 'retro' ? 'text-brand-orange drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
                                                    ${isSoldOut ? 'opacity-40 line-through decoration-2 decoration-brand-red' : ''}
                                                  `}>
                                                    ${product.price.toFixed(2)}
@@ -947,7 +947,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                                 ? 'px-3 py-1.5 bg-gray-100 border-2 border-gray-200 text-gray-400 cursor-not-allowed' 
                                                 : 'px-3 py-1.5 bg-gray-50 text-gray-300 cursor-not-allowed')
                                             : (viewMode === 'retro' 
-                                                ? 'px-4 py-2 bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:text-brand-black hover:border-brand-black shadow-[2px_2px_0px_#231F20] hover:shadow-[3px_3px_0px_#3px_3px_0px_#231F20] hover:-translate-y-0.5 active:scale-95' 
+                                                ? 'px-4 py-2 bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:text-brand-black hover:border-brand-black shadow-[2px_2px_0px_#231F20] hover:shadow-[3px_3px_0px_#231F20] hover:-translate-y-0.5 active:scale-95' 
                                                 : 'px-4 py-2 bg-black text-white hover:bg-gray-800 hover:scale-105 active:scale-95 shadow-sm')
                                           }
                                         `}>

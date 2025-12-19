@@ -28,7 +28,7 @@ export function ForgotPasswordPage({ onBack, onSignIn }: ForgotPasswordPageProps
       const data = await response.json()
 
       if (response.ok && data.success) {
-        setIsSubmitted(true)
+    setIsSubmitted(true)
       } else {
         setError(data.error || 'Failed to send reset link. Please try again.')
       }

@@ -156,7 +156,6 @@ export const Header: React.FC<HeaderProps> = ({
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -227,10 +226,9 @@ export const Header: React.FC<HeaderProps> = ({
   // Close search dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const inDesktop = !!searchContainerRef.current?.contains(target);
-      const inMobile = !!mobileSearchContainerRef.current?.contains(target);
-      if (!inDesktop && !inMobile) setShowSearchDropdown(false);
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSearchDropdown(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -254,8 +252,8 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const handleSearchSubmit = (e?: React.SyntheticEvent) => {
-    e?.preventDefault();
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (searchQuery.trim()) {
         onNavigate('search', searchQuery);
         setShowSearchDropdown(false);
@@ -290,9 +288,9 @@ export const Header: React.FC<HeaderProps> = ({
                 ${isRetro ? 'border-brand-black/10' : 'border-gray-100'}
             `}>
               <div className={`max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 transition-all duration-300
-                  ${scrolled ? 'py-3' : 'py-4 md:py-6'}
+                  ${scrolled ? 'py-2.5' : 'py-3 md:py-5'}
               `}>
-                <div className="flex items-center justify-between gap-4 md:gap-8">
+                <div className="flex items-center justify-between gap-4 md:gap-6">
                   
                   {/* Mobile Menu Toggle */}
                   <button className="md:hidden p-2 -ml-2" onClick={() => setIsMobileMenuOpen(true)}>
@@ -301,19 +299,21 @@ export const Header: React.FC<HeaderProps> = ({
 
                   {/* Logo */}
                   <div className="flex-shrink-0 cursor-pointer group flex-1 md:flex-none text-center md:text-left" onClick={() => onNavigate('home')}>
-                     <div className="flex items-center justify-center md:justify-start gap-3">
+                     <div className="flex items-center justify-center md:justify-start">
                        
-                       <div className={`flex flex-col leading-none items-center md:items-start transition-transform origin-left
-                          ${scrolled ? 'scale-90' : 'scale-100'}
+                       <div className={`flex flex-col leading-none items-center md:items-start transition-all origin-left
+                          ${scrolled ? 'scale-[0.85]' : 'scale-100'}
                        `}>
-                          <h1 className={`font-display text-2xl sm:text-4xl md:text-5xl leading-[0.85] tracking-tight transform group-hover:scale-[1.02] transition-transform
-                              ${isRetro ? 'text-brand-black' : 'text-black'}
-                          `}>
-                          SPIRAL<span className="text-brand-orange drop-shadow-[2px_2px_0px_rgba(0,0,0,1)] text-stroke-1">GROOVE</span>
-                          </h1>
-                          {!scrolled && (
-                            <span className="text-[9px] font-bold tracking-[0.45em] text-brand-red uppercase ml-1 mt-1 transition-opacity duration-300 hidden sm:block">Records</span>
-                          )}
+                          <img 
+                            src="/logo-black.png" 
+                            alt="Spiral Groove Records" 
+                            className={`h-6 sm:h-8 md:h-10 w-auto transform group-hover:scale-[1.02] transition-transform object-contain
+                              ${isRetro ? '' : ''}
+                            `}
+                          />
+                          <span className={`font-bold tracking-[0.35em] text-brand-red uppercase transition-all duration-300
+                            ${scrolled ? 'text-[7px] sm:text-[8px] mt-0.5' : 'text-[8px] sm:text-[9px] mt-1'}
+                          `}>Records</span>
                        </div>
                      </div>
                   </div>
@@ -351,7 +351,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                       {/* Desktop Search Dropdown */}
                       {showSearchDropdown && searchResults.length > 0 && (
-                        <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl overflow-hidden z-[220]
+                        <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl overflow-hidden z-50
                             ${isRetro ? 'bg-white border-2 border-brand-black shadow-retro' : 'bg-white border border-gray-200 shadow-xl'}
                         `}>
                             <ul className="max-h-[300px] overflow-y-auto">
@@ -369,9 +369,7 @@ export const Header: React.FC<HeaderProps> = ({
                                                 setShowSearchDropdown(false);
                                                 setSearchQuery('');
                                             }}
-                                            className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-b last:border-none
-                                              ${isRetro ? 'hover:bg-white/60 border-brand-black/10' : 'hover:bg-gray-50 border-gray-50'}
-                                            `}
+                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none"
                                         >
                                             <div className="w-10 h-10 flex-shrink-0 bg-gray-100 rounded overflow-hidden border border-gray-200">
                                                 <img src={product.coverUrl} alt="" className="w-full h-full object-cover" />
@@ -647,7 +645,7 @@ export const Header: React.FC<HeaderProps> = ({
              </div>
 
              {/* Search in Drawer */}
-             <div ref={mobileSearchContainerRef} className="px-6 pt-6 pb-2 relative z-[40]">
+             <div className="px-6 pt-6 pb-2">
                 <form className="relative group" onSubmit={handleSearchSubmit}>
                     <input 
                         type="text" 
@@ -672,14 +670,13 @@ export const Header: React.FC<HeaderProps> = ({
 
                     {/* Mobile Search Dropdown */}
                     {showSearchDropdown && searchResults.length > 0 && (
-                        <div className={`absolute left-0 right-0 top-full mt-2 rounded-xl overflow-hidden z-[60]
+                        <div className={`mt-2 rounded-xl overflow-hidden
                             ${isRetro ? 'bg-white border-2 border-brand-black shadow-none' : 'bg-white border border-gray-200 shadow-lg'}
                         `}>
                             <ul className="max-h-[200px] overflow-y-auto">
                                 {searchResults.map(product => (
                                     <li key={product.id}>
                                         <button
-                                            type="button"
                                             onClick={() => {
                                                 // Same logic as desktop
                                                 if (onProductClick) {
@@ -691,9 +688,7 @@ export const Header: React.FC<HeaderProps> = ({
                                                 setIsMobileMenuOpen(false);
                                                 setSearchQuery('');
                                             }}
-                                            className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-b last:border-none
-                                              ${isRetro ? 'hover:bg-white/60 border-brand-black/10' : 'hover:bg-gray-50 border-gray-50'}
-                                            `}
+                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none"
                                         >
                                             <div className="w-8 h-8 flex-shrink-0 bg-gray-100 rounded overflow-hidden border border-gray-200">
                                                 <img src={product.coverUrl} alt="" className="w-full h-full object-cover" />
@@ -707,8 +702,7 @@ export const Header: React.FC<HeaderProps> = ({
                                 ))}
                             </ul>
                             <button
-                                type="button"
-                                onClick={() => handleSearchSubmit()}
+                                onClick={handleSearchSubmit}
                                 className={`w-full py-3 text-center text-xs font-bold uppercase tracking-wider border-t transition-colors
                                     ${isRetro ? 'bg-brand-mustard text-brand-black hover:bg-brand-orange border-brand-black' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-100'}
                                 `}
@@ -721,7 +715,7 @@ export const Header: React.FC<HeaderProps> = ({
              </div>
 
              {/* Links */}
-             <div className="flex-1 overflow-y-auto p-6 scroll-smooth relative z-[10]">
+             <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
                 <ul className="space-y-6">
                   {NAV_ITEMS.map((item) => (
                     <li key={item.label}>

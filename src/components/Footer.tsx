@@ -139,8 +139,12 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
           <div className="lg:col-span-4 pr-0 lg:pr-8">
             <a href={hrefFor('home')} onClick={(e) => { e.preventDefault(); onNavigate('home'); }} className="flex items-center gap-3 mb-6 group w-fit">
                <div className="flex flex-col">
-                  <span className="font-display text-3xl text-white leading-[0.8]">SPIRAL<span className="text-brand-orange">GROOVE</span></span>
-                  <span className="text-[9px] font-bold text-brand-red tracking-[0.3em] uppercase ml-0.5">Records</span>
+                  <img 
+                    src="/logo-white.png" 
+                    alt="Spiral Groove Records" 
+                    className="h-10 md:h-12 w-auto transform group-hover:scale-[1.02] transition-transform object-contain"
+                  />
+                  <span className="text-[9px] font-bold text-brand-red tracking-[0.3em] uppercase ml-0.5 mt-1">Records</span>
                </div>
             </a>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs font-medium">
@@ -227,8 +231,8 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
                     className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-pink hover:border-brand-pink hover:bg-brand-pink/10 transition-all hover:scale-110"
                     aria-label="Follow us on Instagram"
                   >
-                    <Instagram size={18} />
-                  </a>
+                  <Instagram size={18} />
+                </a>
                 )}
                 {siteConfig.social.tiktok && (
                   <a 
@@ -239,7 +243,7 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
                     aria-label="Follow us on TikTok"
                   >
                     <TikTokIcon size={18} />
-                  </a>
+                </a>
                 )}
                 {siteConfig.social.facebook && (
                   <a 
@@ -249,8 +253,8 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
                     className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-brand-blue hover:border-brand-blue hover:bg-brand-blue/10 transition-all hover:scale-110"
                     aria-label="Follow us on Facebook"
                   >
-                    <Facebook size={18} />
-                  </a>
+                  <Facebook size={18} />
+                </a>
                 )}
               </div>
               

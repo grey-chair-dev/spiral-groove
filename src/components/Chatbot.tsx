@@ -87,6 +87,7 @@ const getBotResponse = (message: string): string => {
 
 export const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -99,6 +100,7 @@ export const Chatbot: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const popupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -113,6 +115,45 @@ export const Chatbot: React.FC = () => {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Show popup after delay if chat hasn't been opened and popup hasn't been dismissed
+  useEffect(() => {
+    // Check if popup was previously dismissed
+    const popupDismissed = localStorage.getItem('chatbot-popup-dismissed');
+    if (popupDismissed === 'true') {
+      return;
+    }
+
+    // Show popup after 4 seconds
+    popupTimeoutRef.current = setTimeout(() => {
+      if (!isOpen) {
+        setShowPopup(true);
+      }
+    }, 4000);
+
+    return () => {
+      if (popupTimeoutRef.current) {
+        clearTimeout(popupTimeoutRef.current);
+      }
+    };
+  }, [isOpen]);
+
+  // Hide popup when chat is opened
+  useEffect(() => {
+    if (isOpen) {
+      setShowPopup(false);
+    }
+  }, [isOpen]);
+
+  const handleDismissPopup = () => {
+    setShowPopup(false);
+    localStorage.setItem('chatbot-popup-dismissed', 'true');
+  };
+
+  const handleOpenChat = () => {
+    setShowPopup(false);
+    setIsOpen(true);
+  };
 
   const handleSendMessage = (text?: string) => {
     const messageText = text || inputValue.trim();
@@ -157,10 +198,57 @@ export const Chatbot: React.FC = () => {
 
   const chatbotContent = (
     <>
+      {/* Help Popup */}
+      {showPopup && !isOpen && (
+        <div
+          className="bg-brand-cream border-4 border-brand-black rounded-lg shadow-retro p-4 max-w-[280px] animate-fade-in"
+          style={{
+            position: 'fixed',
+            bottom: '120px',
+            right: '24px',
+            zIndex: 10000,
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <MessageCircle className="w-6 h-6 text-brand-orange" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-brand-black mb-2">
+                We are here to help! 💬
+              </p>
+              <p className="text-xs text-gray-700 mb-3">
+                Have a question? Click the chat button to get started.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleOpenChat}
+                  className="flex-1 bg-brand-orange text-brand-black text-xs font-bold px-3 py-1.5 rounded shadow-retro-sm hover:shadow-retro transition-all"
+                >
+                  Chat Now
+                </button>
+                <button
+                  onClick={handleDismissPopup}
+                  className="text-gray-600 hover:text-brand-black text-xs font-bold px-2"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+          {/* Arrow pointing to button */}
+          <div
+            className="absolute bottom-[-8px] right-8 w-0 h-0 border-l-8 border-r-8 border-t-8 border-transparent border-t-brand-black"
+            style={{ transform: 'rotate(180deg)' }}
+          />
+        </div>
+      )}
+
       {/* Chat Button - Vinyl Record Style */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={handleOpenChat}
           className="z-[9999] w-20 h-20 rounded-full shadow-retro hover:shadow-retro-hover transition-all group relative overflow-hidden"
           aria-label="Open chat"
           style={{
