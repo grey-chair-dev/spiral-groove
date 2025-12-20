@@ -80,7 +80,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const [activeArtist, setActiveArtist] = useState(initialArtist || "All");
   const [activePriceRange, setActivePriceRange] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('featured');
-  const [itemsPerPage, setItemsPerPage] = useState(compact ? 99 : (isWide ? 9 : 8));
+  const [itemsPerPage, setItemsPerPage] = useState(compact ? 99 : 12);
   const [currentPage, setCurrentPage] = useState(1);
   
   // Unified Dropdown States
@@ -94,23 +94,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // Keep the smallest page size aligned with the breakpoint.
-  // If the user selected 24/48, don't override it.
-  useEffect(() => {
-    if (compact) return;
-    const smallest = isWide ? 9 : 8;
-    if (itemsPerPage === 8 || itemsPerPage === 9) {
-      if (itemsPerPage !== smallest) {
-        setItemsPerPage(smallest);
-        setCurrentPage(1);
-      }
-    }
-  }, [isWide, compact, itemsPerPage]);
 
   const pageSizeOptions = useMemo(() => {
-    const smallest = isWide ? 9 : 8;
-    return [smallest, 24, 48];
-  }, [isWide]);
+    return [6, 12, 24, 48];
+  }, []);
 
   useEffect(() => {
     if (initialFilter) {
@@ -804,15 +791,15 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 {gridItems.length > 0 && (
                     <div>
                         {listItems.length > 0 && <h3 className="font-display text-xl mb-4 border-b border-gray-200 pb-2">Records & Media</h3>}
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8 min-h-[100px]">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6 min-h-[100px]">
                             {gridItems.map((product, index) => {
                                 const isSoldOut = product.inStock === false;
                                 
-                                // Responsive Hiding Logic (4 Mobile, 6 Tablet, 8 Desktop)
+                                // Responsive Hiding Logic (4 Mobile, 8 Tablet, 12 Desktop)
                                 let hiddenClass = '';
                                 if (limit && limit >= 8) {
-                                    if (index >= 4 && index < 6) hiddenClass = 'hidden md:block'; // Show on tablet/desktop only
-                                    if (index >= 6) hiddenClass = 'hidden lg:block'; // Show on desktop only
+                                    if (index >= 4 && index < 8) hiddenClass = 'hidden md:block'; // Show on tablet/desktop only
+                                    if (index >= 8) hiddenClass = 'hidden lg:block'; // Show on desktop only
                                 }
 
                                 return (

@@ -591,13 +591,14 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, quantity: number = 1) => {
     setCartItems(prev => {
         const existing = prev.find(item => item.product.id === product.id);
         if (existing) {
+            const newQuantity = existing.quantity + quantity;
             const updated = prev.map(item => 
                 item.product.id === product.id 
-                    ? { ...item, quantity: item.quantity + 1 }
+                    ? { ...item, quantity: newQuantity }
                     : item
             );
             // Track add to cart
@@ -605,7 +606,7 @@ function App() {
               id: product.id,
               name: product.title,
               price: product.salePrice || product.price,
-              quantity: existing.quantity + 1,
+              quantity: quantity,
               category: product.format || 'Unknown',
               brand: product.artist || 'Spiral Groove Records',
             });
@@ -616,13 +617,16 @@ function App() {
           id: product.id,
           name: product.title,
           price: product.salePrice || product.price,
-          quantity: 1,
+          quantity: quantity,
           category: product.format || 'Unknown',
           brand: product.artist || 'Spiral Groove Records',
         });
-        return [...prev, { product, quantity: 1 }];
+        return [...prev, { product, quantity: quantity }];
     });
-    setToast({ show: true, message: `"${product.title}" added to crate!` });
+    const message = quantity > 1 
+      ? `"${product.title}" (${quantity}) added to crate!`
+      : `"${product.title}" added to crate!`;
+    setToast({ show: true, message });
   };
 
   const removeFromCart = (productId: string) => {
