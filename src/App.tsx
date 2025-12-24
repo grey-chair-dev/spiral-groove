@@ -6,7 +6,6 @@ import { Hero } from './components/Hero';
 import { ProductGrid } from './components/ProductGrid';
 import { StaffPicks } from './components/StaffPicks';
 import { StorySection } from './components/StorySection';
-import { EventsSection } from './components/EventsSection';
 import { Footer } from './components/Footer';
 import { Chatbot } from './components/Chatbot';
 import { ProductModal } from './components/ProductModal';
@@ -826,7 +825,8 @@ function App() {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 overflow-x-hidden w-full ${effectiveViewMode === 'retro' ? 'bg-brand-cream selection:bg-brand-orange selection:text-white' : 'bg-white selection:bg-brand-black selection:text-white'}`}>
+    <div className={`min-h-screen transition-colors duration-500 overflow-x-hidden w-full ${effectiveViewMode === 'retro' ? 'bg-cover bg-center bg-no-repeat bg-black selection:bg-brand-orange selection:text-white' : 'bg-white selection:bg-brand-black selection:text-white'}`}
+         style={effectiveViewMode === 'retro' ? { backgroundImage: 'url(/bg-linen-black.avif)' } : undefined}>
       
       {/* Noise Texture for Retro Mode */}
       {effectiveViewMode === 'retro' && <div className="grain-overlay"></div>}
@@ -884,12 +884,6 @@ function App() {
                 <StorySection 
                     viewMode={effectiveViewMode} 
                     onNavigate={handleNavigate}
-                />
-                <EventsSection 
-                    events={EVENTS} 
-                    viewMode={effectiveViewMode}
-                    onNavigate={handleNavigate}
-                    onRSVP={handleRSVP}
                 />
             </>
         )}

@@ -11,7 +11,7 @@ interface StorySectionProps {
 
 export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate }) => {
   return (
-    <Section>
+    <Section viewMode={viewMode}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
         
         {/* Editorial Photo Grid */}
@@ -82,14 +82,14 @@ export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate
               The Story
             </span>
             <h2 className={`font-display text-5xl md:text-6xl leading-[0.9] mb-6
-               ${viewMode === 'retro' ? 'text-brand-black' : 'text-gray-900 tracking-tight'}
+               ${viewMode === 'retro' ? 'text-white' : 'text-gray-900 tracking-tight'}
             `}>
               Analog souls in a<br/> 
               <span className={viewMode === 'retro' ? 'text-brand-orange' : 'text-gray-400'}>digital world.</span>
             </h2>
           </div>
 
-          <div className="space-y-6 text-lg md:text-xl leading-relaxed font-medium text-brand-black/80">
+          <div className={`space-y-6 text-lg md:text-xl leading-relaxed font-medium ${viewMode === 'retro' ? 'text-gray-200' : 'text-brand-black/80'}`}>
             <p>
               The shop didn't start as Spiral Groove. It was originally Earworm Records. Around 2020, Adam and Trisha Mitzel took over the business and rebranded it with a renewed focus on community, vinyl culture, and in-person music experience.
             </p>
@@ -98,7 +98,7 @@ export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate
             </p>
           </div>
 
-          <div className="pt-4 flex items-center gap-8">
+          <div className="pt-4 flex items-center gap-8" style={{ color: 'var(--color-text)' }}>
              <button 
                 onClick={() => onNavigate('about')}
                 className={`group flex items-center gap-2 font-bold text-sm uppercase tracking-widest border-b-2 pb-1 transition-all

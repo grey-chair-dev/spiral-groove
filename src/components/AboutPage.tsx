@@ -12,7 +12,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
 
   return (
     <div className="animate-in fade-in duration-500">
-      <Section>
+      <Section viewMode={viewMode}>
         <div className="max-w-4xl mx-auto">
            <div className="text-center mb-16">
               <span className={`inline-block px-4 py-1.5 mb-6 text-xs font-bold uppercase tracking-[0.2em] 
@@ -20,10 +20,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
               `}>
                   Est. 2020
               </span>
-              <h1 className={`font-display text-5xl md:text-7xl mb-8 leading-[0.9] ${isRetro ? 'text-brand-black' : 'text-black'}`}>
+              <h1 className={`font-display text-5xl md:text-7xl mb-8 leading-[0.9] ${isRetro ? 'text-white' : 'text-black'}`}>
                  Keep It Spinning.
               </h1>
-              <p className="text-xl md:text-2xl font-medium text-gray-500 max-w-2xl mx-auto leading-relaxed">
+              <p className={`text-xl md:text-2xl font-medium max-w-2xl mx-auto leading-relaxed ${isRetro ? 'text-gray-300' : 'text-gray-500'}`}>
                  Spiral Groove is more than a shop. It's a community hub for music lovers in Milford, Ohio.
               </p>
            </div>
@@ -31,7 +31,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
            <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
               
               {/* Main Content */}
-              <div className="md:col-span-7 space-y-6 text-lg leading-relaxed text-gray-700 font-medium">
+              <div className={`md:col-span-7 space-y-6 text-lg leading-relaxed font-medium ${isRetro ? 'text-gray-200' : 'text-gray-700'}`}>
                  <p className="first-letter:text-5xl first-letter:font-display first-letter:float-left first-letter:mr-3 first-letter:mt-[-6px]">
                     The shop didn't start as <em>Spiral Groove</em>. It was originally a local record store called <strong>Earworm Records</strong>. Around <strong>2020, Adam and Trisha Mitzel took over the business and rebranded it as Spiral Groove Records</strong>. That change didn't just swap the sign outside – it repositioned the store with a renewed focus on community, vinyl culture, and in-person music experience.
                  </p>
@@ -58,8 +58,8 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
                  </div>
                  
                  <div className="text-center">
-                    <h4 className="font-display text-xl mb-2">Adam Mitzel</h4>
-                    <p className="text-sm text-gray-500 uppercase tracking-widest font-bold">Owner</p>
+                    <h4 className={`font-display text-xl mb-2 ${isRetro ? 'text-white' : ''}`}>Adam Mitzel</h4>
+                    <p className={`text-sm uppercase tracking-widest font-bold ${isRetro ? 'text-gray-400' : 'text-gray-500'}`}>Owner</p>
                  </div>
               </div>
 

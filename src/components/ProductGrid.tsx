@@ -454,20 +454,20 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const Wrapper = compact ? 'div' : Section;
 
   return (
-    <Wrapper>
+    <Wrapper viewMode={viewMode}>
       {/* Collection Header - Hide in compact mode */}
       {!compact && (
       <div className="flex flex-col gap-8 mb-8">
         <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-brand-black/10 pb-6">
           <div className="max-w-2xl">
             <h2 className={`font-display text-5xl md:text-6xl mb-4
-              ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[3px_3px_0px_#F35B04]' : 'text-gray-900 tracking-tight'}
-            `}>
+              ${viewMode === 'retro' ? 'drop-shadow-[3px_3px_0px_#F35B04]' : 'tracking-tight'}
+            `} style={{ color: 'var(--color-text)' }}>
                {getSectionTitle()}
             </h2>
             <p className={`font-medium text-lg leading-relaxed
-               ${viewMode === 'retro' ? 'text-brand-black/70 font-header' : 'text-gray-500'}
-            `}>
+               ${viewMode === 'retro' ? 'font-header' : ''}
+            `} style={{ color: 'var(--color-text)' }}>
               The latest drops, restocks, and essential listening. Verified clean.
             </p>
           </div>
@@ -492,7 +492,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         <div className="sticky top-[72px] z-[70] -mx-4 px-4 sm:mx-0 sm:px-0 pt-4 pb-4 overflow-y-visible overflow-x-clip">
           {/* Backdrop Blur Mask */}
           <div className={`absolute inset-0 pointer-events-none border-b shadow-sm transition-all
-            ${viewMode === 'retro' ? 'bg-brand-cream/95 border-brand-black/10' : 'bg-white/95 border-gray-100'}
+            ${viewMode === 'retro' ? 'border-brand-black/10' : 'border-gray-100'}
             backdrop-blur-md`} 
           />
           
@@ -729,9 +729,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                         onClick={() => { setItemsPerPage(num); setCurrentPage(1); }}
                         className={`px-1.5 py-1 rounded transition-colors
                             ${itemsPerPage === num 
-                                ? 'text-black underline decoration-2 underline-offset-4' 
+                                ? 'underline decoration-2 underline-offset-4' 
                                 : 'hover:text-gray-600'}
                         `}
+                        style={{ color: 'var(--color-text)' }}
                       >
                         {num}
                       </button>
@@ -888,12 +889,12 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                       {/* Product Info */}
                                     <div className="flex flex-col flex-grow">
                                       <div className={`mb-1 ${isSoldOut ? 'opacity-50' : ''}`}>
-                                         <h3 className={`font-bold text-sm sm:text-base leading-snug truncate
-                                            ${viewMode === 'retro' ? 'font-header text-brand-black group-hover:text-brand-orange transition-colors' : 'font-sans text-gray-900'}
+                                         <h3 className={`font-bold text-sm sm:text-base leading-snug truncate transition-colors text-gray-500 group-hover:text-brand-orange group-focus:text-brand-orange
+                                            ${viewMode === 'retro' ? 'font-header' : 'font-sans'}
                                          `}>
                                            {product.title}
                                          </h3>
-                                         <p className="text-brand-black/60 text-[10px] sm:text-xs font-bold uppercase tracking-wider">{product.artist}</p>
+                                         <p className="text-gray-500 group-hover:text-white group-focus:text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors">{product.artist}</p>
                                       </div>
                                       
                                       {/* Footer Price & Add */}
@@ -1005,12 +1006,12 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                       {/* Product Info - Horizontal Layout */}
                                       <div className="flex-1 flex flex-col justify-between min-w-0">
                                         <div className={`mb-3 ${isSoldOut ? 'opacity-50' : ''}`}>
-                                          <h3 className={`font-bold text-lg leading-snug mb-1
-                                            ${viewMode === 'retro' ? 'font-header text-brand-black group-hover:text-brand-orange transition-colors' : 'font-sans text-gray-900'}
+                                          <h3 className={`font-bold text-lg leading-snug mb-1 transition-colors text-gray-500 group-hover:text-brand-orange group-focus:text-brand-orange
+                                            ${viewMode === 'retro' ? 'font-header' : 'font-sans'}
                                           `}>
                                             {product.title}
                                           </h3>
-                                          <p className="text-brand-black/60 text-sm font-bold uppercase tracking-wider mb-2">{product.artist}</p>
+                                          <p className="text-gray-500 group-hover:text-white group-focus:text-white text-sm font-bold uppercase tracking-wider mb-2 transition-colors">{product.artist}</p>
                                           {product.tags && product.tags.length > 0 && (
                                             <div className="flex flex-wrap gap-2 mb-2">
                                               {product.tags.slice(0, 3).map((tag, idx) => (

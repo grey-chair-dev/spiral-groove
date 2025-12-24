@@ -23,18 +23,18 @@ export const SalesPage: React.FC<SalesPageProps> = ({ viewMode, onNavigate }) =>
           <p className="font-bold uppercase tracking-[0.3em] mt-2">Crate Diggers Special</p>
       </div>
 
-      <Section>
+      <Section viewMode={viewMode}>
         {/* Clearance Section */}
         <div className="mt-8 text-center">
-            <h2 className="font-display text-4xl mb-4">Clearance Inventory</h2>
-            <p className="text-gray-500 mb-8 max-w-xl mx-auto">
+            <h2 className={`font-display text-4xl mb-4 ${isRetro ? 'text-white' : ''}`}>Clearance Inventory</h2>
+            <p className={`mb-8 max-w-xl mx-auto ${isRetro ? 'text-gray-300' : 'text-gray-500'}`}>
                 Last chance to grab these titles before they're gone forever. All clearance items are final sale.
             </p>
             
             <div className={`p-12 border-2 border-dashed flex flex-col items-center justify-center mb-8
-                ${isRetro ? 'bg-brand-cream border-brand-black/20' : 'bg-gray-50 border-gray-200 rounded-xl'}
+                ${isRetro ? 'bg-white/10 border-white/30' : 'bg-gray-50 border-gray-200 rounded-xl'}
             `}>
-                <h3 className="font-bold text-xl mb-4">Ready to hunt?</h3>
+                <h3 className={`font-bold text-xl mb-4 ${isRetro ? 'text-white' : ''}`}>Ready to hunt?</h3>
                 <Button 
                     variant="primary"
                     onClick={() => onNavigate('catalog', 'Clearance')}

@@ -14,7 +14,7 @@ interface EventsSectionProps {
 
 export const EventsSection: React.FC<EventsSectionProps> = ({ events, viewMode, onNavigate, onRSVP }) => {
   return (
-    <Section className={viewMode === 'retro' ? "bg-brand-cream relative border-t-2 border-brand-black" : "bg-white"}>
+    <Section className={viewMode === 'retro' ? "relative border-t-2 border-brand-black" : "bg-white"} viewMode={viewMode}>
        {/* Background Grid Pattern for Retro */}
        {viewMode === 'retro' && (
          <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#0E0E0E 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
@@ -22,13 +22,18 @@ export const EventsSection: React.FC<EventsSectionProps> = ({ events, viewMode, 
 
        <div className="relative z-10 flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
         <div>
-          <h2 className={`font-display text-4xl md:text-5xl font-bold mb-3 inline-block ${viewMode === 'retro' ? 'text-brand-black' : 'text-gray-900'}`}>
+          <h2 className={`font-display text-4xl md:text-5xl font-bold mb-3 inline-block ${viewMode === 'retro' ? 'text-white' : 'text-gray-900'}`}>
             In The Shop
           </h2>
-          <p className="text-gray-600 font-medium text-lg max-w-md">Upcoming shows, signings, and listening parties directly from the floor.</p>
+          <p className={`font-medium text-lg max-w-md ${viewMode === 'retro' ? 'text-gray-300' : 'text-gray-600'}`}>Upcoming shows, signings, and listening parties directly from the floor.</p>
         </div>
         <div className="hidden md:block">
-           <Button variant="link" onClick={() => onNavigate('events')}>
+           <Button 
+             variant="link" 
+             onClick={() => onNavigate('events')} 
+             className={viewMode === 'retro' ? 'text-white' : ''}
+             style={viewMode === 'retro' ? { color: 'rgba(255, 255, 255, 1)' } : undefined}
+           >
               See All Events <ArrowRight size={16} className="ml-2" />
            </Button>
         </div>

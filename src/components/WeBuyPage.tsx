@@ -51,12 +51,14 @@ export const WeBuyPage: React.FC<WeBuyPageProps> = ({ viewMode, onNavigate }) =>
              </div>
              
              <h1 className={`font-display text-5xl md:text-7xl lg:text-8xl mb-8 leading-[0.9]
-                ${isRetro ? 'text-brand-black drop-shadow-[3px_3px_0px_#FFF]' : 'text-black'}
+                ${isRetro ? 'text-white drop-shadow-[3px_3px_0px_#F35B04]' : 'text-black'}
              `}>
                 We Buy Used Vinyl.
              </h1>
              
-             <p className="text-xl md:text-2xl font-medium text-gray-700 max-w-2xl mx-auto leading-relaxed mb-10">
+             <p className={`text-xl md:text-2xl font-medium max-w-2xl mx-auto leading-relaxed mb-10
+                ${isRetro ? 'text-black' : 'text-gray-700'}
+             `}>
                 Fair prices. Honest grading. Instant cash or store credit.
              </p>
 
@@ -92,7 +94,7 @@ export const WeBuyPage: React.FC<WeBuyPageProps> = ({ viewMode, onNavigate }) =>
                      <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 text-3xl font-display
                         ${isRetro ? 'bg-brand-cream border-2 border-brand-black shadow-retro text-brand-black' : 'bg-gray-100 text-black'}
                      `}>1</div>
-                     <h3 className="text-xl font-bold mb-3">Bring Them In</h3>
+                     <h3 className="text-xl font-bold mb-3" style={{ color: 'rgba(107, 114, 128, 1)' }}>Bring Them In</h3>
                      <p className="text-gray-600 leading-relaxed">
                         Drop by the shop any day between 12pm - 6pm. No appointment needed for collections under 200 records.
                      </p>
@@ -101,7 +103,7 @@ export const WeBuyPage: React.FC<WeBuyPageProps> = ({ viewMode, onNavigate }) =>
                      <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 text-3xl font-display
                         ${isRetro ? 'bg-brand-teal border-2 border-brand-black shadow-retro text-white' : 'bg-gray-100 text-black'}
                      `}>2</div>
-                     <h3 className="text-xl font-bold mb-3">We Appraise</h3>
+                     <h3 className="text-xl font-bold mb-3" style={{ color: 'rgba(107, 114, 128, 1)' }}>We Appraise</h3>
                      <p className="text-gray-600 leading-relaxed">
                         We check condition and pressings while you browse. We adhere to strict Goldmine grading standards.
                      </p>
@@ -110,7 +112,7 @@ export const WeBuyPage: React.FC<WeBuyPageProps> = ({ viewMode, onNavigate }) =>
                      <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 text-3xl font-display
                         ${isRetro ? 'bg-brand-orange border-2 border-brand-black shadow-retro text-brand-black' : 'bg-gray-100 text-black'}
                      `}>3</div>
-                     <h3 className="text-xl font-bold mb-3">Get Paid</h3>
+                     <h3 className="text-xl font-bold mb-3" style={{ color: 'rgba(107, 114, 128, 1)' }}>Get Paid</h3>
                      <p className="text-gray-600 leading-relaxed">
                         Take cash on the spot, or get <strong>30% more</strong> value if you choose store credit.
                      </p>

@@ -137,7 +137,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
          </div>
       </div>
 
-      <Section className="pb-8 md:pb-16 bg-brand-cream/30">
+      <Section className="pb-8 md:pb-16" viewMode={viewMode}>
         <div className={`grid grid-cols-1 ${isMediaProduct ? 'lg:grid-cols-12' : 'lg:grid-cols-2'} gap-6 lg:gap-12`}>
            
            {/* Left Column: Visuals */}
@@ -182,7 +182,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
            </div>
 
            {/* Right Column: Info */}
-           <div className={`${isMediaProduct ? 'lg:col-span-4' : 'lg:col-span-1'} flex flex-col h-full bg-brand-cream/50 lg:bg-brand-cream p-6 lg:p-8`}>
+           <div className={`${isMediaProduct ? 'lg:col-span-4' : 'lg:col-span-1'} flex flex-col h-full bg-black/50 lg:bg-black/30 p-6 lg:p-8`}>
               
               {/* Product Tags */}
               <div className="mb-6">

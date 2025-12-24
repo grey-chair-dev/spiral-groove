@@ -12,7 +12,7 @@ interface StaffPicksProps {
 
 export const StaffPicks: React.FC<StaffPicksProps> = ({ picks, viewMode, onProductClick }) => {
   return (
-    <Section className={viewMode === 'retro' ? "bg-brand-black text-brand-cream border-y-4 border-brand-orange" : "bg-brand-cream/50 text-brand-black"}>
+    <Section className={viewMode === 'retro' ? "bg-brand-black text-brand-cream border-y-4 border-brand-orange" : "bg-brand-cream/50 text-brand-black"} viewMode={viewMode}>
       <div className="flex flex-col items-center text-center mb-16">
         <span className="text-brand-mustard font-bold uppercase tracking-widest text-xs mb-3">Curated By Humans</span>
         <h2 className="font-display text-4xl md:text-6xl font-bold">Staff Rotations</h2>

@@ -61,7 +61,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
          </div>
       </div>
 
-      <Section className={isRetro ? "bg-brand-cream" : "bg-white"}>
+      <Section className={isRetro ? "" : "bg-white"} viewMode={viewMode}>
         
         {/* Upcoming Events List */}
         <div className="mb-24">
@@ -71,7 +71,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
                 `}>
                     Mark Your Calendar
                 </span>
-                <h2 className={`font-display text-4xl md:text-5xl mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Upcoming Happenings</h2>
+                <h2 className={`font-display text-4xl md:text-5xl mb-4 ${isRetro ? 'text-white' : 'text-gray-900'}`}>Upcoming Happenings</h2>
             </div>
 
             <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
@@ -104,8 +104,8 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
                             </div>
                         ) : (
                             <div className="flex md:flex-col items-center justify-center md:w-32 flex-shrink-0 gap-2 md:gap-0 p-4 border-2 border-dashed bg-gray-50 border-gray-300 rounded-lg">
-                                <span className="text-xs font-bold uppercase tracking-widest opacity-60">{event.date.split(' ')[0]}</span>
-                                <span className="text-3xl font-display">{event.date.split(' ')[1]}</span>
+                                <span className={`text-xs font-bold uppercase tracking-widest ${isRetro ? 'text-white/70' : 'opacity-60'}`}>{event.date.split(' ')[0]}</span>
+                                <span className={`text-3xl font-display ${isRetro ? 'text-white' : ''}`}>{event.date.split(' ')[1]}</span>
                             </div>
                         )}
 
@@ -126,11 +126,11 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
                                     `}>
                                         {event.type}
                                     </span>
-                                    <h3 className={`font-display text-2xl md:text-3xl leading-none mb-2 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>{event.title}</h3>
-                                    <p className={`font-medium ${isRetro ? 'text-gray-700' : 'text-gray-600'}`}>{event.description}</p>
+                                    <h3 className={`font-display text-2xl md:text-3xl leading-none mb-2 ${isRetro ? 'text-white' : 'text-gray-900'}`}>{event.title}</h3>
+                                    <p className={`font-medium ${isRetro ? 'text-gray-300' : 'text-gray-600'}`}>{event.description}</p>
                                 </div>
-                                <div className={`mt-4 pt-4 flex items-center justify-between ${isRetro ? 'border-t-2 border-brand-black/20' : 'border-t border-gray-100'}`}>
-                                    <div className={`flex items-center gap-4 text-xs font-bold uppercase tracking-wider ${isRetro ? 'text-brand-black/70' : 'text-gray-500'}`}>
+                                <div className={`mt-4 pt-4 flex items-center justify-between ${isRetro ? 'border-t-2 border-white/20' : 'border-t border-gray-100'}`}>
+                                    <div className={`flex items-center gap-4 text-xs font-bold uppercase tracking-wider ${isRetro ? 'text-gray-400' : 'text-gray-500'}`}>
                                         <span className="flex items-center gap-1"><Clock size={14} /> {event.time}</span>
                                         <span className="flex items-center gap-1"><MapPin size={14} /> Spiral Groove</span>
                                     </div>
@@ -156,8 +156,8 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
           
           {/* Inquiry Form */}
           <div>
-             <h2 className={`font-display text-4xl mb-6 ${isRetro ? 'text-brand-black' : 'text-black'}`}>Book The Space</h2>
-             <p className="mb-8 text-lg text-gray-600">
+             <h2 className={`font-display text-4xl mb-6 ${isRetro ? 'text-white' : 'text-black'}`}>Book The Space</h2>
+             <p className={`mb-8 text-lg ${isRetro ? 'text-gray-300' : 'text-gray-600'}`}>
                 Want to host a release party, community workshop, or intimate gig? 
                 Our space is equipped with a vintage Klipschorn sound system and modular staging.
              </p>
@@ -220,25 +220,25 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
 
           {/* Past Events / Credibility */}
           <div>
-             <h2 className={`font-display text-3xl mb-8 ${isRetro ? 'text-brand-black' : 'text-black'}`}>Archive</h2>
+             <h2 className={`font-display text-3xl mb-8 ${isRetro ? 'text-white' : 'text-black'}`}>Archive</h2>
              <div className="space-y-6">
                 {PAST_EVENTS.map(event => (
                     <div key={event.id} className="flex gap-4 group opacity-70 hover:opacity-100 transition-opacity">
-                        <div className={`w-24 h-24 flex-shrink-0 overflow-hidden ${isRetro ? 'border-2 border-brand-black grayscale' : 'rounded-lg'}`}>
+                        <div className={`w-24 h-24 flex-shrink-0 overflow-hidden ${isRetro ? 'border-2 border-white/30 grayscale' : 'rounded-lg'}`}>
                             <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1">
-                            <span className="text-xs font-bold uppercase tracking-widest text-gray-500">{event.date}</span>
-                            <h3 className="font-bold text-xl mb-1">{event.title}</h3>
-                            <p className="text-sm text-gray-600 leading-snug">{event.description}</p>
+                            <span className={`text-xs font-bold uppercase tracking-widest ${isRetro ? 'text-gray-400' : 'text-gray-500'}`}>{event.date}</span>
+                            <h3 className={`font-bold text-xl mb-1 ${isRetro ? 'text-white' : ''}`}>{event.title}</h3>
+                            <p className={`text-sm leading-snug ${isRetro ? 'text-gray-300' : 'text-gray-600'}`}>{event.description}</p>
                         </div>
                     </div>
                 ))}
              </div>
              
              <div className={`mt-12 p-6 border-l-4 ${isRetro ? 'bg-brand-mustard/20 border-brand-mustard' : 'bg-gray-50 border-gray-300'}`}>
-                <h4 className="font-bold uppercase tracking-widest text-xs mb-2">Tech Specs</h4>
-                <ul className="text-sm space-y-2 font-medium text-gray-700">
+                <h4 className={`font-bold uppercase tracking-widest text-xs mb-2 ${isRetro ? 'text-white' : ''}`}>Tech Specs</h4>
+                <ul className={`text-sm space-y-2 font-medium ${isRetro ? 'text-gray-300' : 'text-gray-700'}`}>
                     <li>• PA: 2x Klipschorn AK6 Heritage</li>
                     <li>• Mixer: Allen & Heath Xone:96</li>
                     <li>• Mics: 2x Shure SM58, 1x SM57</li>

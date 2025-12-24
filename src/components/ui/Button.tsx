@@ -22,7 +22,7 @@ export const Button: React.FC<ButtonProps> = ({
     secondary: "bg-brand-mustard text-brand-black border-2 border-brand-black shadow-retro hover:shadow-retro-hover hover:bg-brand-pink rounded-full",
     outline: "bg-transparent border-2 border-brand-black text-brand-black hover:bg-brand-black hover:text-brand-cream rounded-full",
     ghost: "bg-transparent text-brand-black hover:bg-brand-black/5 rounded-full",
-    link: "bg-transparent text-brand-black underline-offset-4 hover:text-brand-orange p-0 border-0 shadow-none normal-case tracking-normal"
+    link: "bg-transparent text-white underline-offset-4 hover:text-brand-orange p-0 border-0 shadow-none normal-case tracking-normal"
   };
 
   const sizes = {

@@ -52,3 +52,14 @@ body {
   min-height: 100vh;
 }
 
+/* Alternating neon section dividers for alt2 theme - only between sections, not on first */
+section.section-alt2:not(:first-child):nth-child(odd) {
+  border-top-color: #00C2CB !important;
+  box-shadow: 0 -2px 0 0 #00C2CB, 0 0 15px rgba(0, 194, 203, 0.4) !important;
+}
+
+section.section-alt2:not(:first-child):nth-child(even) {
+  border-top-color: #FF2E63 !important;
+  box-shadow: 0 -2px 0 0 #FF2E63, 0 0 15px rgba(255, 46, 99, 0.4) !important;
+}
+
