@@ -6,7 +6,6 @@ import { ProductCategory, RecordFormat } from '../types/productEnums';
 
 interface HeaderProps {
   viewMode: ViewMode;
-  onToggleView: () => void;
   onCartClick: () => void;
   user: User | null;
   onLoginClick: () => void;
@@ -133,7 +132,6 @@ const NAV_ITEMS: NavItem[] = [
 
 export const Header: React.FC<HeaderProps> = ({ 
   viewMode, 
-  onToggleView, 
   onCartClick, 
   user, 
   onLoginClick, 
@@ -401,16 +399,6 @@ export const Header: React.FC<HeaderProps> = ({
 
                   {/* Right Actions */}
                   <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0">
-                     <button 
-                        onClick={onToggleView}
-                        className={`hidden xl:block text-[10px] font-bold uppercase tracking-wider px-4 py-1.5 rounded-full border
-                           ${isRetro 
-                             ? 'bg-brand-teal text-white border-brand-black shadow-pop-sm hover:-translate-y-0.5 transition-transform' 
-                             : 'bg-white text-gray-600 border-gray-200 hover:border-brand-orange hover:text-brand-orange'}
-                        `}
-                     >
-                        {isRetro ? 'Electric Mode' : 'Modern Mode'}
-                     </button>
 
                      {/* Mobile Search Toggle - HIDDEN since it's in the drawer now */}
                      {/* 
@@ -857,21 +845,6 @@ export const Header: React.FC<HeaderProps> = ({
                     </li>
                   ))}
                 </ul>
-             </div>
-
-             {/* Footer Actions */}
-             <div className={`p-6 border-t ${isRetro ? 'border-brand-black/10 bg-white/50' : 'border-gray-100 bg-gray-50'}`}>
-                <button 
-                  onClick={onToggleView} 
-                  className={`w-full flex items-center justify-between px-4 py-3 border rounded-lg font-bold uppercase text-xs transition-all
-                     ${isRetro 
-                       ? 'border-2 border-brand-black bg-transparent text-brand-black hover:bg-brand-black hover:text-white' 
-                       : 'border-gray-200 bg-white text-gray-900 shadow-sm hover:border-gray-300'}
-                  `}
-                >
-                  <span>Switch Theme</span>
-                  <span className={`w-3 h-3 rounded-full ${isRetro ? 'bg-brand-orange' : 'bg-black'}`}></span>
-                </button>
              </div>
           </div>
         </div>

@@ -568,10 +568,6 @@ function App() {
     loadProducts();
   }, []);
 
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === 'retro' ? 'modern' : 'retro');
-  };
-
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setCurrentPage('product');
@@ -837,7 +833,6 @@ function App() {
 
       <Header 
         viewMode={viewMode} 
-        onToggleView={toggleViewMode} 
         onCartClick={() => handleNavigate('cart')}
         user={user}
         onLoginClick={() => setIsAuthModalOpen(true)}
