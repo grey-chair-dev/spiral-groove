@@ -269,7 +269,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <div className={`w-full relative z-[120] transition-colors duration-300 ${isRetro ? 'bg-brand-cream' : 'bg-white'}`}>
+      <div className={`w-full relative z-[120] transition-colors duration-300 ${isRetro ? 'bg-black' : 'bg-white'}`}>
         
         {/* 1. Announcement Bar (Scrolls Away) */}
         <div className="w-full py-2.5 bg-brand-black text-white text-center text-[11px] font-bold uppercase tracking-[0.15em] relative z-[60]">
@@ -278,7 +278,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Sticky Wrapper */}
         <div className={`sticky top-0 z-[120] w-full transition-all duration-300
-            ${isRetro ? 'bg-brand-cream' : 'bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90'}
+            ${isRetro ? 'bg-black' : 'bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90'}
             ${scrolled 
                 ? (isRetro ? 'border-b-2 border-brand-black shadow-retro-sm' : 'shadow-sm border-b border-gray-100') 
                 : ''}
@@ -287,7 +287,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* 2. Main Header Container */}
             <div className={`w-full transition-all duration-300
                 ${!scrolled ? 'border-b' : ''}
-                ${isRetro ? 'border-brand-black/10' : 'border-gray-100'}
+                ${isRetro ? 'border-white/10' : 'border-gray-100'}
             `}>
               <div className={`max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 transition-all duration-300
                   ${scrolled ? 'py-2.5' : 'py-3 md:py-5'}
@@ -296,7 +296,7 @@ export const Header: React.FC<HeaderProps> = ({
                   
                   {/* Mobile Menu Toggle */}
                   <button className="md:hidden p-2 -ml-2" onClick={() => setIsMobileMenuOpen(true)}>
-                    <Menu size={24} className={isRetro ? 'text-brand-black' : 'text-black'} />
+                    <Menu size={24} className={isRetro ? 'text-white' : 'text-black'} />
                   </button>
 
                   {/* Logo */}
@@ -307,7 +307,7 @@ export const Header: React.FC<HeaderProps> = ({
                           ${scrolled ? 'scale-[0.85]' : 'scale-100'}
                        `}>
                           <img 
-                            src="/logo-black.png" 
+                            src="/logo-white.png" 
                             alt="Spiral Groove Records" 
                             className={`h-6 sm:h-8 md:h-10 w-auto transform group-hover:scale-[1.02] transition-transform object-contain
                               ${isRetro ? '' : ''}
@@ -336,16 +336,20 @@ export const Header: React.FC<HeaderProps> = ({
                         className={`w-full pl-5 pr-12 text-sm font-medium transition-all focus:outline-none
                           ${scrolled ? 'h-10' : 'h-12'}
                           ${isRetro 
-                            ? 'bg-brand-cream border-2 border-brand-black text-brand-black placeholder-brand-black/40 shadow-pop-sm focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px]' 
+                            ? 'bg-white text-brand-black placeholder-brand-black/40 shadow-pop-sm focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px]' 
                             : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-brand-orange focus:ring-1 focus:ring-brand-orange rounded-full'}
                         `}
+                        style={isRetro ? { 
+                          border: '2px solid #000000',
+                          boxShadow: '0 0 0 2px #00C2CB, 0 0 10px rgba(0, 194, 203, 0.5)'
+                        } : undefined}
                       />
                       <button 
                          type="submit"
                          className={`absolute right-1 top-1 w-10 flex items-center justify-center transition-colors
                          ${scrolled ? 'h-8' : 'h-10'}
                          ${isRetro 
-                           ? 'text-brand-black hover:text-brand-orange' 
+                           ? 'text-[#00C2CB] hover:text-[#00E5F0]' 
                            : 'text-gray-400 hover:text-brand-black rounded-full'}
                       `}>
                         <Search size={scrolled ? 18 : 20} strokeWidth={2.5} />
@@ -353,7 +357,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                       {/* Desktop Search Dropdown */}
                       {showSearchDropdown && searchResults.length > 0 && (
-                        <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl overflow-hidden z-50
+                        <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl overflow-hidden z-[130]
                             ${isRetro ? 'bg-white border-2 border-brand-black shadow-retro' : 'bg-white border border-gray-200 shadow-xl'}
                         `}>
                             <ul className="max-h-[300px] overflow-y-auto">
@@ -420,7 +424,7 @@ export const Header: React.FC<HeaderProps> = ({
                         {user ? (
                            <>
                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 overflow-hidden transition-all
-                                ${isRetro ? 'border-brand-black shadow-pop-sm' : 'border-gray-200 shadow-sm'}
+                                ${isRetro ? 'border-brand-black shadow-pop-sm hover:border-[#00C2CB]' : 'border-gray-200 shadow-sm'}
                              `}>
                                 <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                              </div>
@@ -465,16 +469,16 @@ export const Header: React.FC<HeaderProps> = ({
                            </>
                         ) : (
                            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-colors
-                              ${isRetro ? 'border-transparent hover:bg-black/5' : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'}
+                              ${isRetro ? 'border-white/20 hover:bg-white/10 hover:border-[#00C2CB]' : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'}
                            `}>
-                             <UserIcon size={20} className={isRetro ? 'text-brand-black' : 'text-current'} />
+                             <UserIcon size={20} className={`transition-colors ${isRetro ? 'text-white hover:text-[#00C2CB]' : 'text-current'}`} />
                            </div>
                         )}
                      </div>
 
                      <button onClick={onCartClick} className="flex items-center gap-3 group cursor-pointer relative md:mr-0">
                         <div className="relative p-2">
-                           <ShoppingCart size={24} strokeWidth={2} className={`transition-transform group-hover:scale-110 ${isRetro ? 'text-brand-black' : 'text-black'} `} />
+                           <ShoppingCart size={24} strokeWidth={2} className={`transition-all group-hover:scale-110 ${isRetro ? 'text-white group-hover:text-[#00C2CB]' : 'text-black'} `} />
                            {cartCount > 0 && (
                              <span className={`absolute top-0 right-0 h-4 w-4 flex items-center justify-center text-[9px] font-bold rounded-full text-white border border-white
                                 ${isRetro ? 'bg-brand-orange' : 'bg-brand-red'}
@@ -543,7 +547,7 @@ export const Header: React.FC<HeaderProps> = ({
                                     : 'border-transparent'
                                   }
                                   ${item.highlight && !isActive ? 'text-brand-red' : ''}
-                                  ${!isActive && !item.highlight ? (isRetro ? 'text-brand-black hover:text-brand-orange' : 'text-gray-600 hover:text-brand-orange hover:border-brand-orange/50') : ''}
+                                  ${!isActive && !item.highlight ? (isRetro ? 'text-white hover:text-brand-orange' : 'text-gray-600 hover:text-brand-orange hover:border-brand-orange/50') : ''}
                                   ${activeDropdown === item.label && !isActive ? (isRetro ? 'border-brand-orange text-brand-orange' : 'border-brand-orange text-brand-orange') : ''}
                                `}
                              >
@@ -656,7 +660,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button 
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`p-2 rounded-full transition-colors
-                    ${isRetro ? 'hover:bg-brand-black/5 text-brand-black' : 'hover:bg-gray-100 text-black'}
+                    ${isRetro ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-black'}
                   `}
                 >
                   <X size={24} />
@@ -681,7 +685,7 @@ export const Header: React.FC<HeaderProps> = ({
                         type="submit"
                         className={`absolute right-1 top-1 w-8 h-8 flex items-center justify-center transition-colors
                         ${isRetro 
-                            ? 'text-brand-black hover:text-brand-orange' 
+                            ? 'text-white hover:text-brand-orange' 
                             : 'text-gray-400 hover:text-black'}
                     `}>
                         <Search size={18} strokeWidth={2.5} />
@@ -689,7 +693,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                     {/* Mobile Search Dropdown */}
                     {showSearchDropdown && searchResults.length > 0 && (
-                        <div className={`mt-2 rounded-xl overflow-hidden
+                        <div className={`mt-2 rounded-xl overflow-hidden z-[130]
                             ${isRetro ? 'bg-white border-2 border-brand-black shadow-none' : 'bg-white border border-gray-200 shadow-lg'}
                         `}>
                             <ul className="max-h-[200px] overflow-y-auto">
@@ -743,7 +747,7 @@ export const Header: React.FC<HeaderProps> = ({
                           <button 
                             onClick={() => toggleMobileGroup(item.label)}
                             className={`flex items-center justify-between w-full text-left font-bold text-lg uppercase tracking-wide
-                               ${isRetro ? 'text-brand-black' : 'text-gray-900'}
+                               ${isRetro ? 'text-white' : 'text-gray-900'}
                             `}
                           >
                             {item.label}
