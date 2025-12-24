@@ -17,6 +17,8 @@ interface HeaderProps {
   onProductClick?: (product: Product) => void;
   cartCount?: number;
   products?: Product[];
+  currentPage?: Page;
+  currentFilter?: string;
 }
 
 interface NavColumn {
@@ -141,7 +143,9 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigate,
   onProductClick,
   cartCount = 0,
-  products = []
+  products = [],
+  currentPage,
+  currentFilter
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -514,7 +518,28 @@ export const Header: React.FC<HeaderProps> = ({
                <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8">
                   <nav className={`flex items-center justify-center transition-all duration-300 ${scrolled ? 'h-10' : 'h-14'}`}>
                      <ul className="flex items-center gap-8 h-full">
-                        {NAV_ITEMS.map((item) => (
+                        {NAV_ITEMS.map((item) => {
+                          // For catalog page, check both page and filter to determine active state
+                          let isActive = false;
+                          if (currentPage && item.page === currentPage) {
+                            if (item.page === 'catalog') {
+                              // For catalog items, check if the filter matches
+                              if (item.filter === 'New Arrivals') {
+                                // "New Releases" is only active when filter is "New Arrivals"
+                                isActive = currentFilter === 'New Arrivals';
+                              } else if (item.filter === 'All') {
+                                // "Shop" is active for any catalog filter except "New Arrivals"
+                                isActive = currentFilter !== 'New Arrivals' && currentFilter !== undefined;
+                              } else {
+                                // Other catalog items match by filter
+                                isActive = currentFilter === item.filter;
+                              }
+                            } else {
+                              // For non-catalog pages, just check the page
+                              isActive = true;
+                            }
+                          }
+                          return (
                           <li 
                             key={item.label} 
                             className="h-full flex items-center"
@@ -524,9 +549,14 @@ export const Header: React.FC<HeaderProps> = ({
                              <a 
                                href={hrefFor(item.page, item.filter)}
                                onClick={(e) => handleNavClick(e, item.page, item.filter)}
-                               className={`flex items-center gap-1 h-full text-[13px] font-bold uppercase tracking-widest border-b-[3px] border-transparent transition-colors px-1
-                                  ${item.highlight ? 'text-brand-red' : (isRetro ? 'text-brand-black hover:text-brand-orange' : 'text-gray-600 hover:text-brand-orange hover:border-brand-orange/50')}
-                                  ${activeDropdown === item.label ? (isRetro ? 'border-brand-orange text-brand-orange' : 'border-brand-orange text-brand-orange') : ''}
+                               className={`flex items-center gap-1 h-full text-[13px] font-bold uppercase tracking-widest border-b-[3px] transition-colors px-1
+                                  ${isActive 
+                                    ? (isRetro ? 'border-brand-orange text-brand-orange' : 'border-brand-orange text-brand-orange')
+                                    : 'border-transparent'
+                                  }
+                                  ${item.highlight && !isActive ? 'text-brand-red' : ''}
+                                  ${!isActive && !item.highlight ? (isRetro ? 'text-brand-black hover:text-brand-orange' : 'text-gray-600 hover:text-brand-orange hover:border-brand-orange/50') : ''}
+                                  ${activeDropdown === item.label && !isActive ? (isRetro ? 'border-brand-orange text-brand-orange' : 'border-brand-orange text-brand-orange') : ''}
                                `}
                              >
                                 {item.label}
@@ -604,7 +634,8 @@ export const Header: React.FC<HeaderProps> = ({
                                </div>
                              )}
                           </li>
-                        ))}
+                          );
+                        })}
                      </ul>
                   </nav>
                </div>
@@ -791,9 +822,32 @@ export const Header: React.FC<HeaderProps> = ({
                             href={hrefFor(item.page, item.filter)} 
                             onClick={(e) => handleNavClick(e, item.page, item.filter)}
                             className={`block font-bold text-lg uppercase tracking-wide 
-                            ${item.highlight 
-                                ? 'text-brand-red' 
-                                : (isRetro ? 'text-brand-black' : 'text-gray-900')
+                            ${(() => {
+                              // For catalog page, check both page and filter to determine active state
+                              if (currentPage && item.page === currentPage) {
+                                if (item.page === 'catalog') {
+                                  // For catalog items, check if the filter matches
+                                  if (item.filter === 'New Arrivals') {
+                                    // "New Releases" is only active when filter is "New Arrivals"
+                                    return currentFilter === 'New Arrivals';
+                                  } else if (item.filter === 'All') {
+                                    // "Shop" is active for any catalog filter except "New Arrivals"
+                                    return currentFilter !== 'New Arrivals' && currentFilter !== undefined;
+                                  } else {
+                                    // Other catalog items match by filter
+                                    return currentFilter === item.filter;
+                                  }
+                                } else {
+                                  // For non-catalog pages, just check the page
+                                  return true;
+                                }
+                              }
+                              return false;
+                            })()
+                                ? (isRetro ? 'text-brand-orange' : 'text-brand-orange')
+                                : item.highlight 
+                                    ? 'text-brand-red' 
+                                    : (isRetro ? 'text-brand-black' : 'text-gray-900')
                             }
                             `}
                         >

@@ -5,7 +5,7 @@ import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { ProductGrid } from './ProductGrid';
 import { ArrowLeft, Disc, CheckCircle2, Truck, ShieldCheck, Share2, Heart } from 'lucide-react';
-import { CategoryGroups } from '../types/productEnums';
+import { CategoryGroups, isProductStyleCategory } from '../types/productEnums';
 import { getDefaultProductImage } from '../utils/defaultProductImage';
 
 interface ProductDetailsPageProps {
@@ -35,29 +35,45 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
   const isRetro = viewMode === 'retro';
   const isSoldOut = product.inStock === false;
 
-  // Determine if this is a vinyl/record product
-  // IMPORTANT: Check the actual category from tags first, as format/condition have defaults
-  const isVinyl = useMemo(() => {
-    // Get the actual category from tags (this is the original category from the database)
-    // This is the most reliable source since it comes directly from the API
-    const category = product.tags?.[0]?.toLowerCase() || '';
-    
-    // First, explicitly exclude non-vinyl categories (these should NEVER be vinyl)
-    const nonVinylCategories = [
-      'cleaner', 'equipment', 'adapter', 'crate', 'sleeve', 'slip mat', 'spin clean',
-      'poster', 'pin', 'sticker', 'button', 'patch', 't-shirt', 't-shirts', 'hat', 'hats', 'tote bag',
-      'wallet', 'wallets', 'coffee mug', 'coaster', 'coasters', 'candle', 'candles', 
-      'incense', 'essential oil', 'essential oils', 'lava lamp', 'lava lamps', 'bowl',
-      'book', 'puzzle', 'videogame', 'videogames', 'drink', 'drinks', 'food',
-      'action figure', 'action figures', 'funko pop', 'animal', 'animals', 'charm', 'charms',
-      'jewelry', 'wristband', 'guitar pick', 'guitar picks', 'boombox',
-      'miscellaneous', 'uncategorized', 'cd', 'cassette', 'cassettes', 'dvd', 'dvds', 'vhs'
-    ];
-    
-    // If category matches a non-vinyl category, it's definitely not vinyl
-    if (nonVinylCategories.some(nvc => category.includes(nvc))) {
-      return false;
+  // Determine if this is a media product (vinyl/CD/cassette) vs merchandise/apparel
+  const isMediaProduct = useMemo(() => {
+    // Check tags first (most reliable)
+    if (product.tags && product.tags.length > 0) {
+      // If any tag is a product-style category (vinyl, CD, genres), it's media
+      if (product.tags.some(tag => isProductStyleCategory(tag))) {
+        return true;
+      }
+      // If any tag is a non-product-style category (apparel, equipment, etc.), it's NOT media
+      const nonMediaCategories = [
+        'cleaner', 'equipment', 'adapter', 'crate', 'sleeve', 'slip mat', 'spin clean',
+        'poster', 'pin', 'sticker', 'button', 'patch', 't-shirt', 't-shirts', 'hat', 'hats', 'tote bag',
+        'wallet', 'wallets', 'coffee mug', 'coaster', 'coasters', 'candle', 'candles', 
+        'incense', 'essential oil', 'essential oils', 'lava lamp', 'lava lamps', 'bowl',
+        'book', 'puzzle', 'videogame', 'videogames', 'drink', 'drinks', 'food',
+        'action figure', 'action figures', 'funko pop', 'animal', 'animals', 'charm', 'charms',
+        'jewelry', 'wristband', 'guitar pick', 'guitar picks', 'boombox',
+        'miscellaneous', 'uncategorized'
+      ];
+      const category = product.tags[0]?.toLowerCase() || '';
+      if (nonMediaCategories.some(nmc => category.includes(nmc))) {
+        return false;
+      }
     }
+    
+    // Check format for media types
+    if (['LP', '12"', '7"', '10"', 'CD', 'Cassette', 'Reel to Reel', 'Vinyl', '2xLP', 'Box Set'].includes(product.format)) {
+      return true;
+    }
+    
+    // Default: if we can't determine, assume it's media (safer for existing products)
+    return true;
+  }, [product]);
+
+  // Determine if this is specifically vinyl (for vinyl-specific features like tracklist)
+  const isVinyl = useMemo(() => {
+    if (!isMediaProduct) return false;
+    
+    const category = product.tags?.[0]?.toLowerCase() || '';
     
     // Check for explicit vinyl categories
     const vinylCategories = [
@@ -76,8 +92,13 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
       return true;
     }
     
+    // If format is vinyl-related
+    if (['LP', '12"', '7"', '10"', 'Vinyl', '2xLP'].includes(product.format)) {
+      return true;
+    }
+    
     return false;
-  }, [product]);
+  }, [product, isMediaProduct]);
 
 
   // Mock Tracklist based on Artist (Generic for demo) - only for vinyl
@@ -117,23 +138,26 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
       </div>
 
       <Section className="pb-8 md:pb-16 bg-brand-cream/30">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12">
+        <div className={`grid grid-cols-1 ${isMediaProduct ? 'lg:grid-cols-12' : 'lg:grid-cols-2'} gap-6 lg:gap-12`}>
            
-           {/* Left Column: Visuals (65% - Span 8) */}
-           <div className="lg:col-span-8">
-              <div className="relative aspect-square w-full max-w-2xl mx-auto lg:mx-0 group select-none">
+           {/* Left Column: Visuals */}
+           <div className={isMediaProduct ? 'lg:col-span-8' : 'lg:col-span-1'}>
+              <div className={`relative ${isMediaProduct ? 'aspect-square' : 'aspect-square max-w-lg mx-auto lg:mx-0'} w-full group select-none`}>
                  
-                 {/* Jacket / Cover */}
+                 {/* Product Image */}
                  <div className={`relative w-full h-full z-20 overflow-hidden bg-gray-100
                     ${isRetro 
-                       ? 'border-2 border-brand-black shadow-retro bg-white' 
-                       : 'border border-gray-300'}
+                       ? isMediaProduct 
+                         ? 'border-2 border-brand-black shadow-retro bg-white' 
+                         : 'border-2 border-brand-black shadow-retro bg-white'
+                       : 'border border-gray-300 rounded-lg'}
                  `}>
                     <img 
                       src={product.coverUrl || getDefaultProductImage()} 
                       alt={product.title} 
                       className={`w-full h-full object-cover transition-all duration-500
                          ${isSoldOut ? 'grayscale opacity-80' : ''}
+                         ${!isMediaProduct && !isRetro ? 'rounded-lg' : ''}
                       `}
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -157,38 +181,48 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
               </div>
            </div>
 
-           {/* Right Column: Info (35% - Span 4) */}
-           <div className="lg:col-span-4 flex flex-col h-full bg-brand-cream/50 lg:bg-brand-cream p-6 lg:p-8">
+           {/* Right Column: Info */}
+           <div className={`${isMediaProduct ? 'lg:col-span-4' : 'lg:col-span-1'} flex flex-col h-full bg-brand-cream/50 lg:bg-brand-cream p-6 lg:p-8`}>
               
-              {/* Product Tags - Extract from product tags array */}
+              {/* Product Tags */}
               <div className="mb-6">
                  <div className="flex flex-wrap gap-2 mb-4">
                     {product.tags && product.tags.map((tag, idx) => {
-                       // Format tags (LP, 2 LP, CD, etc.) - black background
-                       if (/^\d*\s*(LP|CD|Cassette|7"|12"|10"|45|Vinyl)/i.test(tag)) {
-                          return (
-                             <span key={idx} className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-black text-white">
-                                {tag}
-                             </span>
-                          );
+                       if (isMediaProduct) {
+                         // Media product tags (LP, 2 LP, CD, etc.) - black background
+                         if (/^\d*\s*(LP|CD|Cassette|7"|12"|10"|45|Vinyl)/i.test(tag)) {
+                            return (
+                               <span key={idx} className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-black text-white">
+                                  {tag}
+                               </span>
+                            );
+                         }
+                         // Condition tags (Mint, Near Mint, etc.) - white background with border
+                         if (/^(Mint|Near Mint|VG\+|VG|G\+|G|NM|NM-|VG-|G-|P|F)$/i.test(tag)) {
+                            return (
+                               <span key={idx} className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-white text-black border border-gray-300">
+                                  {tag.toUpperCase()}
+                               </span>
+                            );
+                         }
+                         // Import or other special tags - teal background
+                         if (/^(Import|Limited|Deluxe|Remastered|Reissue)$/i.test(tag)) {
+                            return (
+                               <span key={idx} className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-brand-teal text-white">
+                                  {tag.toUpperCase()}
+                               </span>
+                            );
+                         }
+                       } else {
+                         // Non-media product tags - simpler styling
+                         return (
+                            <span key={idx} className={`px-3 py-1 text-xs font-bold uppercase tracking-wider 
+                               ${isRetro ? 'bg-brand-black text-white' : 'bg-gray-100 text-gray-700'}
+                            `}>
+                               {tag}
+                            </span>
+                         );
                        }
-                       // Condition tags (Mint, Near Mint, etc.) - white background with border
-                       if (/^(Mint|Near Mint|VG\+|VG|G\+|G|NM|NM-|VG-|G-|P|F)$/i.test(tag)) {
-                          return (
-                             <span key={idx} className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-white text-black border border-gray-300">
-                                {tag.toUpperCase()}
-                             </span>
-                          );
-                       }
-                       // Import or other special tags - teal background
-                       if (/^(Import|Limited|Deluxe|Remastered|Reissue)$/i.test(tag)) {
-                          return (
-                             <span key={idx} className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-brand-teal text-white">
-                                {tag.toUpperCase()}
-                             </span>
-                          );
-                       }
-                       // Default tag styling
                        return null;
                     })}
                     {product.isNewArrival && (
@@ -199,22 +233,24 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                  </div>
               </div>
 
-              {/* Album Title and Artist */}
+              {/* Product Title and Artist/Brand */}
               <div className="mb-6">
-                 <h1 className={`font-display text-3xl md:text-5xl leading-[0.9] mb-2 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>
+                 <h1 className={`font-display ${isMediaProduct ? 'text-3xl md:text-5xl' : 'text-3xl md:text-4xl'} leading-[0.9] mb-2 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>
                     {product.title}
                  </h1>
-                 {onNavigate ? (
-                   <button
-                     onClick={() => onNavigate('catalog', 'All', product.artist)}
-                     className={`text-lg md:text-xl font-bold uppercase tracking-wide transition-colors hover:opacity-70 text-left ${isRetro ? 'text-brand-orange hover:text-brand-orange/80' : 'text-brand-teal hover:text-teal-600'}`}
-                   >
-                      {product.artist}
-                   </button>
-                 ) : (
-                   <p className={`text-lg md:text-xl font-bold uppercase tracking-wide ${isRetro ? 'text-brand-orange' : 'text-brand-teal'}`}>
-                      {product.artist}
-                   </p>
+                 {isMediaProduct && product.artist && (
+                   onNavigate ? (
+                     <button
+                       onClick={() => onNavigate('catalog', 'All', product.artist)}
+                       className={`text-lg md:text-xl font-bold uppercase tracking-wide transition-colors hover:opacity-70 text-left ${isRetro ? 'text-brand-orange hover:text-brand-orange/80' : 'text-brand-teal hover:text-teal-600'}`}
+                     >
+                        {product.artist}
+                     </button>
+                   ) : (
+                     <p className={`text-lg md:text-xl font-bold uppercase tracking-wide ${isRetro ? 'text-brand-orange' : 'text-brand-teal'}`}>
+                        {product.artist}
+                     </p>
+                   )
                  )}
               </div>
 
@@ -261,7 +297,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                     <Truck size={16} className="text-brand-teal" />
                     <span>LOCAL PICKUP</span>
                  </div>
-                 {isVinyl && (
+                 {isMediaProduct && isVinyl && (
                    <>
                      <div className="flex items-center gap-2">
                         <ShieldCheck size={16} className="text-brand-teal" />
@@ -275,79 +311,103 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                  )}
               </div>
 
-              {/* Tabs Section */}
+              {/* Tabs Section - Only for media products */}
               <div className="flex-1 min-h-[200px]">
-                 <div className="flex border-b border-gray-200 mb-6">
-                    {isVinyl ? (
-                      // Vinyl products: Show Details and Tracklist tabs
-                      ['details', 'tracks'].map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() => setActiveTab(tab as any)}
-                          className={`pb-3 pr-6 text-xs font-bold uppercase tracking-widest transition-colors relative
-                             ${activeTab === tab 
-                                ? 'text-gray-900' 
-                                : 'text-gray-400 hover:text-gray-600'}
-                          `}
-                        >
-                          {tab === 'tracks' ? 'TRACKLIST' : 'THE DETAILS'}
-                          {activeTab === tab && (
+                 {isMediaProduct ? (
+                   <>
+                     <div className="flex border-b border-gray-200 mb-6">
+                        {isVinyl ? (
+                          // Vinyl products: Show Details and Tracklist tabs
+                          ['details', 'tracks'].map((tab) => (
+                            <button
+                              key={tab}
+                              onClick={() => setActiveTab(tab as any)}
+                              className={`pb-3 pr-6 text-xs font-bold uppercase tracking-widest transition-colors relative
+                                 ${activeTab === tab 
+                                    ? 'text-gray-900' 
+                                    : 'text-gray-400 hover:text-gray-600'}
+                              `}
+                            >
+                              {tab === 'tracks' ? 'TRACKLIST' : 'THE DETAILS'}
+                              {activeTab === tab && (
+                                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-teal"></div>
+                              )}
+                            </button>
+                          ))
+                        ) : (
+                          // Non-vinyl media products: Only show Details tab
+                          <button
+                            className="pb-3 pr-6 text-xs font-bold uppercase tracking-widest text-gray-900 relative"
+                          >
+                            THE DETAILS
                             <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-teal"></div>
-                          )}
-                        </button>
-                      ))
-                    ) : (
-                      // Non-vinyl products: Only show Details tab
-                      <button
-                        className="pb-3 pr-6 text-xs font-bold uppercase tracking-widest text-gray-900 relative"
-                      >
-                        THE DETAILS
-                        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-teal"></div>
-                      </button>
-                    )}
-                 </div>
+                          </button>
+                        )}
+                     </div>
 
-                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    {activeTab === 'details' && (
-                       <div className="space-y-4 text-sm leading-relaxed text-gray-600 font-medium">
-                          {isVinyl ? (
-                            <p>
-                              This is a <strong>{product.condition || 'Mint'}</strong> copy of {product.title} by {product.artist}. 
-                              {product.format && ` Pressed on ${product.format}.`}
-                              {product.releaseDate && ` Released around ${product.releaseDate.split('-')[0]}.`}
-                            </p>
+                     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {activeTab === 'details' && (
+                           <div className="space-y-4 text-sm leading-relaxed text-gray-600 font-medium">
+                              {isVinyl ? (
+                                <p>
+                                  This is a <strong>{product.condition || 'Mint'}</strong> copy of {product.title} by {product.artist}. 
+                                  {product.format && ` Pressed on ${product.format}.`}
+                                  {product.releaseDate && ` Released around ${product.releaseDate.split('-')[0]}.`}
+                                </p>
+                              ) : (
+                                <p>
+                                  {product.title} by {product.artist}. 
+                                  {product.format && ` Format: ${product.format}.`}
+                                  {product.releaseDate && ` Released ${product.releaseDate.split('-')[0]}.`}
+                                </p>
+                              )}
+                           </div>
+                        )}
+
+                        {isVinyl && activeTab === 'tracks' && (
+                           <ul className="space-y-2">
+                              {tracklist.map((track) => (
+                                 <li key={track.num} className="flex items-center justify-between text-sm py-2 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2 rounded cursor-default group">
+                                    <div className="flex items-center gap-4">
+                                       <span className="text-xs font-bold text-gray-400 w-6">{track.num}</span>
+                                       <span className="font-medium text-gray-800 group-hover:text-brand-orange transition-colors">{track.title}</span>
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-400">{track.time}</span>
+                                 </li>
+                              ))}
+                           </ul>
+                        )}
+                     </div>
+                   </>
+                 ) : (
+                   <>
+                     <div className="mb-6">
+                        <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>
+                           DESCRIPTION
+                        </h3>
+                     </div>
+                     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="space-y-4 text-sm leading-relaxed text-gray-600 font-medium">
+                          {product.description ? (
+                            <p>{product.description}</p>
                           ) : (
-                            <p>
-                              {product.title} by {product.artist}. 
-                              {product.releaseDate && ` Released ${product.releaseDate.split('-')[0]}.`}
-                            </p>
+                            <p>{product.title}</p>
                           )}
                           {product.tags && product.tags.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-4">
                               {product.tags.map((tag, idx) => (
-                                <span key={idx} className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-700 rounded-md">
+                                <span key={idx} className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md
+                                   ${isRetro ? 'bg-brand-black text-white' : 'bg-gray-100 text-gray-700'}
+                                `}>
                                   {tag}
                                 </span>
                               ))}
                             </div>
                           )}
-                       </div>
-                    )}
-
-                    {isVinyl && activeTab === 'tracks' && (
-                       <ul className="space-y-2">
-                          {tracklist.map((track) => (
-                             <li key={track.num} className="flex items-center justify-between text-sm py-2 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2 rounded cursor-default group">
-                                <div className="flex items-center gap-4">
-                                   <span className="text-xs font-bold text-gray-400 w-6">{track.num}</span>
-                                   <span className="font-medium text-gray-800 group-hover:text-brand-orange transition-colors">{track.title}</span>
-                                </div>
-                                <span className="text-xs font-bold text-gray-400">{track.time}</span>
-                             </li>
-                          ))}
-                       </ul>
-                    )}
-                 </div>
+                        </div>
+                     </div>
+                   </>
+                 )}
               </div>
 
            </div>

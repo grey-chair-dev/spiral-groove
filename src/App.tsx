@@ -848,6 +848,8 @@ function App() {
         onProductClick={handleProductClick}
         cartCount={cartCount}
         products={products}
+        currentPage={currentPage}
+        currentFilter={currentFilter}
       />
 
       <main>
@@ -875,7 +877,7 @@ function App() {
                         initialFilter="New Arrivals"
                         showFilters={false}
                         onViewCatalog={() => handleNavigate('catalog', 'All')}
-                        limit={8}
+                        limit={12}
                         onViewMore={() => handleNavigate('catalog', 'New Arrivals')}
                     />
                 )}

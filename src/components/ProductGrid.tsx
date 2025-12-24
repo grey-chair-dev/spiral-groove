@@ -799,7 +799,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                 let hiddenClass = '';
                                 if (limit && limit >= 8) {
                                     if (index >= 4 && index < 8) hiddenClass = 'hidden md:block'; // Show on tablet/desktop only
-                                    if (index >= 8) hiddenClass = 'hidden lg:block'; // Show on desktop only
+                                    if (index >= 8 && index < 12) hiddenClass = 'hidden lg:block'; // Show on desktop only (for 12 items)
                                 }
 
                                 return (

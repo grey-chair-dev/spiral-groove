@@ -76,45 +76,77 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
 
             <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
                 {EVENTS.map((event) => (
-                    <div key={event.id} className={`group flex flex-col md:flex-row gap-6 p-6 border-2 transition-all
+                    <div key={event.id} className={`group relative flex flex-col md:flex-row transition-all
                         ${isRetro 
-                            ? 'bg-white border-brand-black shadow-retro hover:shadow-retro-hover' 
-                            : 'bg-white border-gray-200 rounded-xl hover:shadow-lg'}
+                            ? 'bg-white border-2 border-brand-black shadow-retro hover:shadow-retro-hover' 
+                            : 'bg-white border border-gray-200 rounded-xl hover:shadow-lg'}
                     `}>
-                        {/* Date Block */}
-                        <div className={`flex md:flex-col items-center justify-center md:w-32 flex-shrink-0 gap-2 md:gap-0 p-4 border-2 border-dashed
-                            ${isRetro ? 'bg-brand-mustard/20 border-brand-black' : 'bg-gray-50 border-gray-300 rounded-lg'}
-                        `}>
-                            <span className="text-xs font-bold uppercase tracking-widest opacity-60">{event.date.split(' ')[0]}</span>
-                            <span className="text-3xl font-display">{event.date.split(' ')[1]}</span>
-                        </div>
-
-                        {/* Image */}
-                        <div className={`w-full md:w-48 h-48 md:h-auto flex-shrink-0 overflow-hidden relative
-                            ${isRetro ? 'border-2 border-brand-black grayscale group-hover:grayscale-0 transition-all' : 'rounded-lg'}
-                        `}>
-                            <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 flex flex-col justify-center">
-                            <div className="mb-2">
-                                <span className={`inline-block px-2 py-1 text-[10px] font-bold uppercase tracking-wider mb-2 rounded-sm
-                                    ${isRetro ? 'bg-brand-black text-white' : 'bg-black text-white'}
-                                `}>
-                                    {event.type}
-                                </span>
-                                <h3 className="font-display text-2xl md:text-3xl leading-none mb-2">{event.title}</h3>
-                                <p className="font-medium text-gray-600">{event.description}</p>
+                        {/* Left Perforation */}
+                        {isRetro && (
+                            <div className="absolute left-0 top-0 bottom-0 w-4 flex flex-col items-center justify-center gap-1 z-10 pointer-events-none">
+                                {Array.from({ length: 20 }).map((_, i) => (
+                                    <div key={i} className="w-2 h-2 rounded-full bg-brand-black/20"></div>
+                                ))}
                             </div>
-                            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                                <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-wider text-gray-500">
-                                    <span className="flex items-center gap-1"><Clock size={14} /> {event.time}</span>
-                                    <span className="flex items-center gap-1"><MapPin size={14} /> Spiral Groove</span>
+                        )}
+
+                        {/* Ticket Stub - Date Block */}
+                        {isRetro ? (
+                            <div className="relative flex md:flex-col items-center justify-center md:w-32 flex-shrink-0 gap-2 md:gap-0 p-4 border-r-2 border-dashed border-brand-black bg-brand-mustard/30">
+                                {/* Stub Perforations */}
+                                <div className="absolute right-0 top-0 bottom-0 w-2 flex flex-col items-center justify-center gap-1">
+                                    {Array.from({ length: 15 }).map((_, i) => (
+                                        <div key={i} className="w-1.5 h-1.5 rounded-full bg-brand-black/30"></div>
+                                    ))}
                                 </div>
-                                <Button size="sm" variant={isRetro ? 'primary' : 'outline'} onClick={() => onRSVP(event)}>RSVP</Button>
+                                <span className="text-xs font-bold uppercase tracking-widest text-brand-black/70">{event.date.split(' ')[0]}</span>
+                                <span className="text-3xl font-display text-brand-black transform md:rotate-[-8deg]">{event.date.split(' ')[1]}</span>
+                            </div>
+                        ) : (
+                            <div className="flex md:flex-col items-center justify-center md:w-32 flex-shrink-0 gap-2 md:gap-0 p-4 border-2 border-dashed bg-gray-50 border-gray-300 rounded-lg">
+                                <span className="text-xs font-bold uppercase tracking-widest opacity-60">{event.date.split(' ')[0]}</span>
+                                <span className="text-3xl font-display">{event.date.split(' ')[1]}</span>
+                            </div>
+                        )}
+
+                        {/* Main Ticket Content */}
+                        <div className="flex-1 flex flex-col md:flex-row gap-6 p-6">
+                            {/* Image */}
+                            <div className={`w-full md:w-48 h-48 md:h-auto flex-shrink-0 overflow-hidden relative
+                                ${isRetro ? 'border-2 border-brand-black grayscale group-hover:grayscale-0 transition-all' : 'rounded-lg'}
+                            `}>
+                                <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 flex flex-col justify-center">
+                                <div className="mb-2">
+                                    <span className={`inline-block px-2 py-1 text-[10px] font-bold uppercase tracking-wider mb-2 rounded-sm
+                                        ${isRetro ? 'bg-brand-black text-white' : 'bg-black text-white'}
+                                    `}>
+                                        {event.type}
+                                    </span>
+                                    <h3 className={`font-display text-2xl md:text-3xl leading-none mb-2 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>{event.title}</h3>
+                                    <p className={`font-medium ${isRetro ? 'text-gray-700' : 'text-gray-600'}`}>{event.description}</p>
+                                </div>
+                                <div className={`mt-4 pt-4 flex items-center justify-between ${isRetro ? 'border-t-2 border-brand-black/20' : 'border-t border-gray-100'}`}>
+                                    <div className={`flex items-center gap-4 text-xs font-bold uppercase tracking-wider ${isRetro ? 'text-brand-black/70' : 'text-gray-500'}`}>
+                                        <span className="flex items-center gap-1"><Clock size={14} /> {event.time}</span>
+                                        <span className="flex items-center gap-1"><MapPin size={14} /> Spiral Groove</span>
+                                    </div>
+                                    <Button size="sm" variant={isRetro ? 'primary' : 'outline'} onClick={() => onRSVP(event)}>RSVP</Button>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Right Perforation */}
+                        {isRetro && (
+                            <div className="absolute right-0 top-0 bottom-0 w-4 flex flex-col items-center justify-center gap-1 z-10 pointer-events-none">
+                                {Array.from({ length: 20 }).map((_, i) => (
+                                    <div key={i} className="w-2 h-2 rounded-full bg-brand-black/20"></div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
