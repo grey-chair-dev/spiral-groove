@@ -847,7 +847,7 @@ function App() {
         currentFilter={currentFilter}
       />
 
-      <main>
+      <main style={{ paddingTop: 'var(--app-header-height, 0px)' }}>
         {currentPage === 'home' && (
             <>
                 <Hero 

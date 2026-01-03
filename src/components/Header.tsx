@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useState, useEffect, useRef } from 'react';
 import { ShoppingCart, Menu, X, Search, ChevronDown, User as UserIcon, LogOut, Package, Settings } from 'lucide-react';
 import { ViewMode, User, Page, Product } from '../../types';
 import { ProductCategory, RecordFormat } from '../types/productEnums';
@@ -73,13 +73,15 @@ const NAV_ITEMS: NavItem[] = [
           ProductCategory.FOLK,
           ProductCategory.POP,
           ProductCategory.SOUNDTRACKS,
-        ].map((genre) => ({
-          label: genre,
-          page: 'catalog' as const,
-          filter: genre,
-        })).concat([
-          { label: 'Browse all genres', page: 'catalog' as const, filter: 'All' },
-        ])
+        ]
+          .map(
+            (genre): { label: string; page: 'catalog'; filter: string } => ({
+              label: genre,
+              page: 'catalog',
+              filter: genre,
+            }),
+          )
+          .concat([{ label: 'Browse all genres', page: 'catalog', filter: 'All' }]),
       },
       {
         title: 'Equipment',
@@ -145,6 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentPage,
   currentFilter
 }) => {
+  const headerRef = useRef<HTMLDivElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
@@ -165,6 +168,32 @@ export const Header: React.FC<HeaderProps> = ({
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Keep a CSS var in sync with the fixed header height so page content
+  // can offset correctly (prevents Hero/content sitting under header).
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--app-header-height', `${h}px`);
+    };
+
+    update();
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => update());
+      ro.observe(el);
+    }
+
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      ro?.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -269,59 +298,57 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <div className={`w-full relative z-[120] transition-colors duration-300 ${isRetro ? 'bg-black' : 'bg-white'}`}>
+      {/* Sticky Header - Follows page as we scroll */}
+      <div
+        ref={headerRef}
+        className={`fixed top-0 left-0 right-0 z-[120] w-full transition-all duration-300
+          ${isRetro ? 'bg-black' : 'bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/90'}
+          ${scrolled 
+              ? (isRetro ? 'border-b-2 border-brand-black shadow-retro-sm' : 'shadow-md border-b border-gray-100') 
+              : ''}
+      `}
+      >
         
-        {/* 1. Announcement Bar (Scrolls Away) */}
+        {/* 1. Announcement Bar */}
         <div className="w-full py-2.5 bg-brand-black text-white text-center text-[11px] font-bold uppercase tracking-[0.15em] relative z-[60]">
           <span className="text-brand-orange">Order Online, Pick Up In-Store</span> <span className="mx-2 opacity-30">|</span> <span className="text-brand-red cursor-pointer hover:underline" onClick={() => onNavigate('we-buy')}>We Buy Used Vinyl</span>
         </div>
 
-        {/* Sticky Wrapper */}
-        <div className={`sticky top-0 z-[120] w-full transition-all duration-300
-            ${isRetro ? 'bg-black' : 'bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90'}
-            ${scrolled 
-                ? (isRetro ? 'border-b-2 border-brand-black shadow-retro-sm' : 'shadow-sm border-b border-gray-100') 
-                : ''}
+        {/* 2. Main Header Container */}
+        <div className={`w-full transition-all duration-300
+            ${!scrolled ? 'border-b' : ''}
+            ${isRetro ? 'border-white/10' : 'border-gray-100'}
         `}>
-            
-            {/* 2. Main Header Container */}
-            <div className={`w-full transition-all duration-300
-                ${!scrolled ? 'border-b' : ''}
-                ${isRetro ? 'border-white/10' : 'border-gray-100'}
-            `}>
-              <div className={`max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 transition-all duration-300
-                  ${scrolled ? 'py-2.5' : 'py-3 md:py-5'}
-              `}>
-                <div className="flex items-center justify-between gap-4 md:gap-6">
+          <div className={`max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 transition-all duration-300
+              ${scrolled ? 'py-2.5' : 'py-3 md:py-5'}
+          `}>
+            <div className="flex items-center justify-between gap-4 md:gap-6">
+              
+              {/* Mobile Menu Toggle */}
+              <button className="md:hidden p-2 -ml-2" onClick={() => setIsMobileMenuOpen(true)}>
+                <Menu size={24} className={isRetro ? 'text-white' : 'text-black'} />
+              </button>
+
+              {/* Logo */}
+              <div className="flex-shrink-0 cursor-pointer group flex-1 md:flex-none text-center md:text-left" onClick={() => onNavigate('home')}>
+                <div className="flex items-center justify-center md:justify-start">
                   
-                  {/* Mobile Menu Toggle */}
-                  <button className="md:hidden p-2 -ml-2" onClick={() => setIsMobileMenuOpen(true)}>
-                    <Menu size={24} className={isRetro ? 'text-white' : 'text-black'} />
-                  </button>
-
-                  {/* Logo */}
-                  <div className="flex-shrink-0 cursor-pointer group flex-1 md:flex-none text-center md:text-left" onClick={() => onNavigate('home')}>
-                     <div className="flex items-center justify-center md:justify-start">
-                       
-                       <div className={`flex flex-col leading-none items-center md:items-start transition-all origin-left
-                          ${scrolled ? 'scale-[0.85]' : 'scale-100'}
-                       `}>
-                          <img 
-                            src="/logo-white.png" 
-                            alt="Spiral Groove Records" 
-                            className={`h-6 sm:h-8 md:h-10 w-auto transform group-hover:scale-[1.02] transition-transform object-contain
-                              ${isRetro ? '' : ''}
-                            `}
-                          />
-                          <span className={`font-bold tracking-[0.35em] text-brand-red uppercase transition-all duration-300
-                            ${scrolled ? 'text-[7px] sm:text-[8px] mt-0.5' : 'text-[8px] sm:text-[9px] mt-1'}
-                          `}>Records</span>
-                       </div>
-                     </div>
+                  <div className={`flex flex-col leading-none items-center md:items-start transition-all origin-left
+                    ${scrolled ? 'scale-[0.92]' : 'scale-100'}
+                  `}>
+                    <div className="inline-block origin-center animate-spin-slow motion-reduce:animate-none">
+                      <img 
+                        src="/full-logo.png" 
+                        alt="Spiral Groove Records" 
+                        className="h-16 sm:h-20 md:h-24 w-auto transform group-hover:scale-[1.02] transition-transform object-contain"
+                      />
+                    </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Search Bar (Desktop) */}
-                  <div className="hidden md:flex flex-1 max-w-lg mx-auto px-6" ref={searchContainerRef}>
+              {/* Search Bar (Desktop) */}
+              <div className="hidden md:flex flex-1 max-w-lg mx-auto px-6" ref={searchContainerRef}>
                     <form className="w-full relative group" onSubmit={handleSearchSubmit}>
                       <input 
                         type="text" 
@@ -502,14 +529,14 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            {/* 3. Navigation Bar (Desktop) */}
-            <div className={`hidden md:block w-full border-b relative z-[120] transition-all duration-300
-               ${isRetro ? 'border-brand-black/10' : 'border-gray-100'}
-               ${scrolled ? 'border-none' : ''}
-            `}>
-               <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8">
-                  <nav className={`flex items-center justify-center transition-all duration-300 ${scrolled ? 'h-10' : 'h-14'}`}>
-                     <ul className="flex items-center gap-8 h-full">
+          {/* 3. Navigation Bar (Desktop) */}
+          <div className={`hidden md:block w-full border-b relative z-[120] transition-all duration-300
+             ${isRetro ? 'border-brand-black/10' : 'border-gray-100'}
+             ${scrolled ? 'border-none' : ''}
+          `}>
+             <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8">
+                <nav className={`flex items-center justify-center transition-all duration-300 ${scrolled ? 'h-10' : 'h-14'}`}>
+                   <ul className="flex items-center gap-8 h-full">
                         {NAV_ITEMS.map((item) => {
                           // For catalog page, check both page and filter to determine active state
                           let isActive = false;
@@ -628,11 +655,10 @@ export const Header: React.FC<HeaderProps> = ({
                           </li>
                           );
                         })}
-                     </ul>
-                  </nav>
-               </div>
-            </div>
-        </div>
+                   </ul>
+                </nav>
+             </div>
+          </div>
       </div>
 
       {/* Mobile Menu Overlay */}
