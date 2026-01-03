@@ -25,6 +25,15 @@ export default {
         'retro': '4px 4px 0px 0px #231F20',
         'retro-hover': '6px 6px 0px 0px #231F20',
         'retro-sm': '2px 2px 0px 0px #231F20',
+        'neon-orange': '0 0 10px rgba(0, 194, 203, 0.5), 0 0 20px rgba(0, 194, 203, 0.3), 0 0 30px rgba(0, 194, 203, 0.2)',
+        'neon-orange-strong': '0 0 15px rgba(0, 194, 203, 0.8), 0 0 30px rgba(0, 194, 203, 0.6), 0 0 45px rgba(0, 194, 203, 0.4)',
+        'neon-teal': '0 0 10px rgba(58, 183, 149, 0.5), 0 0 20px rgba(58, 183, 149, 0.3), 0 0 30px rgba(58, 183, 149, 0.2)',
+        'neon-pink': '0 0 10px rgba(255, 46, 99, 0.5), 0 0 20px rgba(255, 46, 99, 0.3), 0 0 30px rgba(255, 46, 99, 0.2)',
+      },
+      textShadow: {
+        'neon-orange': '0 0 10px rgba(0, 194, 203, 0.8), 0 0 20px rgba(0, 194, 203, 0.6), 0 0 30px rgba(0, 194, 203, 0.4)',
+        'neon-teal': '0 0 10px rgba(58, 183, 149, 0.8), 0 0 20px rgba(58, 183, 149, 0.6), 0 0 30px rgba(58, 183, 149, 0.4)',
+        'neon-pink': '0 0 10px rgba(255, 46, 99, 0.8), 0 0 20px rgba(255, 46, 99, 0.6), 0 0 30px rgba(255, 46, 99, 0.4)',
       },
       borderRadius: {
         'xl': '1rem',
@@ -34,11 +43,16 @@ export default {
       animation: {
         'spin-slow': 'spin 12s linear infinite',
         'fade-in': 'fadeIn 0.3s ease-in-out',
+        'neon-pulse': 'neon-pulse 2s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'neon-pulse': {
+          '0%, 100%': { opacity: '1', filter: 'brightness(1)' },
+          '50%': { opacity: '0.8', filter: 'brightness(1.2)' },
         },
       },
     },

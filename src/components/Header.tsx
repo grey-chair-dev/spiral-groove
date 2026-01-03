@@ -311,7 +311,7 @@ export const Header: React.FC<HeaderProps> = ({
         
         {/* 1. Announcement Bar */}
         <div className="w-full py-2.5 bg-brand-black text-white text-center text-[11px] font-bold uppercase tracking-[0.15em] relative z-[60]">
-          <span className="text-brand-orange">Order Online, Pick Up In-Store</span> <span className="mx-2 opacity-30">|</span> <span className="text-brand-red cursor-pointer hover:underline" onClick={() => onNavigate('we-buy')}>We Buy Used Vinyl</span>
+          <span className="text-brand-orange neon-text-orange">Order Online, Pick Up In-Store</span> <span className="mx-2 opacity-30">|</span> <span className="text-brand-red cursor-pointer hover:underline hover:neon-text-pink transition-all duration-300" onClick={() => onNavigate('we-buy')}>We Buy Used Vinyl</span>
         </div>
 
         {/* 2. Main Header Container */}
@@ -336,12 +336,14 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className={`flex flex-col leading-none items-center md:items-start transition-all origin-left
                     ${scrolled ? 'scale-[0.92]' : 'scale-100'}
                   `}>
-                    <div className="inline-block origin-center animate-spin-slow motion-reduce:animate-none">
-                      <img 
-                        src="/full-logo.png" 
-                        alt="Spiral Groove Records" 
-                        className="h-16 sm:h-20 md:h-24 w-auto transform group-hover:scale-[1.02] transition-transform object-contain"
-                      />
+                    <div className="inline-flex items-center justify-center rounded-full border-[6px] border-brand-red p-1.5">
+                      <div className="inline-block origin-center animate-spin-slow motion-reduce:animate-none transition-all duration-300">
+                        <img 
+                          src="/full-logo.png" 
+                          alt="Spiral Groove Records" 
+                          className="h-16 sm:h-20 md:h-24 w-auto transform group-hover:scale-[1.02] transition-transform object-contain"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -368,7 +370,7 @@ export const Header: React.FC<HeaderProps> = ({
                         `}
                         style={isRetro ? { 
                           border: '2px solid #000000',
-                          boxShadow: '0 0 0 2px #00C2CB, 0 0 10px rgba(0, 194, 203, 0.5)'
+                          boxShadow: '0 0 0 2px #00C2CB, 0 0 10px rgba(0, 194, 203, 0.5), 0 0 20px rgba(0, 194, 203, 0.3)'
                         } : undefined}
                       />
                       <button 
@@ -376,7 +378,7 @@ export const Header: React.FC<HeaderProps> = ({
                          className={`absolute right-1 top-1 w-10 flex items-center justify-center transition-colors
                          ${scrolled ? 'h-8' : 'h-10'}
                          ${isRetro 
-                           ? 'text-[#00C2CB] hover:text-[#00E5F0]' 
+                           ? 'text-[#00C2CB] hover:text-[#00E5F0] hover:drop-shadow-[0_0_8px_rgba(0,194,203,0.8)]' 
                            : 'text-gray-400 hover:text-brand-black rounded-full'}
                       `}>
                         <Search size={scrolled ? 18 : 20} strokeWidth={2.5} />
@@ -451,7 +453,7 @@ export const Header: React.FC<HeaderProps> = ({
                         {user ? (
                            <>
                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 overflow-hidden transition-all
-                                ${isRetro ? 'border-brand-black shadow-pop-sm hover:border-[#00C2CB]' : 'border-gray-200 shadow-sm'}
+                                ${isRetro ? 'border-brand-black shadow-pop-sm hover:border-[#00C2CB] hover:neon-glow-orange' : 'border-gray-200 shadow-sm hover:shadow-neon-orange'}
                              `}>
                                 <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                              </div>
@@ -505,7 +507,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                      <button onClick={onCartClick} className="flex items-center gap-3 group cursor-pointer relative md:mr-0">
                         <div className="relative p-2">
-                           <ShoppingCart size={24} strokeWidth={2} className={`transition-all group-hover:scale-110 ${isRetro ? 'text-white group-hover:text-[#00C2CB]' : 'text-black'} `} />
+                           <ShoppingCart size={24} strokeWidth={2} className={`transition-all group-hover:scale-110 ${isRetro ? 'text-white group-hover:text-[#00C2CB] group-hover:drop-shadow-[0_0_10px_rgba(0,194,203,0.8)]' : 'text-black group-hover:text-brand-orange'} `} />
                            {cartCount > 0 && (
                              <span className={`absolute top-0 right-0 h-4 w-4 flex items-center justify-center text-[9px] font-bold rounded-full text-white border border-white
                                 ${isRetro ? 'bg-brand-orange' : 'bg-brand-red'}
@@ -568,14 +570,14 @@ export const Header: React.FC<HeaderProps> = ({
                              <a 
                                href={hrefFor(item.page, item.filter)}
                                onClick={(e) => handleNavClick(e, item.page, item.filter)}
-                               className={`flex items-center gap-1 h-full text-[13px] font-bold uppercase tracking-widest border-b-[3px] transition-colors px-1
+                               className={`flex items-center gap-1 h-full text-[13px] font-bold uppercase tracking-widest border-b-[3px] transition-all px-1
                                   ${isActive 
-                                    ? (isRetro ? 'border-brand-orange text-brand-orange' : 'border-brand-orange text-brand-orange')
+                                    ? (isRetro ? 'border-brand-orange text-brand-orange neon-text-orange' : 'border-brand-orange text-brand-orange')
                                     : 'border-transparent'
                                   }
                                   ${item.highlight && !isActive ? 'text-brand-red' : ''}
-                                  ${!isActive && !item.highlight ? (isRetro ? 'text-white hover:text-brand-orange' : 'text-gray-600 hover:text-brand-orange hover:border-brand-orange/50') : ''}
-                                  ${activeDropdown === item.label && !isActive ? (isRetro ? 'border-brand-orange text-brand-orange' : 'border-brand-orange text-brand-orange') : ''}
+                                  ${!isActive && !item.highlight ? (isRetro ? 'text-white hover:text-brand-orange hover:neon-text-orange' : 'text-gray-600 hover:text-brand-orange hover:border-brand-orange/50') : ''}
+                                  ${activeDropdown === item.label && !isActive ? (isRetro ? 'border-brand-orange text-brand-orange neon-text-orange' : 'border-brand-orange text-brand-orange') : ''}
                                `}
                              >
                                 {item.label}

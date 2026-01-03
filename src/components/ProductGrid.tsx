@@ -512,8 +512,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                     }}
                     className={`flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full font-bold uppercase tracking-wide text-[10px] sm:text-[11px] select-none transition-all
                         ${viewMode === 'retro'
-                            ? (isFilterOpen ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-none translate-y-[2px]' : 'bg-white text-brand-black border-2 border-brand-black shadow-pop-sm hover:-translate-y-0.5')
-                            : (isFilterOpen ? 'bg-black text-white shadow-inner' : 'bg-white text-black border border-gray-300 shadow-sm hover:bg-gray-50')}
+                            ? (isFilterOpen ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-none translate-y-[2px] neon-glow-orange' : 'bg-white text-brand-black border-2 border-brand-black shadow-pop-sm hover:-translate-y-0.5 hover:neon-glow-orange')
+                            : (isFilterOpen ? 'bg-black text-white shadow-inner shadow-neon-orange' : 'bg-white text-black border border-gray-300 shadow-sm hover:bg-gray-50 hover:shadow-neon-orange')}
                     `}
                     >
                         <SlidersHorizontal size={14} />
@@ -681,8 +681,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                        onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setTimeout(() => setIsSortOpen(false), 100)}
                        className={`flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full font-bold uppercase tracking-wide text-[10px] sm:text-[11px] select-none transition-all
                           ${viewMode === 'retro'
-                            ? (isSortOpen ? 'bg-brand-mustard text-brand-black border-2 border-brand-black shadow-none translate-y-[2px]' : 'bg-white text-brand-black border-2 border-brand-black shadow-pop-sm hover:-translate-y-0.5')
-                            : (isSortOpen ? 'bg-gray-100 text-black shadow-inner' : 'bg-white text-black border border-gray-300 shadow-sm hover:bg-gray-50')}
+                            ? (isSortOpen ? 'bg-brand-mustard text-brand-black border-2 border-brand-black shadow-none translate-y-[2px] neon-glow-orange' : 'bg-white text-brand-black border-2 border-brand-black shadow-pop-sm hover:-translate-y-0.5 hover:neon-glow-orange')
+                            : (isSortOpen ? 'bg-gray-100 text-black shadow-inner shadow-neon-orange' : 'bg-white text-black border border-gray-300 shadow-sm hover:bg-gray-50 hover:shadow-neon-orange')}
                        `}
                     >
                        <ArrowUpDown size={14} />
@@ -889,7 +889,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                     <div className="flex flex-col flex-grow">
                                       <div className={`mb-1 ${isSoldOut ? 'opacity-50' : ''}`}>
                                          <h3 className={`font-bold text-sm sm:text-base leading-snug truncate
-                                            ${viewMode === 'retro' ? 'font-header text-brand-black group-hover:text-brand-orange transition-colors' : 'font-sans text-gray-900'}
+                                            ${viewMode === 'retro' ? 'font-header text-brand-black group-hover:text-brand-orange group-hover:neon-text-orange transition-all duration-300' : 'font-sans text-gray-900'}
                                          `}>
                                            {product.title}
                                          </h3>
@@ -934,8 +934,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                                 ? 'px-3 py-1.5 bg-gray-100 border-2 border-gray-200 text-gray-400 cursor-not-allowed' 
                                                 : 'px-3 py-1.5 bg-gray-50 text-gray-300 cursor-not-allowed')
                                             : (viewMode === 'retro' 
-                                                ? 'px-4 py-2 bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:text-brand-black hover:border-brand-black shadow-[2px_2px_0px_#231F20] hover:shadow-[3px_3px_0px_#231F20] hover:-translate-y-0.5 active:scale-95' 
-                                                : 'px-4 py-2 bg-black text-white hover:bg-gray-800 hover:scale-105 active:scale-95 shadow-sm')
+                                                ? 'px-4 py-2 bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:text-brand-black hover:border-brand-black hover:neon-glow-orange shadow-[2px_2px_0px_#231F20] hover:shadow-[3px_3px_0px_#231F20] hover:-translate-y-0.5 active:scale-95 transition-all duration-300' 
+                                                : 'px-4 py-2 bg-black text-white hover:bg-gray-800 hover:scale-105 hover:shadow-neon-orange active:scale-95 shadow-sm transition-all duration-300')
                                           }
                                         `}>
                                           {isSoldOut ? (
@@ -1006,7 +1006,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                       <div className="flex-1 flex flex-col justify-between min-w-0">
                                         <div className={`mb-3 ${isSoldOut ? 'opacity-50' : ''}`}>
                                           <h3 className={`font-bold text-lg leading-snug mb-1
-                                            ${viewMode === 'retro' ? 'font-header text-brand-black group-hover:text-brand-orange transition-colors' : 'font-sans text-gray-900'}
+                                            ${viewMode === 'retro' ? 'font-header text-brand-black group-hover:text-brand-orange group-hover:neon-text-orange transition-all duration-300' : 'font-sans text-gray-900'}
                                           `}>
                                             {product.title}
                                           </h3>
@@ -1064,8 +1064,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                                   ? 'px-4 py-2 bg-gray-100 border-2 border-gray-200 text-gray-400 cursor-not-allowed' 
                                                   : 'px-4 py-2 bg-gray-50 text-gray-300 cursor-not-allowed')
                                               : (viewMode === 'retro' 
-                                                  ? 'px-5 py-2.5 bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:text-brand-black hover:border-brand-black shadow-[2px_2px_0px_#231F20] hover:shadow-[3px_3px_0px_#231F20] hover:-translate-y-0.5 active:scale-95' 
-                                                  : 'px-5 py-2.5 bg-black text-white hover:bg-gray-800 hover:scale-105 active:scale-95 shadow-sm')
+                                                  ? 'px-5 py-2.5 bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:text-brand-black hover:border-brand-black hover:neon-glow-orange shadow-[2px_2px_0px_#231F20] hover:shadow-[3px_3px_0px_#231F20] hover:-translate-y-0.5 active:scale-95 transition-all duration-300' 
+                                                  : 'px-5 py-2.5 bg-black text-white hover:bg-gray-800 hover:scale-105 hover:shadow-neon-orange active:scale-95 shadow-sm transition-all duration-300')
                                             }
                                             `}
                                           >
