@@ -168,8 +168,8 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate }) => {
                      onClick={() => onNavigate('catalog', slide.filterPrimary)}
                      className={`w-full sm:w-auto transition-all duration-300
                        ${isRetro 
-                         ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-[4px_4px_0px_#FFFFFF] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#FFFFFF] hover:neon-glow-orange-strong' 
-                         : 'bg-white text-black border border-transparent hover:bg-brand-cream rounded-full shadow-lg hover:scale-105 hover:shadow-neon-orange'
+                         ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-[4px_4px_0px_#FFFFFF] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#FFFFFF] hover:neon-glow-orange-ultra' 
+                         : 'bg-white text-black border border-transparent hover:bg-brand-cream rounded-full shadow-lg hover:scale-105 hover:shadow-neon-orange-ultra'
                        }
                      `}
                    >
@@ -183,7 +183,7 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate }) => {
                      className={`w-full sm:w-auto transition-all duration-300
                        ${isRetro 
                          ? 'bg-transparent text-white border-2 border-white shadow-[4px_4px_0px_rgba(255,255,255,0.25)] hover:bg-white hover:text-brand-black hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] hover:neon-glow-orange' 
-                         : 'bg-white/10 text-white backdrop-blur-md border border-white/20 hover:bg-white hover:text-black rounded-full hover:scale-105 hover:shadow-neon-orange'
+                         : 'bg-white/10 text-white backdrop-blur-md border border-white/20 hover:bg-white hover:text-black rounded-full hover:scale-105 hover:shadow-neon-orange-ultra'
                        }
                      `}
                    >
@@ -201,7 +201,7 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate }) => {
                 className={`p-4 transition-all duration-300 
                   ${isRetro 
                     ? 'bg-brand-black border-2 border-white text-white shadow-pop hover:shadow-pop-hover rounded-full hover:bg-brand-orange hover:neon-glow-orange' 
-                    : 'bg-white/10 backdrop-blur border border-white/20 text-white hover:bg-white hover:text-black rounded-full hover:shadow-neon-orange'
+                    : 'bg-white/10 backdrop-blur border border-white/20 text-white hover:bg-white hover:text-black rounded-full hover:shadow-neon-orange-ultra'
                   }
                 `}
               >
@@ -212,7 +212,7 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate }) => {
                 className={`p-4 transition-all duration-300 
                   ${isRetro 
                     ? 'bg-brand-cream border-2 border-brand-black text-brand-black shadow-pop hover:shadow-pop-hover rounded-full hover:bg-brand-teal hover:neon-glow-teal' 
-                    : 'bg-white text-black border border-white hover:bg-gray-200 rounded-full hover:shadow-neon-teal'
+                    : 'bg-white text-black border border-white hover:bg-gray-200 rounded-full hover:shadow-neon-teal-strong'
                   }
                 `}
               >

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { trackPageView, trackProductView, trackAddToCart, trackRemoveFromCart, trackBeginCheckout, trackPurchase, trackSearch, trackNewsletterSignup, trackSignup, trackLogin } from './utils/analytics';
 import { Header } from './components/Header';
+import { NeonCursor } from './components/NeonCursor';
 import { Hero } from './components/Hero';
 import { ProductGrid } from './components/ProductGrid';
 import { StaffPicks } from './components/StaffPicks';
@@ -826,10 +827,11 @@ function App() {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 overflow-x-hidden w-full ${effectiveViewMode === 'retro' ? 'bg-brand-cream selection:bg-brand-orange selection:text-white' : 'bg-white selection:bg-brand-black selection:text-white'}`}>
+    <div className={`min-h-screen transition-colors duration-500 overflow-x-hidden w-full ${effectiveViewMode === 'retro' ? 'bg-linen-cream selection:bg-brand-orange selection:text-white' : 'bg-white selection:bg-brand-black selection:text-white'}`}>
       
       {/* Noise Texture for Retro Mode */}
       {effectiveViewMode === 'retro' && <div className="grain-overlay"></div>}
+      <NeonCursor />
 
       <Header 
         viewMode={viewMode} 

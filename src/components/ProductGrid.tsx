@@ -814,7 +814,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                       {/* Album Cover */}
                                       <div className={`relative w-full h-full z-10 overflow-hidden bg-white transition-all duration-300 transform origin-bottom-left
                                         ${viewMode === 'retro' 
-                                          ? 'rounded-none border-2 border-brand-black group-hover:-rotate-1' 
+                                          ? 'rounded-none border-2 border-brand-black group-hover:-rotate-1 group-hover:shadow-neon-orange-ultra' 
                                           : 'rounded-md'}
                                         ${isSoldOut ? 'opacity-80' : ''}
                                       `}>
@@ -965,8 +965,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                       key={product.id} 
                                       className={`group cursor-pointer relative flex flex-col sm:flex-row gap-6 p-4 sm:p-6 transition-all duration-300
                                         ${viewMode === 'retro' 
-                                          ? 'bg-white border-2 border-brand-black shadow-retro hover:shadow-retro-hover' 
-                                          : 'bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md'}
+                                          ? 'bg-white border-2 border-brand-black shadow-retro hover:shadow-neon-orange-strong' 
+                                          : 'bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-neon-orange'}
                                       `}
                                       onClick={() => onProductClick(product)}
                                     >

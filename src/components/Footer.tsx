@@ -76,12 +76,12 @@ const NewsletterForm: React.FC = () => {
           placeholder="Enter your email" 
           disabled={isSubmitting}
           required
-          className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:bg-white/10 transition-colors disabled:opacity-50"
+          className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:bg-white/10 focus:shadow-neon-orange transition-all duration-300 disabled:opacity-50"
         />
         <button 
           type="submit"
           disabled={isSubmitting}
-          className="absolute right-1 top-1 bottom-1 px-3 bg-brand-orange text-brand-black font-bold uppercase text-[10px] tracking-wider hover:bg-brand-mustard transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          className="absolute right-1 top-1 bottom-1 px-3 bg-brand-orange text-brand-black font-bold uppercase text-[10px] tracking-wider hover:bg-brand-mustard hover:shadow-neon-orange-ultra transition-all duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? '...' : 'Join'}
         </button>
