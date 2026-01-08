@@ -39,17 +39,17 @@ export const TermsPage: React.FC<TermsPageProps> = ({ viewMode, onNavigate }) =>
           <button
             onClick={() => onNavigate('home')}
             className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-6 transition-colors
-              ${isRetro ? 'text-brand-black hover:text-brand-orange' : 'text-gray-500 hover:text-black'}
+              ${isRetro ? 'text-white hover:text-brand-orange' : 'text-gray-500 hover:text-black'}
             `}
           >
             <ArrowLeft size={14} strokeWidth={3} /> Back to Home
           </button>
 
           <div className="mb-8">
-            <h1 className={`font-display text-4xl md:text-5xl mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>
+            <h1 className={`font-display text-4xl md:text-5xl mb-4 ${isRetro ? 'text-white' : 'text-gray-900'}`}>
               Terms of Service
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className={`text-sm ${isRetro ? 'text-white/50' : 'text-gray-500'}`}>
               Last updated: {new Date().toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',

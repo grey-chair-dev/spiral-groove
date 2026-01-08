@@ -19,8 +19,8 @@ export const LocationsPage: React.FC<LocationsPageProps> = ({ viewMode }) => {
              {/* Main Location Info */}
              <div>
                 <div>
-                    <h1 className={`font-display text-5xl md:text-6xl mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Visit Us</h1>
-                    <p className="text-xl text-gray-600 font-medium">The mothership. Come say hi, grab a coffee, and dig.</p>
+                    <h1 className={`font-display text-5xl md:text-6xl mb-4 ${isRetro ? 'text-white' : 'text-gray-900'}`}>Visit Us</h1>
+                    <p className={`text-xl font-medium ${isRetro ? 'text-white/70' : 'text-gray-600'}`}>The mothership. Come say hi, grab a coffee, and dig.</p>
                 </div>
 
                 {/* Info Card */}
@@ -50,7 +50,7 @@ export const LocationsPage: React.FC<LocationsPageProps> = ({ viewMode }) => {
 
              {/* Pickup & Returns Section */}
              <div id="pickup-returns">
-                <h2 className={`font-display text-3xl mb-6 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Pickup & Returns</h2>
+                <h2 className={`font-display text-3xl mb-6 ${isRetro ? 'text-white' : 'text-gray-900'}`}>Pickup & Returns</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    
                    {/* Store Pickup */}
@@ -102,8 +102,8 @@ export const LocationsPage: React.FC<LocationsPageProps> = ({ viewMode }) => {
 
              {/* Partnerships */}
              <div>
-                 <h2 className={`font-display text-3xl mb-6 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Official Listening Stations</h2>
-                 <p className="text-gray-600 mb-6">Find our curated selections at these fine local establishments.</p>
+                 <h2 className={`font-display text-3xl mb-6 ${isRetro ? 'text-white' : 'text-gray-900'}`}>Official Listening Stations</h2>
+                 <p className={`${isRetro ? 'text-white/70' : 'text-gray-600'} mb-6`}>Find our curated selections at these fine local establishments.</p>
                  
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div className={`p-4 border ${isRetro ? 'border-brand-black bg-brand-cream' : 'border-gray-200 rounded-lg'}`}>

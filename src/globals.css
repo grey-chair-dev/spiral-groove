@@ -140,6 +140,28 @@
       );
     background-size: auto, auto, auto;
   }
+
+  /* Linen background texture (dark mode) */
+  .bg-linen-black {
+    background-color: #0D0D0D;
+    background-image:
+      radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0) 42%),
+      repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.06) 0px,
+        rgba(255, 255, 255, 0.06) 1px,
+        rgba(255, 255, 255, 0) 2px,
+        rgba(255, 255, 255, 0) 7px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 0px,
+        rgba(255, 255, 255, 0.04) 1px,
+        rgba(255, 255, 255, 0) 2px,
+        rgba(255, 255, 255, 0) 9px
+      );
+    background-size: auto, auto, auto;
+  }
 }
 
 :root {
@@ -203,7 +225,8 @@ html.neon-cursor-on * {
   top: 0;
   left: 0;
   pointer-events: none;
-  z-index: 9999;
+  /* Above all app UI (Chatbot uses z-[9999]) */
+  z-index: 2147483647;
   opacity: 0;
   transform: translate3d(-9999px, -9999px, 0);
   transition:

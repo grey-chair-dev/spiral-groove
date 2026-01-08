@@ -82,14 +82,14 @@ export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate
               The Story
             </span>
             <h2 className={`font-display text-5xl md:text-6xl leading-[0.9] mb-6
-               ${viewMode === 'retro' ? 'text-brand-black' : 'text-gray-900 tracking-tight'}
+               ${viewMode === 'retro' ? 'text-white' : 'text-gray-900 tracking-tight'}
             `}>
               Analog souls in a<br/> 
               <span className={viewMode === 'retro' ? 'text-brand-orange' : 'text-gray-400'}>digital world.</span>
             </h2>
           </div>
 
-          <div className="space-y-6 text-lg md:text-xl leading-relaxed font-medium text-brand-black/80">
+          <div className={`space-y-6 text-lg md:text-xl leading-relaxed font-medium ${viewMode === 'retro' ? 'text-white/80' : 'text-brand-black/80'}`}>
             <p>
               The shop didn't start as Spiral Groove. It was originally Earworm Records. Around 2020, Adam and Trisha Mitzel took over the business and rebranded it with a renewed focus on community, vinyl culture, and in-person music experience.
             </p>
@@ -103,7 +103,7 @@ export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate
                 onClick={() => onNavigate('about')}
                 className={`group flex items-center gap-2 font-bold text-sm uppercase tracking-widest border-b-2 pb-1 transition-all
                 ${viewMode === 'retro' 
-                  ? 'border-brand-black hover:text-brand-orange hover:border-brand-orange' 
+                  ? 'border-white/60 text-white hover:text-brand-orange hover:border-brand-orange' 
                   : 'border-black hover:opacity-60'
                 }
              `}>

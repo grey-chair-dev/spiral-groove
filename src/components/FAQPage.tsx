@@ -95,7 +95,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ viewMode }) => {
                 `}>
                    Help Center
                 </span>
-                <h1 className={`font-display text-4xl md:text-6xl mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Frequently Asked Questions</h1>
+               <h1 className={`font-display text-4xl md:text-6xl mb-4 ${isRetro ? 'text-white' : 'text-gray-900'}`}>Frequently Asked Questions</h1>
                 <p className="text-lg text-gray-500 max-w-xl mx-auto">
                     Everything you need to know about digging, trading, and spinning with us.
                 </p>
@@ -122,7 +122,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ viewMode }) => {
                 {filteredFAQs.length > 0 ? filteredFAQs.map((category) => (
                    <div key={category.category}>
                       <h2 className={`font-display text-2xl mb-6 flex items-center gap-3
-                         ${isRetro ? 'text-brand-black' : 'text-gray-800'}
+                         ${isRetro ? 'text-white' : 'text-gray-800'}
                       `}>
                          <span className={`w-8 h-8 flex items-center justify-center rounded-full text-sm border-2
                             ${isRetro ? 'bg-brand-teal border-brand-black text-white' : 'bg-gray-100 border-gray-200 text-gray-500'}

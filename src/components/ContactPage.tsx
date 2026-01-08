@@ -40,7 +40,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ viewMode }) => {
               `}>
                   Get In Touch
               </span>
-              <h1 className={`font-display text-5xl md:text-7xl mb-6 leading-tight ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>
+              <h1 className={`font-display text-5xl md:text-7xl mb-6 leading-tight ${isRetro ? 'text-white' : 'text-gray-900'}`}>
                  Holler At Us.
               </h1>
               <p className="text-xl text-gray-500 max-w-2xl mx-auto font-medium">

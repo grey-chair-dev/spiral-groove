@@ -458,15 +458,15 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       {/* Collection Header - Hide in compact mode */}
       {!compact && (
       <div className="flex flex-col gap-8 mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-brand-black/10 pb-6">
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-6">
           <div className="max-w-2xl">
             <h2 className={`font-display text-5xl md:text-6xl mb-4
-              ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[3px_3px_0px_#F35B04]' : 'text-gray-900 tracking-tight'}
+              ${viewMode === 'retro' ? 'text-white drop-shadow-[3px_3px_0px_#F35B04]' : 'text-gray-900 tracking-tight'}
             `}>
                {getSectionTitle()}
             </h2>
             <p className={`font-medium text-lg leading-relaxed
-               ${viewMode === 'retro' ? 'text-brand-black/70 font-header' : 'text-gray-500'}
+               ${viewMode === 'retro' ? 'text-white/70 font-header' : 'text-gray-500'}
             `}>
               The latest drops, restocks, and essential listening. Verified clean.
             </p>

@@ -73,7 +73,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                     <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">
                         <span className="cursor-pointer hover:text-brand-orange transition-colors" onClick={() => onNavigate('home')}>Home</span> <span className="mx-1 opacity-50">/</span> Cart
                     </div>
-                    <h1 className={`font-display text-4xl md:text-5xl ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Your Crate</h1>
+                    <h1 className={`font-display text-4xl md:text-5xl ${isRetro ? 'text-white' : 'text-gray-900'}`}>Your Crate</h1>
                 </div>
                 <Button variant={isRetro ? 'outline' : 'ghost'} onClick={() => onNavigate('catalog')}>
                    Keep Shopping

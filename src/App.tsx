@@ -827,7 +827,7 @@ function App() {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 overflow-x-hidden w-full ${effectiveViewMode === 'retro' ? 'bg-linen-cream selection:bg-brand-orange selection:text-white' : 'bg-white selection:bg-brand-black selection:text-white'}`}>
+    <div className={`min-h-screen transition-colors duration-500 overflow-x-hidden w-full ${effectiveViewMode === 'retro' ? 'bg-linen-black selection:bg-brand-orange selection:text-white' : 'bg-white selection:bg-brand-black selection:text-white'}`}>
       
       {/* Noise Texture for Retro Mode */}
       {effectiveViewMode === 'retro' && <div className="grain-overlay"></div>}

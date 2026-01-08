@@ -19,31 +19,31 @@ export const AccessibilityPage: React.FC<AccessibilityPageProps> = ({ viewMode, 
           <button
             onClick={() => onNavigate('home')}
             className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-6 transition-colors
-              ${isRetro ? 'text-brand-black hover:text-brand-orange' : 'text-gray-500 hover:text-black'}
+              ${isRetro ? 'text-white hover:text-brand-orange' : 'text-gray-500 hover:text-black'}
             `}
           >
             <ArrowLeft size={14} strokeWidth={3} /> Back to Home
           </button>
 
           <div className="mb-12">
-            <h1 className={`font-display text-4xl md:text-5xl mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>
+            <h1 className={`font-display text-4xl md:text-5xl mb-4 ${isRetro ? 'text-white' : 'text-gray-900'}`}>
               Accessibility Statement
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className={`text-lg ${isRetro ? 'text-white/70' : 'text-gray-600'}`}>
               Spiral Groove Records is committed to ensuring digital accessibility for people with disabilities. We are continually improving the user experience for everyone and applying the relevant accessibility standards.
             </p>
           </div>
 
           <div className="space-y-8">
             <section>
-              <h2 className={`mb-4 text-2xl font-bold flex items-center gap-3 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>
+              <h2 className={`mb-4 text-2xl font-bold flex items-center gap-3 ${isRetro ? 'text-white' : 'text-gray-900'}`}>
                 <Keyboard size={24} />
                 Keyboard Navigation
               </h2>
-              <p className="text-gray-700 mb-4">
+              <p className={`mb-4 ${isRetro ? 'text-white/80' : 'text-gray-700'}`}>
                 Our website is fully navigable using only a keyboard. You can:
               </p>
-              <ul className="ml-6 list-disc space-y-2 text-gray-700">
+              <ul className={`ml-6 list-disc space-y-2 ${isRetro ? 'text-white/80' : 'text-gray-700'}`}>
                 <li>Use <kbd className="px-2 py-1 bg-gray-100 rounded text-sm">Tab</kbd> to move between interactive elements</li>
                 <li>Use <kbd className="px-2 py-1 bg-gray-100 rounded text-sm">Enter</kbd> or <kbd className="px-2 py-1 bg-gray-100 rounded text-sm">Space</kbd> to activate buttons and links</li>
                 <li>Use arrow keys to navigate menus and dropdowns</li>
@@ -52,11 +52,11 @@ export const AccessibilityPage: React.FC<AccessibilityPageProps> = ({ viewMode, 
             </section>
 
             <section>
-              <h2 className={`mb-4 text-2xl font-bold flex items-center gap-3 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>
+              <h2 className={`mb-4 text-2xl font-bold flex items-center gap-3 ${isRetro ? 'text-white' : 'text-gray-900'}`}>
                 <Eye size={24} />
                 Visual Accessibility
               </h2>
-              <p className="text-gray-700 mb-4">
+              <p className={`mb-4 ${isRetro ? 'text-white/80' : 'text-gray-700'}`}>
                 We strive to make our content accessible to users with visual impairments:
               </p>
               <ul className="ml-6 list-disc space-y-2 text-gray-700">

@@ -71,7 +71,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
                 `}>
                     Mark Your Calendar
                 </span>
-                <h2 className={`font-display text-4xl md:text-5xl mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Upcoming Happenings</h2>
+                <h2 className={`font-display text-4xl md:text-5xl mb-4 ${isRetro ? 'text-white' : 'text-gray-900'}`}>Upcoming Happenings</h2>
             </div>
 
             <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
@@ -156,7 +156,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
           
           {/* Inquiry Form */}
           <div>
-             <h2 className={`font-display text-4xl mb-6 ${isRetro ? 'text-brand-black' : 'text-black'}`}>Book The Space</h2>
+             <h2 className={`font-display text-4xl mb-6 ${isRetro ? 'text-white' : 'text-black'}`}>Book The Space</h2>
              <p className="mb-8 text-lg text-gray-600">
                 Want to host a release party, community workshop, or intimate gig? 
                 Our space is equipped with a vintage Klipschorn sound system and modular staging.
@@ -220,7 +220,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
 
           {/* Past Events / Credibility */}
           <div>
-             <h2 className={`font-display text-3xl mb-8 ${isRetro ? 'text-brand-black' : 'text-black'}`}>Archive</h2>
+             <h2 className={`font-display text-3xl mb-8 ${isRetro ? 'text-white' : 'text-black'}`}>Archive</h2>
              <div className="space-y-6">
                 {PAST_EVENTS.map(event => (
                     <div key={event.id} className="flex gap-4 group opacity-70 hover:opacity-100 transition-opacity">
