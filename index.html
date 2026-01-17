@@ -1,0 +1,195 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spiral Groove Records</title>
+    <meta
+      name="description"
+      content="Curated vinyl records, hi-fi gear, and events in Milford, Ohio. Shop new arrivals, staff picks, and local pickup."
+    />
+    <link rel="canonical" href="https://spiralgrooverecords.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Spiral Groove Records" />
+    <meta property="og:title" content="Spiral Groove Records" />
+    <meta
+      property="og:description"
+      content="Curated vinyl records, hi-fi gear, and events in Milford, Ohio. Shop new arrivals, staff picks, and local pickup."
+    />
+    <meta property="og:url" content="https://spiralgrooverecords.com/" />
+    <meta property="og:image" content="https://spiralgrooverecords.com/og.svg" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Spiral Groove Records" />
+    <meta
+      name="twitter:description"
+      content="Curated vinyl records, hi-fi gear, and events in Milford, Ohio. Shop new arrivals, staff picks, and local pickup."
+    />
+    <meta name="twitter:image" content="https://spiralgrooverecords.com/og.svg" />
+
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" id="robots-meta" />
+    <script>
+      // Set robots meta tag based on hostname
+      (function() {
+        const hostname = window.location.hostname;
+        const isStaging = hostname.includes('greychair.io') || hostname.includes('vercel.app') && !hostname.includes('spiralgrooverecords.com');
+        const robotsMeta = document.getElementById('robots-meta');
+        if (robotsMeta && isStaging) {
+          robotsMeta.setAttribute('content', 'noindex,nofollow');
+        }
+      })();
+    </script>
+    <meta name="theme-color" content="#231F20" />
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7VV4DCV276"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-7VV4DCV276', {
+        send_page_view: false // We'll track pageviews manually
+      });
+    </script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Shrikhand&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/tailwind.css">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      h1, h2, h3, h4, h5, h6, .font-display {
+        font-family: 'Shrikhand', cursive;
+        letter-spacing: 0.02em;
+      }
+      .font-header {
+        font-family: 'Montserrat', sans-serif;
+      }
+      .font-hand {
+        font-family: 'Gloria Hallelujah', cursive;
+      }
+      
+      /* Groovy Scrollbar */
+      ::-webkit-scrollbar {
+        width: 12px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #FFF9F0;
+        border-left: 2px solid #231F20;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #00C2CB;
+        border: 2px solid #231F20;
+        border-radius: 99px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #FF2E63;
+      }
+
+      /* Sticker Shadows for Pop Art look */
+      .shadow-pop {
+        box-shadow: 4px 4px 0px 0px #231F20;
+      }
+      .shadow-pop-hover {
+        box-shadow: 6px 6px 0px 0px #231F20;
+        transform: translate(-2px, -2px);
+      }
+      .shadow-pop-sm {
+        box-shadow: 2px 2px 0px 0px #231F20;
+      }
+      
+      /* Tactile Animations */
+      @keyframes wobble {
+        0% { transform: rotate(0deg); }
+        25% { transform: rotate(-3deg); }
+        75% { transform: rotate(3deg); }
+        100% { transform: rotate(0deg); }
+      }
+      .hover-wobble:hover {
+        animation: wobble 0.4s ease-in-out;
+      }
+      
+      /* Analog Grain Overlay */
+      .grain-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0.05;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+      }
+
+      /* Hide Scrollbar Utility */
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      /* Print Styles */
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #printable-receipt, #printable-receipt * {
+          visibility: visible;
+        }
+        #printable-receipt {
+          position: fixed;
+          left: 50%;
+          top: 0;
+          transform: translateX(-50%);
+          width: 100%;
+          max-width: 600px;
+          margin: 0;
+          padding: 20px;
+          box-shadow: none !important;
+          border: 1px solid #000 !important;
+        }
+        
+        /* Ensure background colors/patterns print */
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        /* Hide specific elements explicitly */
+        .no-print {
+          display: none !important;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.1",
+    "react/": "https://esm.sh/react@^19.2.1/",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.1/client",
+    "react-dom": "https://esm.sh/react-dom@^19.2.1",
+    "lucide-react": "https://esm.sh/lucide-react@^0.559.0",
+    "recharts": "https://esm.sh/recharts@^3.5.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
+    "html2canvas": "https://esm.sh/html2canvas@1.4.1",
+    "jspdf": "https://esm.sh/jspdf@2.5.1",
+    "@google/genai": "https://esm.sh/@google/genai@^1.32.0"
+  }
+}
+</script>
+<!-- Tailwind CSS is compiled via PostCSS from src/globals.css -->
+</head>
+  <body class="bg-brand-cream text-brand-black antialiased selection:bg-brand-orange selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
