@@ -686,7 +686,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button 
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`p-2 rounded-full transition-colors
-                    ${isRetro ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-black'}
+                    ${isRetro ? 'hover:bg-black/5 text-brand-black' : 'hover:bg-gray-100 text-black'}
                   `}
                 >
                   <X size={24} />
@@ -711,7 +711,7 @@ export const Header: React.FC<HeaderProps> = ({
                         type="submit"
                         className={`absolute right-1 top-1 w-8 h-8 flex items-center justify-center transition-colors
                         ${isRetro 
-                            ? 'text-white hover:text-brand-orange' 
+                            ? 'text-brand-black hover:text-brand-orange' 
                             : 'text-gray-400 hover:text-black'}
                     `}>
                         <Search size={18} strokeWidth={2.5} />
@@ -773,7 +773,7 @@ export const Header: React.FC<HeaderProps> = ({
                           <button 
                             onClick={() => toggleMobileGroup(item.label)}
                             className={`flex items-center justify-between w-full text-left font-bold text-lg uppercase tracking-wide
-                               ${isRetro ? 'text-white' : 'text-gray-900'}
+                               ${isRetro ? 'text-brand-black' : 'text-gray-900'}
                             `}
                           >
                             {item.label}

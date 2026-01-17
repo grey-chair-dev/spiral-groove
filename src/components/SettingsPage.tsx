@@ -95,7 +95,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   };
 
   return (
-    <div className="animate-in fade-in duration-500 pt-8 min-h-screen bg-gray-50/50">
+    <div
+      className={`animate-in fade-in duration-500 pt-8 min-h-screen ${
+        isRetro ? 'bg-transparent' : 'bg-gray-50/50'
+      }`}
+    >
        <Section>
           <div className="max-w-4xl mx-auto">
              

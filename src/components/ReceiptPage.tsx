@@ -81,7 +81,11 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({ order, viewMode, onBac
   };
 
   return (
-    <div className="animate-in fade-in duration-500 pt-8 min-h-screen bg-gray-100/50">
+    <div
+      className={`animate-in fade-in duration-500 pt-8 min-h-screen ${
+        isRetro ? 'bg-transparent' : 'bg-gray-100/50'
+      }`}
+    >
       <Section className="py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
           

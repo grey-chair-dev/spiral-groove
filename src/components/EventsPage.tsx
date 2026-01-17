@@ -61,7 +61,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
          </div>
       </div>
 
-      <Section className={isRetro ? "bg-brand-cream" : "bg-white"}>
+      <Section className={isRetro ? "bg-transparent" : "bg-white"}>
         
         {/* Upcoming Events List */}
         <div className="mb-24">

@@ -141,7 +141,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
              <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div>
                     <span className="block text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">Price</span>
-                    <div className={`font-display text-4xl drop-shadow-[2px_2px_0px_#231F20] ${isSoldOut ? 'text-gray-400 line-through decoration-brand-red decoration-4' : 'text-brand-orange'}`}>
+                    <div className={`font-header font-extrabold tabular-nums text-4xl drop-shadow-[2px_2px_0px_#231F20] ${isSoldOut ? 'text-gray-400 line-through decoration-brand-black decoration-4' : 'text-brand-black'}`}>
                         ${product.price.toFixed(2)}
                     </div>
                 </div>

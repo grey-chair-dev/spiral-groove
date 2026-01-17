@@ -14,7 +14,7 @@ interface EventsSectionProps {
 
 export const EventsSection: React.FC<EventsSectionProps> = ({ events, viewMode, onNavigate, onRSVP }) => {
   return (
-    <Section className={viewMode === 'retro' ? "bg-brand-cream relative border-t-2 border-brand-black" : "bg-white"}>
+    <Section className={viewMode === 'retro' ? "bg-transparent relative border-t-2 border-brand-black" : "bg-white"}>
        {/* Background Grid Pattern for Retro */}
        {viewMode === 'retro' && (
          <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#0E0E0E 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>

@@ -159,7 +159,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ viewMode, onNavigate, on
                          </div>
                          <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Amount</span>
-                            <span className={`font-bold text-lg ${isRetro ? 'font-display text-brand-black' : ''}`}>${order.total.toFixed(2)}</span>
+                            <span className={`font-header font-extrabold tabular-nums text-lg ${isRetro ? 'text-brand-black' : ''}`}>${order.total.toFixed(2)}</span>
                          </div>
                          <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Status</span>

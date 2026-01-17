@@ -290,7 +290,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   };
 
   return (
-    <div className="animate-in fade-in duration-500 pt-8 min-h-screen bg-gray-50/50">
+    <div
+      className={`animate-in fade-in duration-500 pt-8 min-h-screen ${
+        isRetro ? 'bg-transparent' : 'bg-gray-50/50'
+      }`}
+    >
        <Section>
           {showAuthWall ? (
             <div className="max-w-4xl mx-auto">
@@ -547,8 +551,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         </div>
 
                         <div className="flex justify-between items-end border-t border-black/10 pt-4 mb-8">
-                            <span className="font-display text-xl">Total</span>
-                            <span className="font-display text-3xl text-brand-black">${total.toFixed(2)}</span>
+                            <span className="font-bold text-xs uppercase tracking-widest opacity-70">Total</span>
+                            <span className="font-header font-extrabold tabular-nums text-3xl text-brand-black">${total.toFixed(2)}</span>
                         </div>
 
                         <Button 

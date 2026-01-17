@@ -23,7 +23,11 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
   if (!order) return null;
 
   return (
-    <div className="animate-in fade-in duration-700 pt-12 min-h-screen bg-gray-50/50">
+    <div
+      className={`animate-in fade-in duration-700 pt-12 min-h-screen ${
+        isRetro ? 'bg-transparent' : 'bg-gray-50/50'
+      }`}
+    >
       <Section>
         <div className="max-w-3xl mx-auto text-center">
             
@@ -55,11 +59,11 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-8 border-b border-dashed border-gray-300 mb-8">
                     <div>
                         <span className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Order Number</span>
-                        <span className="font-display text-2xl">{order.id}</span>
+                        <span className="font-header font-extrabold tabular-nums text-2xl">{order.id}</span>
                     </div>
                     <div>
                          <span className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Total Paid</span>
-                         <span className="font-display text-2xl">${order.total.toFixed(2)}</span>
+                         <span className="font-header font-extrabold tabular-nums text-2xl">${order.total.toFixed(2)}</span>
                     </div>
                     <div>
                          <span className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Date</span>

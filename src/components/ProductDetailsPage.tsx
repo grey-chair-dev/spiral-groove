@@ -259,7 +259,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                  <div className="flex items-center justify-between mb-6">
                     <div>
                        <span className="block text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">PRICE</span>
-                       <div className={`font-display text-5xl font-bold ${isSoldOut ? 'text-gray-300 line-through decoration-brand-red' : 'text-gray-900'}`}>
+                       <div className={`font-header font-extrabold tabular-nums text-5xl ${isSoldOut ? 'text-gray-300 line-through decoration-brand-black' : 'text-gray-900'}`}>
                           ${product.price.toFixed(2)}
                        </div>
                     </div>

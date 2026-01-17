@@ -32,7 +32,7 @@ if (existsSync(envPath)) {
 }
 
 // Get email from command line or use default
-const testEmail = process.argv[2] || 'bcohen0424@gmail.com'
+const testEmail = process.argv[2] || 'tools@greychair.io'
 
 // Check if webhook URL is configured
 if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {

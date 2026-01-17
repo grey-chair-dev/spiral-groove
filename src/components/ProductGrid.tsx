@@ -490,10 +490,11 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         {/* Unified Sticky Toolbar */}
         {showFilters && (
         <div className="sticky top-[72px] z-[70] -mx-4 px-4 sm:mx-0 sm:px-0 pt-4 pb-4 overflow-y-visible overflow-x-clip">
-          {/* Backdrop Blur Mask */}
-          <div className={`absolute inset-0 pointer-events-none border-b shadow-sm transition-all
-            ${viewMode === 'retro' ? 'bg-brand-cream/95 border-brand-black/10' : 'bg-white/95 border-gray-100'}
-            backdrop-blur-md`} 
+          {/* Transparent sticky toolbar background */}
+          <div
+            className={`absolute inset-0 pointer-events-none border-b transition-all bg-transparent
+              ${viewMode === 'retro' ? 'border-brand-black/10' : 'border-gray-100'}
+            `}
           />
           
           <div className="relative flex flex-wrap items-center justify-between gap-4 pointer-events-auto">
@@ -908,17 +909,17 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                                    <span className="text-xs font-bold text-gray-400 line-through decoration-gray-400 decoration-1">
                                                          ${product.price.toFixed(2)}
                                                    </span>
-                                                   <span className={`font-display text-lg tracking-wide leading-none
-                                                      ${viewMode === 'retro' ? 'text-brand-red drop-shadow-[1px_1px_0px_#231F20]' : 'text-brand-red'}
+                                                   <span className={`font-header font-extrabold tabular-nums text-lg tracking-wide leading-none
+                                                      ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
                                                    `}>
                                                        ${product.salePrice.toFixed(2)}
                                                    </span>
                                                </div>
                                             ) : (
                                                <div className="flex items-baseline gap-2">
-                                                 <span className={`font-display text-lg tracking-wide leading-none
-                                                  ${viewMode === 'retro' ? 'text-brand-orange drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
-                                                   ${isSoldOut ? 'opacity-40 line-through decoration-2 decoration-brand-red' : ''}
+                                                 <span className={`font-header font-extrabold tabular-nums text-lg tracking-wide leading-none
+                                                  ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
+                                                   ${isSoldOut ? 'opacity-40 line-through decoration-2 decoration-brand-black' : ''}
                                                  `}>
                                                    ${product.price.toFixed(2)}
                                                  </span>
@@ -1038,17 +1039,17 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                                 <span className="text-sm font-bold text-gray-400 line-through decoration-gray-400 decoration-1">
                                                   ${product.price.toFixed(2)}
                                                 </span>
-                                                <span className={`font-display text-xl tracking-wide leading-none
-                                                  ${viewMode === 'retro' ? 'text-brand-red drop-shadow-[1px_1px_0px_#231F20]' : 'text-brand-red'}
+                                                <span className={`font-header font-extrabold tabular-nums text-xl tracking-wide leading-none
+                                                  ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
                                                 `}>
                                                   ${product.salePrice.toFixed(2)}
                                                 </span>
                                               </div>
                                             ) : (
                                               <div className="flex items-baseline gap-2">
-                                                <span className={`font-display text-xl tracking-wide leading-none
-                                                  ${viewMode === 'retro' ? 'text-brand-orange drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
-                                                  ${isSoldOut ? 'opacity-40 line-through decoration-2 decoration-brand-red' : ''}
+                                                <span className={`font-header font-extrabold tabular-nums text-xl tracking-wide leading-none
+                                                  ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
+                                                  ${isSoldOut ? 'opacity-40 line-through decoration-2 decoration-brand-black' : ''}
                                                 `}>
                                                   ${product.price.toFixed(2)}
                                                 </span>

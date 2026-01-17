@@ -123,7 +123,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                                     <p className="text-xs font-bold text-gray-400 mt-1">{item.product.condition} Condition</p>
                                  </div>
                                  <div className="text-right">
-                                     <div className={`font-display text-2xl ${isRetro ? 'text-brand-black' : 'text-black'}`}>
+                                 <div className={`font-header font-extrabold tabular-nums text-2xl ${isRetro ? 'text-brand-black' : 'text-black'}`}>
                                          ${(currentPrice * item.quantity).toFixed(2)}
                                      </div>
                                      {item.quantity > 1 && (
@@ -197,7 +197,7 @@ export const CartPage: React.FC<CartPageProps> = ({
 
                         <div className="flex justify-between items-end border-t border-black/10 pt-4 mb-8">
                             <span className="font-display text-xl">Total</span>
-                            <span className="font-display text-3xl text-brand-black">${total.toFixed(2)}</span>
+                            <span className="font-header font-extrabold tabular-nums text-3xl text-brand-black">${total.toFixed(2)}</span>
                         </div>
 
                         <div className="space-y-3">
