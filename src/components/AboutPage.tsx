@@ -9,6 +9,25 @@ interface AboutPageProps {
 
 export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
   const isRetro = viewMode === 'retro';
+  
+  const galleryImages: Array<{ src: string; alt: string }> = [
+    {
+      src: '/images/IMG_2500.jpeg',
+      alt: 'Inside Spiral Groove Records — rows of vinyl bins',
+    },
+    {
+      src: '/images/IMG_2493.jpeg',
+      alt: 'Spiral Groove Records — mural wall inside the shop',
+    },
+    {
+      src: '/images/IMG_2496.jpeg',
+      alt: 'Spiral Groove Records — album-lined walls and lounge area',
+    },
+    {
+      src: '/images/IMG_2492.jpeg',
+      alt: 'Spiral Groove Records storefront — entrance on Main Street',
+    },
+  ];
 
   return (
     <div className="animate-in fade-in duration-500">
@@ -18,7 +37,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
               <span className={`inline-block px-4 py-1.5 mb-6 text-xs font-bold uppercase tracking-[0.2em] 
                  ${isRetro ? 'bg-brand-teal text-white border-2 border-brand-black shadow-pop-sm' : 'bg-black text-white rounded-full'}
               `}>
-                  Est. 2020
+                  Established 2020
               </span>
               <h1 className={`font-display text-5xl md:text-7xl mb-8 leading-[0.9] ${isRetro ? 'text-brand-black' : 'text-black'}`}>
                  Keep It Spinning.
@@ -50,11 +69,13 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
               <div className="md:col-span-5 space-y-8">
                  <div className={`relative aspect-[3/4] ${isRetro ? 'border-2 border-brand-black p-2 bg-white shadow-retro' : 'rounded-2xl overflow-hidden'}`}>
                     <img 
-                        src="https://images.unsplash.com/photo-1533230504859-7b3b0cb5496d?q=80&w=1000&auto=format&fit=crop" 
-                        alt="Store interior" 
-                        className="w-full h-full object-cover grayscale-[20%]" 
+                        src="/images/IMG_2490.jpeg" 
+                        alt="Spiral Groove Records storefront with neon record sign" 
+                        className={`w-full h-full object-cover ${isRetro ? 'grayscale-[20%]' : ''}`}
+                        loading="lazy"
+                        decoding="async"
                     />
-                    {isRetro && <div className="absolute -bottom-4 -right-4 bg-brand-orange text-brand-black px-4 py-2 border-2 border-brand-black font-bold uppercase text-xs transform rotate-3">The Original Shop</div>}
+                    {isRetro && <div className="absolute -bottom-4 -right-4 bg-brand-orange text-brand-black px-4 py-2 border-2 border-brand-black font-bold uppercase text-xs transform rotate-3">Our Fearless Leader</div>}
                  </div>
                  
                  <div className="text-center">
@@ -63,6 +84,56 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
                  </div>
               </div>
 
+           </div>
+
+           {/* Photo Gallery */}
+           <div className="mt-20">
+              <div className="text-center mb-10">
+                <span className={`inline-block px-4 py-1.5 mb-4 text-xs font-bold uppercase tracking-[0.2em] 
+                  ${isRetro ? 'bg-brand-mustard text-brand-black border-2 border-brand-black shadow-pop-sm' : 'bg-gray-100 text-gray-900 rounded-full'}
+                `}>
+                  Inside Spiral Groove
+                </span>
+                <h3 className={`font-display text-3xl md:text-4xl leading-tight ${isRetro ? 'text-brand-black' : 'text-black'}`}>
+                  A few snapshots from the shop.
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {galleryImages.map((img, idx) => {
+                  const isFeatured = idx === 0;
+                  const isMural = img.src === '/images/IMG_2493.jpeg';
+                  return (
+                    <figure
+                      key={img.src}
+                      className={`group relative overflow-hidden transition-transform
+                        ${isFeatured ? 'sm:col-span-2 lg:col-span-2' : ''}
+                        ${isRetro ? 'border-2 border-brand-black bg-white shadow-retro' : 'rounded-2xl border border-gray-100 shadow-sm'}
+                      `}
+                    >
+                      <div className={isFeatured ? 'aspect-[16/9]' : 'aspect-[4/3]'}>
+                        <img
+                          src={img.src}
+                          alt={img.alt}
+                          className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]
+                            ${isRetro ? 'grayscale-[15%] contrast-[1.05]' : 'saturate-[1.08] contrast-[1.05]'}
+                            ${isMural ? 'object-[center_25%]' : ''}
+                          `}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </div>
+
+                      {/* Subtle overlay to help busy images read cleaner */}
+                      <div
+                        className={`pointer-events-none absolute inset-0
+                          ${isMural ? 'bg-gradient-to-t from-black/25 via-black/0 to-black/0' : ''}
+                        `}
+                      />
+                    </figure>
+                  );
+                })}
+              </div>
            </div>
         </div>
       </Section>

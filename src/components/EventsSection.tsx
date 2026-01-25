@@ -63,14 +63,11 @@ export const EventsSection: React.FC<EventsSectionProps> = ({ events, viewMode, 
                
                <p className="text-gray-600 text-sm mb-6 line-clamp-2 leading-relaxed">{event.description}</p>
                
-               <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
+                <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
                  <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide">
                     <MapPin size={14} />
                     <span>In-Store • {event.time}</span>
                  </div>
-                 <Button variant={viewMode === 'retro' ? 'outline' : 'ghost'} size="sm" onClick={() => onRSVP(event)}>
-                   RSVP
-                 </Button>
                </div>
             </div>
           </div>

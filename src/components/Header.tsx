@@ -334,13 +334,13 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="flex items-center justify-center md:justify-start">
                   
                   <div className={`flex flex-col leading-none items-center md:items-start transition-all origin-left
-                    ${scrolled ? 'scale-[0.92]' : 'scale-100'}
+                    ${scrolled ? 'scale-100' : 'scale-100'}
                   `}>
                     <div className="inline-block origin-center animate-spin-slow motion-reduce:animate-none transition-all duration-300">
                       <img 
                         src="/full-logo.png" 
                         alt="Spiral Groove Records" 
-                        className="h-16 sm:h-20 md:h-24 w-auto transform group-hover:scale-[1.02] transition-transform object-contain"
+                        className="h-32 sm:h-36 md:h-40 w-auto transform group-hover:scale-[1.02] transition-transform object-contain"
                       />
                     </div>
                   </div>

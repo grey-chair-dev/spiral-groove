@@ -3,7 +3,7 @@
  * Test script to send all email types to a specified email address
  * 
  * Usage: node scripts/test-emails.mjs [email]
- * Default email: bcohen0424@gmail.com
+ * Default email: tools@greychair.io
  */
 
 import { readFileSync, existsSync } from 'node:fs'

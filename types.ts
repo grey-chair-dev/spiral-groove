@@ -74,4 +74,4 @@ export interface Order {
 
 export type ViewMode = 'retro' | 'modern';
 
-export type Page = 'home' | 'events' | 'about' | 'locations' | 'sales' | 'we-buy' | 'catalog' | 'product' | 'orders' | 'receipt' | 'order-status' | 'faq' | 'contact' | 'staff-picks' | 'rsvp' | 'cart' | 'checkout' | 'order-confirmation' | 'settings' | 'search' | 'privacy' | 'terms' | 'accessibility';
+export type Page = 'home' | 'events' | 'about' | 'locations' | 'sales' | 'we-buy' | 'catalog' | 'product' | 'orders' | 'receipt' | 'order-status' | 'faq' | 'contact' | 'staff-picks' | 'cart' | 'checkout' | 'order-confirmation' | 'settings' | 'search' | 'privacy' | 'terms' | 'accessibility';

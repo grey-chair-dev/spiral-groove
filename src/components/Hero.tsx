@@ -1,55 +1,28 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Button } from './ui/Button';
-import { ViewMode, Page } from '../../types';
-import { ChevronLeft, ChevronRight, Disc, Headphones, Radio, MapPin, Calendar, Heart, Star } from 'lucide-react';
+import { ViewMode, Page, Product } from '../../types';
+import { ChevronLeft, ChevronRight, Disc, MapPin, Calendar, Heart } from 'lucide-react';
 
 interface HeroProps {
   viewMode: ViewMode;
   onNavigate: (page: Page, filter?: string) => void;
+  products: Product[];
+  onProductClick: (product: Product) => void;
 }
 
-const SLIDES = [
-  {
-    id: 1,
-    badge: "Album of the Week",
-    title: "Tame Impala: Currents",
-    subtitle: "10th Anniversary Collector's Edition",
-    description: "Experience the psychedelic masterpiece like never before. Pressed on exclusive 180g purple splatter vinyl with a 24-page booklet.",
-    image: "https://picsum.photos/1600/900?random=101",
-    ctaPrimary: "Shop Exclusive",
-    ctaSecondary: "View All Tame Impala",
-    filterPrimary: "Rock",
-    filterSecondary: "Rock",
-    icon: <Disc size={18} />
-  },
-  {
-    id: 2,
-    badge: "Genre Focus",
-    title: "Japanese City Pop",
-    subtitle: "Sun-Soaked Sounds from Tokyo",
-    description: "From Tatsuro Yamashita to Mariya Takeuchi. Discover the golden era of J-Pop, funk, and boogie. Imported directly from Osaka.",
-    image: "https://picsum.photos/1600/900?random=102",
-    ctaPrimary: "Explore Collection",
-    ctaSecondary: "Read the Blog",
-    filterPrimary: "Electronic",
-    filterSecondary: "All",
-    icon: <Radio size={18} />
-  },
-  {
-    id: 3,
-    badge: "Hi-Fi Gear",
-    title: "Analog Warmth",
-    subtitle: "Audio-Technica LP-120X",
-    description: "The perfect entry into high-fidelity listening. Direct-drive, built-in preamp, and that classic industrial design.",
-    image: "https://picsum.photos/1600/900?random=103",
-    ctaPrimary: "Shop Turntables",
-    ctaSecondary: "Setup Guide",
-    filterPrimary: "All",
-    filterSecondary: "All",
-    icon: <Headphones size={18} />
-  }
-];
+type Slide = {
+  id: string
+  badge: string
+  title: string
+  subtitle: string
+  description: string
+  image: string
+  ctaPrimary: string
+  ctaSecondary: string
+  onPrimary: () => void
+  onSecondary: () => void
+}
 
 const HIGHLIGHTS = [
   { icon: Heart, text: "Curated by real music lovers", sub: "Hand-picked daily" },
@@ -57,31 +30,155 @@ const HIGHLIGHTS = [
   { icon: MapPin, text: "Local Pickup", sub: "215B Main St, Milford" }
 ];
 
-export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate }) => {
+export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate, products, onProductClick }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const isRetro = viewMode === 'retro';
+
+  const slides: Slide[] = useMemo(() => {
+    const inStock = (p: Product) => p.inStock !== false
+    const isAlbum = (p: Product) => {
+      const f = (p.format || '').toLowerCase()
+      // Heuristic: treat LP/12" vinyl as album; exclude singles/cd/cassette
+      if (f.includes('45') || f.includes('7"') || f.includes('7\'') || f.includes('single')) return false
+      if (f.includes('cd') || f.includes('cassette') || f.includes('tape')) return false
+      return f.includes('lp') || f.includes('vinyl') || f.includes('12"') || f.includes('12\'') || f.length === 0
+    }
+    const hasTag = (p: Product, re: RegExp) => (p.tags || []).some((t) => re.test(String(t)))
+    const isBestSeller = (p: Product) =>
+      hasTag(p, /best\s*seller|bestseller|top\s*seller|popular|trending|hot/i)
+
+    const albumPool = products.filter(inStock).filter(isAlbum)
+    const newest =
+      albumPool.find((p) => p.isNewArrival) ||
+      products.filter(inStock).find((p) => p.isNewArrival) ||
+      albumPool[0] ||
+      products.filter(inStock)[0] ||
+      products[0]
+
+    const bestSellerPoolRaw = products.filter(inStock).filter(isBestSeller)
+    const bestSellerFallback = products.filter(inStock)
+    const bestSellerPool = [...bestSellerPoolRaw, ...bestSellerFallback]
+      .filter((p, idx, arr) => arr.findIndex((x) => x.id === p.id) === idx)
+      .filter((p) => (newest ? p.id !== newest.id : true))
+      .slice(0, 3)
+
+    const pickDescription = (p: Product) => {
+      if (p.description && p.description.trim()) return p.description.trim()
+      const chips = [p.format, p.genre, p.condition].filter(Boolean).join(' • ')
+      const stock = p.inStock === false ? 'Sold out.' : 'In stock.'
+      return `${stock} ${chips ? `${chips}.` : ''} Verified clean.`
+    }
+
+    const baseCatalog = () => onNavigate('catalog', 'All')
+
+    const built: Slide[] = []
+    const usedIds = new Set<string>()
+    if (newest) {
+      usedIds.add(newest.id)
+      built.push({
+        id: `newest:${newest.id}`,
+        badge: 'Newest album',
+        title: newest.title,
+        subtitle: `${newest.artist}${newest.format ? ` • ${newest.format}` : ''}${newest.genre ? ` • ${newest.genre}` : ''}`,
+        description: pickDescription(newest),
+        image: newest.coverUrl,
+        ctaPrimary: 'View record',
+        ctaSecondary: 'Shop best sellers',
+        onPrimary: () => onProductClick(newest),
+        onSecondary: baseCatalog,
+      })
+    }
+
+    bestSellerPool.forEach((p) => {
+      usedIds.add(p.id)
+      built.push({
+        id: `bestseller:${p.id}`,
+        badge: 'Best seller',
+        title: p.title,
+        subtitle: `${p.artist}${p.format ? ` • ${p.format}` : ''}${p.genre ? ` • ${p.genre}` : ''}`,
+        description: pickDescription(p),
+        image: p.coverUrl,
+        ctaPrimary: 'View record',
+        ctaSecondary: 'Shop the catalog',
+        onPrimary: () => onProductClick(p),
+        onSecondary: baseCatalog,
+      })
+    })
+
+    // "Worst seller" (aka least-promoted) — pick something in-stock that isn't
+    // newest/best-seller, with minimal tags/flags. We label it as "Explore new digs".
+    const deepCutPool = products
+      .filter(inStock)
+      .filter((p) => !usedIds.has(p.id))
+      .filter((p) => !isBestSeller(p))
+      .filter((p) => !p.isNewArrival)
+      .sort((a, b) => {
+        const aTags = (a.tags?.length ?? 0) + (a.onSale ? 1 : 0)
+        const bTags = (b.tags?.length ?? 0) + (b.onSale ? 1 : 0)
+        if (aTags !== bTags) return aTags - bTags
+        return `${a.artist} ${a.title}`.localeCompare(`${b.artist} ${b.title}`)
+      })
+
+    const deepCut = deepCutPool[0]
+    if (deepCut) {
+      built.push({
+        id: `explore:${deepCut.id}`,
+        badge: 'Explore new digs',
+        title: deepCut.title,
+        subtitle: `${deepCut.artist}${deepCut.format ? ` • ${deepCut.format}` : ''}${deepCut.genre ? ` • ${deepCut.genre}` : ''}`,
+        description: pickDescription(deepCut),
+        image: deepCut.coverUrl,
+        ctaPrimary: 'View record',
+        ctaSecondary: 'Browse more',
+        onPrimary: () => onProductClick(deepCut),
+        onSecondary: baseCatalog,
+      })
+    }
+
+    // Ensure we always have at least 1 slide
+    if (built.length === 0) {
+      built.push({
+        id: 'fallback',
+        badge: 'Now spinning',
+        title: 'Spiral Groove Records',
+        subtitle: 'New arrivals • Best sellers • Local pickup',
+        description: 'Dig the stacks, discover essentials, and grab your next favorite record.',
+        image: 'https://picsum.photos/1600/900?random=101',
+        ctaPrimary: 'Shop the catalog',
+        ctaSecondary: 'See events',
+        onPrimary: () => onNavigate('catalog', 'All'),
+        onSecondary: () => onNavigate('events'),
+      })
+    }
+
+    return built
+  }, [products, onNavigate, onProductClick])
 
   // Auto-play logic
   useEffect(() => {
     if (!isAutoPlaying) return;
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, [isAutoPlaying]);
+  }, [isAutoPlaying, slides.length]);
+
+  useEffect(() => {
+    if (currentSlide >= slides.length) setCurrentSlide(0)
+  }, [currentSlide, slides.length])
 
   const nextSlide = () => {
     setIsAutoPlaying(false);
-    setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
 
   const prevSlide = () => {
     setIsAutoPlaying(false);
-    setCurrentSlide((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
-  const slide = SLIDES[currentSlide];
-  const isRetro = viewMode === 'retro';
+  const slide = slides[currentSlide];
 
   return (
     <div 
@@ -124,12 +221,12 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate }) => {
                  <div className="mb-4 sm:mb-6 animate-in slide-in-from-left-8 fade-in duration-700 delay-100">
                    {isRetro ? (
                      <div className="inline-flex items-center gap-2 px-4 py-1.5 border-2 border-brand-black bg-brand-mustard text-brand-black text-xs font-bold uppercase tracking-widest shadow-pop-sm transform -rotate-1 hover-wobble cursor-default">
-                       {slide.icon}
+                       <Disc size={18} />
                        <span>{slide.badge}</span>
                      </div>
                    ) : (
                      <span className="inline-flex items-center gap-2 bg-white text-black px-4 py-2 text-sm font-bold uppercase tracking-widest rounded-full shadow-lg">
-                       {slide.icon} {slide.badge}
+                       <Disc size={18} /> {slide.badge}
                      </span>
                    )}
                  </div>
@@ -165,7 +262,7 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate }) => {
                      variant="primary" 
                      size="lg"
                      fullWidth={false}
-                     onClick={() => onNavigate('catalog', slide.filterPrimary)}
+                     onClick={slide.onPrimary}
                      className={`w-full sm:w-auto transition-all duration-300
                        ${isRetro 
                          ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-[4px_4px_0px_#FFFFFF] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#FFFFFF] hover:neon-glow-orange-ultra' 
@@ -179,7 +276,7 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate }) => {
                      variant={isRetro ? "outline" : "ghost"}
                      size="lg"
                      fullWidth={false}
-                     onClick={() => onNavigate('catalog', slide.filterSecondary)}
+                     onClick={slide.onSecondary}
                      className={`w-full sm:w-auto transition-all duration-300
                        ${isRetro 
                          ? 'bg-transparent text-white border-2 border-white shadow-[4px_4px_0px_rgba(255,255,255,0.25)] hover:bg-white hover:text-brand-black hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] hover:neon-glow-orange' 

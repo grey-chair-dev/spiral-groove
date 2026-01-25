@@ -94,11 +94,10 @@ export const StaffPicksPage: React.FC<StaffPicksPageProps> = ({ viewMode, onProd
                                             <div className={`w-10 h-10 overflow-hidden
                                                 ${isRetro ? 'border border-brand-black' : 'rounded-full shadow-sm ring-2 ring-white'}
                                             `}>
-                                                <img src={pick.staffImage} alt={pick.staffName} className="w-full h-full object-cover" />
+                                                <img src={pick.staffImage} alt="Spiral Groove Records staff pick" className="w-full h-full object-cover" />
                                             </div>
                                             <div>
-                                                <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">Picked By</p>
-                                                <p className="font-bold text-sm">{pick.staffName}</p>
+                                                <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">Staff Pick</p>
                                             </div>
                                         </div>
                                         <div className={`flex gap-0.5 ${isRetro ? 'text-brand-orange' : 'text-brand-mustard'}`}>

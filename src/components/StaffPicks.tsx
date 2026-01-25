@@ -72,13 +72,12 @@ export const StaffPicks: React.FC<StaffPicksProps> = ({ picks, viewMode, onProdu
                        ${viewMode === 'retro' ? 'rounded-none border border-brand-black' : 'rounded-full ring-2 ring-white shadow-sm'}`}>
                        <img 
                          src={pick.staffImage} 
-                         alt={pick.staffName} 
+                         alt="Spiral Groove Records staff pick" 
                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-125" 
                        />
                      </div>
                      <div className="flex flex-col">
-                       <span className={`text-[9px] uppercase tracking-wider font-bold ${viewMode === 'retro' ? 'text-gray-500' : 'text-gray-400'}`}>Pick By</span>
-                       <span className="font-bold text-xs">{pick.staffName}</span>
+                       <span className={`text-[9px] uppercase tracking-wider font-bold ${viewMode === 'retro' ? 'text-gray-500' : 'text-gray-400'}`}>Staff Pick</span>
                      </div>
                   </div>
                   <div className={`flex gap-1 ${viewMode === 'retro' ? 'text-brand-orange' : 'text-brand-mustard'}`}>

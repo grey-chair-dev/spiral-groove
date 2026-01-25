@@ -26,9 +26,10 @@ export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate
                  }
               `}>
                 <img 
-                  src="https://www.districtwon.com/wp-content/uploads/sites/12/2024/03/image-placeholder-500x500-1.jpg" 
-                  alt="Browsing vinyl records" 
+                  src="/images/IMG_2500.jpeg" 
+                  alt="Inside Spiral Groove Records — rows of vinyl bins" 
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
 
@@ -40,9 +41,10 @@ export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate
                  }
               `}>
                  <img 
-                   src="https://images.unsplash.com/photo-1542208998-f6dbbb27a72f?q=80&w=1000&auto=format&fit=crop" 
-                   alt="Turntable needle" 
+                   src="/images/IMG_2490.jpeg" 
+                   alt="Spiral Groove Records storefront with neon record sign" 
                    className="w-full h-full object-cover"
+                   loading="lazy"
                  />
               </div>
 
@@ -55,9 +57,9 @@ export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate
               `}>
                  <svg viewBox="0 0 100 100" className="w-20 h-20 fill-current">
                    <path id="circlePath" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" fill="transparent" />
-                   <text fontSize="12.5" fontWeight="bold" letterSpacing="1px">
+                   <text fontSize="15" fontWeight="bold" letterSpacing="1px">
                      <textPath xlinkHref="#circlePath">
-                       EST. 2020 • MILFORD • EST. 2020 •
+                       EST. 2020 • MILFORD, OH • 
                      </textPath>
                    </text>
                  </svg>

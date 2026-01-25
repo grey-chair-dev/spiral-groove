@@ -134,7 +134,6 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
                                         <span className="flex items-center gap-1"><Clock size={14} /> {event.time}</span>
                                         <span className="flex items-center gap-1"><MapPin size={14} /> Spiral Groove</span>
                                     </div>
-                                    <Button size="sm" variant={isRetro ? 'primary' : 'outline'} onClick={() => onRSVP(event)}>RSVP</Button>
                                 </div>
                             </div>
                         </div>
@@ -234,16 +233,6 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
                         </div>
                     </div>
                 ))}
-             </div>
-             
-             <div className={`mt-12 p-6 border-l-4 ${isRetro ? 'bg-brand-mustard/20 border-brand-mustard' : 'bg-gray-50 border-gray-300'}`}>
-                <h4 className="font-bold uppercase tracking-widest text-xs mb-2">Tech Specs</h4>
-                <ul className="text-sm space-y-2 font-medium text-gray-700">
-                    <li>• PA: 2x Klipschorn AK6 Heritage</li>
-                    <li>• Mixer: Allen & Heath Xone:96</li>
-                    <li>• Mics: 2x Shure SM58, 1x SM57</li>
-                    <li>• Capacity: 50 Standing, 30 Seated</li>
-                </ul>
              </div>
           </div>
 

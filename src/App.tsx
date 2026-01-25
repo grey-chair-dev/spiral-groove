@@ -26,7 +26,6 @@ import { OrderStatusPage } from './components/OrderStatusPage';
 import { FAQPage } from './components/FAQPage';
 import { ContactPage } from './components/ContactPage';
 import { StaffPicksPage } from './components/StaffPicksPage';
-import { RSVPPage } from './components/RSVPPage';
 import { CartPage } from './components/CartPage';
 import { CheckoutPage } from './components/CheckoutPage';
 import { OrderConfirmationPage } from './components/OrderConfirmationPage';
@@ -56,7 +55,6 @@ const VALID_PAGES: Page[] = [
   'faq',
   'contact',
   'staff-picks',
-  'rsvp',
   'cart',
   'checkout',
   'order-confirmation',
@@ -227,7 +225,6 @@ function App() {
   const [currentFilter, setCurrentFilter] = useState<string | undefined>(initialRoute.filter);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>(initialRoute.searchQuery ?? '');
@@ -418,7 +415,6 @@ function App() {
       'faq': 'FAQ - Spiral Groove Records',
       'contact': 'Contact - Spiral Groove Records',
       'staff-picks': 'Staff Picks - Spiral Groove Records',
-      'rsvp': 'RSVP - Spiral Groove Records',
       'cart': 'Cart - Spiral Groove Records',
       'checkout': 'Checkout - Spiral Groove Records',
       'order-confirmation': 'Order Confirmation - Spiral Groove Records',
@@ -801,9 +797,22 @@ function App() {
   };
   
   const handleRSVP = (event: Event) => {
-    setSelectedEvent(event);
-    setCurrentPage('rsvp');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const to = 'info@spiralgrooverecords.com'
+    const subject = `RSVP: ${event.title} — ${event.date} ${event.time}`
+    const body = [
+      `Hi Spiral Groove Records,`,
+      ``,
+      `I'd like to RSVP for:`,
+      `${event.title}`,
+      `${event.date} • ${event.time}`,
+      ``,
+      `Name:`,
+      `Email:`,
+      `Guests:`,
+      ``,
+      `Thanks!`,
+    ].join('\\n')
+    window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   }
 
   // Filter related products for the details page
@@ -855,6 +864,8 @@ function App() {
                 <Hero 
                     viewMode={effectiveViewMode} 
                     onNavigate={handleNavigate}
+                    products={products}
+                    onProductClick={handleProductClick}
                 />
                 {productsLoading ? (
                     <div className="py-20 text-center">
@@ -1019,13 +1030,6 @@ function App() {
                 viewMode={effectiveViewMode}
                 onProductClick={handleProductClick}
                 onNavigate={handleNavigate}
-            />
-        )}
-        {currentPage === 'rsvp' && selectedEvent && (
-            <RSVPPage 
-                viewMode={effectiveViewMode}
-                event={selectedEvent}
-                onBack={() => handleNavigate('events')}
             />
         )}
         {currentPage === 'settings' && (

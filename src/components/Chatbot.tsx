@@ -311,7 +311,7 @@ export const Chatbot: React.FC = () => {
           <div className="bg-brand-black text-brand-cream p-4 rounded-t-lg flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />
-              <h3 className="font-display text-lg">Spiral Groove Chat</h3>
+              <h3 className="font-display text-lg">Chat with Groovy</h3>
             </div>
             <button
               onClick={() => setIsOpen(false)}

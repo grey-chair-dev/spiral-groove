@@ -4,80 +4,107 @@
  * Matches the Spiral Groove Records website design
  */
 
-/**
- * Generate newsletter signup welcome email HTML
- */
-export function generateNewsletterEmail(data) {
-  const { firstName, lastName, email } = data
-  const name = firstName ? `${firstName} ${lastName || ''}`.trim() : email.split('@')[0]
-  
+const BRAND = {
+  black: '#231F20',
+  cream: '#FFF9F0',
+  white: '#FFFFFF',
+  orange: '#F35B04',
+  teal: '#00C2CB',
+  red: '#FF2E63',
+  mustard: '#F9D776',
+  gray600: '#666666',
+  gray500: '#999999',
+  gray200: '#E5E5E5',
+}
+
+function getBaseUrl() {
+  const raw = process.env.SITE_URL || 'https://spiralgrooverecords.com'
+  return raw.replace(/\/+$/, '')
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function renderButton({ href, label, tone = 'orange' }) {
+  const bg = tone === 'teal' ? BRAND.teal : tone === 'black' ? BRAND.black : BRAND.orange
+  const fg = tone === 'black' ? BRAND.cream : BRAND.black
+
+  return `
+    <div style="text-align:center; margin: 26px 0 0 0;">
+      <a href="${href}" style="display:inline-block; padding: 14px 22px; background-color: ${bg}; color: ${fg}; text-decoration:none; border-radius: 10px; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; border: 2px solid ${BRAND.black}; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+        ${escapeHtml(label)}
+      </a>
+    </div>
+  `.trim()
+}
+
+function renderLayout({ title, preheader, bodyHtml }) {
+  const baseUrl = getBaseUrl()
+  const logoUrl = `${baseUrl}/full-logo.png`
+
   return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Spiral Groove Records Newsletter</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Shrikhand&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
+  <title>${escapeHtml(title)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Shrikhand&display=swap" rel="stylesheet">
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Inter', sans-serif; background-color: #FFF9F0;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #FFF9F0;">
+<body style="margin: 0; padding: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background-color: ${BRAND.cream};">
+  <div style="display:none; font-size:1px; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">
+    ${escapeHtml(preheader || '')}
+  </div>
+
+  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: ${BRAND.cream};">
     <tr>
       <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #231F20; border-bottom: 4px solid #FF2E63;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 640px; margin: 0 auto; background-color: ${BRAND.black}; border-bottom: 4px solid ${BRAND.orange};">
           <tr>
-            <td style="padding: 40px 20px; text-align: center;">
-              <h1 style="margin: 0; font-family: 'Shrikhand', cursive; color: #FFFFFF; font-size: 36px; line-height: 1.1; letter-spacing: 0.02em;">
-                SPIRAL<span style="color: #00C2CB;">GROOVE</span>
-              </h1>
-              <p style="margin: 5px 0 0 0; color: #FF2E63; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3em;">Records</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #FFF9F0;">
-          <tr>
-            <td style="padding: 50px 30px; background-color: #FFF9F0;">
-              <h2 style="margin: 0 0 20px 0; font-family: 'Shrikhand', cursive; color: #231F20; font-size: 32px; line-height: 1.2; letter-spacing: 0.02em;">
-                Welcome to the <span style="color: #00C2CB;">Groove</span>, ${name}!
-              </h2>
-              <p style="margin: 0 0 20px 0; color: #231F20; font-size: 16px; line-height: 1.7; font-weight: 500;">
-                Thanks for joining our newsletter! You're now part of an exclusive community of music lovers, collectors, and vinyl enthusiasts.
-              </p>
-              <p style="margin: 0 0 20px 0; color: #231F20; font-size: 16px; line-height: 1.7; font-weight: 500;">
-                Get ready for:
-              </p>
-              <ul style="margin: 0 0 30px 0; padding-left: 20px; color: #231F20; font-size: 16px; line-height: 2;">
-                <li style="margin-bottom: 8px;">Exclusive deals and new arrivals</li>
-                <li style="margin-bottom: 8px;">Artist spotlights and featured releases</li>
-                <li style="margin-bottom: 8px;">Store events and special promotions</li>
-                <li style="margin-bottom: 8px;">Vinyl collecting tips and music news</li>
-              </ul>
-              <p style="margin: 0 0 40px 0; color: #231F20; font-size: 16px; line-height: 1.7; font-weight: 500;">
-                We're excited to share our passion for music with you. Stay tuned for your first newsletter!
-              </p>
-              <div style="text-align: center; margin: 40px 0;">
-                <a href="https://spiralgrooverecords.com/catalog" style="display: inline-block; padding: 16px 32px; background-color: #00C2CB; color: #231F20; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 4px 4px 0px 0px #231F20; transition: all 0.2s;">Browse Our Catalog</a>
+            <td style="padding: 18px 18px 14px 18px; text-align: center;">
+              <a href="${baseUrl}" style="text-decoration:none; display:inline-block;">
+                <img src="${logoUrl}" alt="Spiral Groove Records" width="220" style="display:block; width:220px; max-width: 80%; height:auto; border:0; outline:none; text-decoration:none;" />
+              </a>
+              <div style="margin-top: 10px; font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase;">
+                <span style="color: ${BRAND.teal};">Order online, pick up in-store</span>
+                <span style="color: ${BRAND.gray600}; padding: 0 10px;">|</span>
+                <span style="color: ${BRAND.red};">We buy used vinyl</span>
               </div>
             </td>
           </tr>
         </table>
       </td>
     </tr>
+
     <tr>
       <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #231F20; border-top: 4px solid #FF2E63;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 640px; margin: 0 auto; background-color: ${BRAND.cream};">
           <tr>
-            <td style="padding: 30px 20px; text-align: center; color: #FFF9F0; font-size: 12px;">
-              <p style="margin: 0 0 8px 0; font-weight: 600;">Spiral Groove Records</p>
-              <p style="margin: 0 0 8px 0; color: #999999;">215B Main Street, Milford, OH 45150</p>
-              <p style="margin: 15px 0 0 0;">
-                <a href="https://spiralgrooverecords.com" style="color: #00C2CB; text-decoration: none; font-weight: 600; margin: 0 10px;">Visit our website</a>
-                <span style="color: #666666;">|</span>
-                <a href="mailto:info@spiralgrooverecords.com" style="color: #00C2CB; text-decoration: none; font-weight: 600; margin: 0 10px;">Contact us</a>
+            <td style="padding: 34px 22px 28px 22px; background-color: ${BRAND.cream};">
+              ${bodyHtml}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding: 0;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 640px; margin: 0 auto; background-color: ${BRAND.black}; border-top: 4px solid ${BRAND.orange};">
+          <tr>
+            <td style="padding: 22px 18px; text-align: center; color: ${BRAND.cream}; font-size: 12px;">
+              <p style="margin: 0 0 6px 0; font-weight: 800; letter-spacing: 0.04em;">Spiral Groove Records</p>
+              <p style="margin: 0 0 10px 0; color: ${BRAND.gray500};">215B Main Street, Milford, OH 45150</p>
+              <p style="margin: 0;">
+                <a href="${baseUrl}" style="color: ${BRAND.teal}; text-decoration: none; font-weight: 700; margin: 0 10px;">Visit the site</a>
+                <span style="color: ${BRAND.gray600};">|</span>
+                <a href="mailto:info@spiralgrooverecords.com" style="color: ${BRAND.teal}; text-decoration: none; font-weight: 700; margin: 0 10px;">Contact</a>
               </p>
             </td>
           </tr>
@@ -91,86 +118,78 @@ export function generateNewsletterEmail(data) {
 }
 
 /**
+ * Generate newsletter signup welcome email HTML
+ */
+export function generateNewsletterEmail(data) {
+  const { firstName, lastName, email } = data
+  const name = firstName ? `${firstName} ${lastName || ''}`.trim() : email.split('@')[0]
+  const baseUrl = getBaseUrl()
+
+  const bodyHtml = `
+    <h2 style="margin: 0 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.15; letter-spacing: 0.02em;">
+      Welcome to the Groove, <span style="color:${BRAND.orange};">${escapeHtml(name)}</span>!
+    </h2>
+    <p style="margin: 0 0 14px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600;">
+      Thanks for joining our newsletter. You’re officially in the crate-digging circle.
+    </p>
+
+    <div style="margin: 18px 0 0 0; padding: 18px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: ${BRAND.gray600};">
+        What you’ll get
+      </p>
+      <ul style="margin: 0; padding-left: 18px; color: ${BRAND.black}; font-size: 15px; line-height: 1.9; font-weight: 600;">
+        <li>New arrivals + restocks</li>
+        <li>Events + in-store drops</li>
+        <li>Staff picks + essential listening</li>
+        <li>Occasional deals worth opening</li>
+      </ul>
+    </div>
+
+    ${renderButton({ href: `${baseUrl}/catalog`, label: 'Browse the catalog', tone: 'orange' })}
+  `.trim()
+
+  return renderLayout({
+    title: 'Welcome to Spiral Groove Records Newsletter',
+    preheader: 'You’re in — new arrivals, events, and staff picks.',
+    bodyHtml,
+  })
+}
+
+/**
  * Generate user signup welcome email HTML
  */
 export function generateSignupEmail(data) {
   const { name, email } = data
   const displayName = name || email.split('@')[0]
-  
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Spiral Groove Records</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Shrikhand&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Inter', sans-serif; background-color: #FFF9F0;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #FFF9F0;">
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #231F20; border-bottom: 4px solid #FF2E63;">
-          <tr>
-            <td style="padding: 40px 20px; text-align: center;">
-              <h1 style="margin: 0; font-family: 'Shrikhand', cursive; color: #FFFFFF; font-size: 36px; line-height: 1.1; letter-spacing: 0.02em;">
-                SPIRAL<span style="color: #00C2CB;">GROOVE</span>
-              </h1>
-              <p style="margin: 5px 0 0 0; color: #FF2E63; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3em;">Records</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #FFF9F0;">
-          <tr>
-            <td style="padding: 50px 30px; background-color: #FFF9F0;">
-              <h2 style="margin: 0 0 20px 0; font-family: 'Shrikhand', cursive; color: #231F20; font-size: 32px; line-height: 1.2; letter-spacing: 0.02em;">
-                Welcome, <span style="color: #00C2CB;">${displayName}</span>!
-              </h2>
-              <p style="margin: 0 0 20px 0; color: #231F20; font-size: 16px; line-height: 1.7; font-weight: 500;">
-                Your account has been created successfully. You're all set to start shopping!
-              </p>
-              <p style="margin: 0 0 20px 0; color: #231F20; font-size: 16px; line-height: 1.7; font-weight: 500;">
-                With your account, you can:
-              </p>
-              <ul style="margin: 0 0 30px 0; padding-left: 20px; color: #231F20; font-size: 16px; line-height: 2;">
-                <li style="margin-bottom: 8px;">Save your shipping information for faster checkout</li>
-                <li style="margin-bottom: 8px;">Track all your orders in one place</li>
-                <li style="margin-bottom: 8px;">Save favorite items to your wishlist</li>
-                <li style="margin-bottom: 8px;">Get exclusive offers and updates</li>
-              </ul>
-              <div style="text-align: center; margin: 40px 0;">
-                <a href="https://spiralgrooverecords.com/catalog" style="display: inline-block; padding: 16px 32px; background-color: #00C2CB; color: #231F20; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 4px 4px 0px 0px #231F20;">Start Shopping</a>
-              </div>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #231F20; border-top: 4px solid #FF2E63;">
-          <tr>
-            <td style="padding: 30px 20px; text-align: center; color: #FFF9F0; font-size: 12px;">
-              <p style="margin: 0 0 8px 0; font-weight: 600;">Spiral Groove Records</p>
-              <p style="margin: 0 0 8px 0; color: #999999;">215B Main Street, Milford, OH 45150</p>
-              <p style="margin: 15px 0 0 0;">
-                <a href="https://spiralgrooverecords.com" style="color: #00C2CB; text-decoration: none; font-weight: 600; margin: 0 10px;">Visit our website</a>
-                <span style="color: #666666;">|</span>
-                <a href="mailto:info@spiralgrooverecords.com" style="color: #00C2CB; text-decoration: none; font-weight: 600; margin: 0 10px;">Contact us</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
+  const baseUrl = getBaseUrl()
+
+  const bodyHtml = `
+    <h2 style="margin: 0 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.15; letter-spacing: 0.02em;">
+      Welcome, <span style="color:${BRAND.orange};">${escapeHtml(displayName)}</span>.
+    </h2>
+    <p style="margin: 0 0 14px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600;">
+      Your Spiral Groove account is live. Time to dig.
+    </p>
+
+    <div style="margin: 18px 0 0 0; padding: 18px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: ${BRAND.gray600};">
+        With your account
+      </p>
+      <ul style="margin: 0; padding-left: 18px; color: ${BRAND.black}; font-size: 15px; line-height: 1.9; font-weight: 600;">
+        <li>Faster checkout</li>
+        <li>Order tracking in one spot</li>
+        <li>Saved picks and favorites</li>
+      </ul>
+    </div>
+
+    ${renderButton({ href: `${baseUrl}/catalog`, label: 'Start shopping', tone: 'orange' })}
   `.trim()
+
+  return renderLayout({
+    title: 'Welcome to Spiral Groove Records',
+    preheader: 'Your account is live — start digging.',
+    bodyHtml,
+  })
 }
 
 /**
@@ -205,115 +224,89 @@ export function generateOrderConfirmationEmail(data) {
       </tr>
     `
   }).join('')
-  
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Confirmation ${orderNumber}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Shrikhand&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Inter', sans-serif; background-color: #FFF9F0;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #FFF9F0;">
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #231F20; border-bottom: 4px solid #FF2E63;">
-          <tr>
-            <td style="padding: 40px 20px; text-align: center;">
-              <h1 style="margin: 0; font-family: 'Shrikhand', cursive; color: #FFFFFF; font-size: 36px; line-height: 1.1; letter-spacing: 0.02em;">
-                SPIRAL<span style="color: #00C2CB;">GROOVE</span>
-              </h1>
-              <p style="margin: 5px 0 0 0; color: #FF2E63; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3em;">Records</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #FFF9F0;">
-          <tr>
-            <td style="padding: 50px 30px; background-color: #FFF9F0;">
-              <div style="text-align: center; margin-bottom: 30px;">
-                <div style="display: inline-block; width: 70px; height: 70px; background-color: #3AB795; border-radius: 50%; line-height: 70px; text-align: center; font-size: 40px; color: #FFF9F0; font-weight: bold; box-shadow: 4px 4px 0px 0px #231F20;">✓</div>
-              </div>
-              <h2 style="margin: 0 0 15px 0; font-family: 'Shrikhand', cursive; color: #231F20; font-size: 36px; text-align: center; letter-spacing: 0.02em;">Order Confirmed!</h2>
-              <p style="margin: 0 0 40px 0; color: #231F20; font-size: 16px; text-align: center; font-weight: 500;">Thank you for your order, ${customerName || 'Valued Customer'}!</p>
-              
-              <div style="background-color: #231F20; padding: 25px; border-radius: 8px; margin-bottom: 30px; box-shadow: 4px 4px 0px 0px #00C2CB;">
-                <p style="margin: 0 0 10px 0; color: #FFF9F0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;">Order Number</p>
-                <p style="margin: 0; color: #00C2CB; font-size: 28px; font-weight: bold; font-family: 'Shrikhand', cursive;">${orderNumber}</p>
-              </div>
-              
-              <h3 style="margin: 0 0 20px 0; font-family: 'Shrikhand', cursive; color: #231F20; font-size: 24px; letter-spacing: 0.02em;">Order Details</h3>
-              <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; background-color: #FFF9F0; border: 2px solid #231F20; border-radius: 8px; overflow: hidden;">
-                <thead>
-                  <tr style="background-color: #231F20;">
-                    <th style="padding: 14px 12px; text-align: left; color: #FFF9F0; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Item</th>
-                    <th style="padding: 14px 12px; text-align: center; color: #FFF9F0; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Qty</th>
-                    <th style="padding: 14px 12px; text-align: right; color: #FFF9F0; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Price</th>
-                    <th style="padding: 14px 12px; text-align: right; color: #FFF9F0; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${itemsHtml}
-                </tbody>
-              </table>
-              
-              <div style="text-align: right; margin-bottom: 30px; padding: 20px; background-color: #FFF9F0; border: 2px solid #231F20; border-radius: 8px;">
-                <p style="margin: 0; color: #231F20; font-size: 18px; font-weight: 600;">
-                  Total: <span style="color: #00C2CB; font-size: 32px; font-weight: bold; font-family: 'Shrikhand', cursive;">${formattedTotal}</span>
-                </p>
-              </div>
-              
-              <div style="background-color: #FFF9F0; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #231F20;">
-                <p style="margin: 0 0 10px 0; color: #231F20; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;">${deliveryMethod === 'pickup' ? 'Pickup Location' : 'Shipping Address'}</p>
-                <p style="margin: 0; color: #231F20; font-size: 16px; line-height: 1.6; font-weight: 500;">
-                  ${deliveryMethod === 'pickup' 
-                    ? (pickupLocation || '215B Main Street, Milford, OH 45150')
-                    : 'Your order will be shipped to the address provided during checkout.'}
-                </p>
-              </div>
-              
-              ${deliveryMethod === 'pickup' ? `
-              <div style="background-color: #F9D776; padding: 20px; border-radius: 8px; border: 2px solid #231F20; margin-bottom: 30px; box-shadow: 4px 4px 0px 0px #231F20;">
-                <p style="margin: 0; color: #231F20; font-size: 14px; line-height: 1.6; font-weight: 600;">
-                  <strong>Pickup Instructions:</strong> We'll notify you when your order is ready for pickup. Please bring a valid ID when you arrive.
-                </p>
-              </div>
-              ` : ''}
-              
-              <div style="text-align: center; margin: 40px 0;">
-                <a href="https://spiralgrooverecords.com/order-status?order=${orderNumber}&email=${encodeURIComponent(customerEmail)}" style="display: inline-block; padding: 16px 32px; background-color: #00C2CB; color: #231F20; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 4px 4px 0px 0px #231F20;">Track Your Order</a>
-              </div>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #231F20; border-top: 4px solid #FF2E63;">
-          <tr>
-            <td style="padding: 30px 20px; text-align: center; color: #FFF9F0; font-size: 12px;">
-              <p style="margin: 0 0 8px 0; font-weight: 600;">Spiral Groove Records</p>
-              <p style="margin: 0 0 8px 0; color: #999999;">215B Main Street, Milford, OH 45150</p>
-              <p style="margin: 15px 0 0 0;">
-                <a href="https://spiralgrooverecords.com" style="color: #00C2CB; text-decoration: none; font-weight: 600; margin: 0 10px;">Visit our website</a>
-                <span style="color: #666666;">|</span>
-                <a href="mailto:info@spiralgrooverecords.com" style="color: #00C2CB; text-decoration: none; font-weight: 600; margin: 0 10px;">Contact us</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
+
+  const baseUrl = getBaseUrl()
+  const safeCustomerName = escapeHtml(customerName || 'Valued Customer')
+  const safeOrderNumber = escapeHtml(orderNumber || '')
+  const pickupLine = deliveryMethod === 'pickup'
+    ? escapeHtml(pickupLocation || '215B Main Street, Milford, OH 45150')
+    : 'Your order will be shipped to the address provided during checkout.'
+
+  const bodyHtml = `
+    <div style="text-align:center; margin-bottom: 18px;">
+      <div style="display:inline-block; width: 72px; height: 72px; border-radius: 999px; background-color: ${BRAND.teal}; border: 2px solid ${BRAND.black}; box-shadow: 4px 4px 0px 0px ${BRAND.black}; line-height: 72px; font-weight: 900; color: ${BRAND.black}; font-size: 34px;">
+        ✓
+      </div>
+    </div>
+
+    <h2 style="margin: 0 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 34px; line-height: 1.1; text-align:center; letter-spacing: 0.02em;">
+      Order confirmed
+    </h2>
+    <p style="margin: 0 0 18px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600; text-align:center;">
+      Thanks, ${safeCustomerName}. We’re getting it ready.
+    </p>
+
+    <div style="margin: 18px 0 0 0; padding: 18px; background-color: ${BRAND.black}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.orange};">
+      <p style="margin: 0 0 8px 0; color: ${BRAND.cream}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
+        Order number
+      </p>
+      <p style="margin: 0; color: ${BRAND.teal}; font-size: 22px; font-weight: 900; letter-spacing: 0.06em;">
+        ${safeOrderNumber}
+      </p>
+    </div>
+
+    <h3 style="margin: 22px 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 22px; letter-spacing: 0.02em;">
+      Items
+    </h3>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; overflow: hidden;">
+      <thead>
+        <tr style="background-color: ${BRAND.black};">
+          <th style="padding: 12px 10px; text-align: left; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Item</th>
+          <th style="padding: 12px 10px; text-align: center; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Qty</th>
+          <th style="padding: 12px 10px; text-align: right; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Price</th>
+          <th style="padding: 12px 10px; text-align: right; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}
+      </tbody>
+    </table>
+
+    <div style="margin: 0 0 14px 0; padding: 14px 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px;">
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 16px; font-weight: 900; text-align: right;">
+        Total: <span style="font-size: 22px; letter-spacing: 0.02em;">${escapeHtml(formattedTotal)}</span>
+      </p>
+    </div>
+
+    <div style="margin: 0; padding: 14px 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px;">
+      <p style="margin: 0 0 8px 0; color: ${BRAND.gray600}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
+        ${deliveryMethod === 'pickup' ? 'Pickup location' : 'Shipping'}
+      </p>
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 15px; line-height: 1.6; font-weight: 600;">
+        ${pickupLine}
+      </p>
+    </div>
+
+    ${deliveryMethod === 'pickup' ? `
+      <div style="margin-top: 14px; padding: 14px 16px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+        <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
+          <strong>Pickup tip:</strong> We’ll email when it’s ready. Bring a valid ID.
+        </p>
+      </div>
+    ` : ''}
+
+    ${renderButton({
+      href: `${baseUrl}/order-status?order=${encodeURIComponent(orderNumber || '')}&email=${encodeURIComponent(customerEmail || '')}`,
+      label: 'Track your order',
+      tone: 'teal',
+    })}
   `.trim()
+
+  return renderLayout({
+    title: `Order Confirmation ${orderNumber || ''}`.trim(),
+    preheader: `Order ${orderNumber || ''} confirmed. Track status and details.`,
+    bodyHtml,
+  })
 }
 
 /**
@@ -321,84 +314,42 @@ export function generateOrderConfirmationEmail(data) {
  */
 export function generateForgotPasswordEmail(data) {
   const { email, resetUrl, expiresIn = '1 hour' } = data
-  
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reset Your Password</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Shrikhand&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Inter', sans-serif; background-color: #FFF9F0;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #FFF9F0;">
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #231F20; border-bottom: 4px solid #FF2E63;">
-          <tr>
-            <td style="padding: 40px 20px; text-align: center;">
-              <h1 style="margin: 0; font-family: 'Shrikhand', cursive; color: #FFFFFF; font-size: 36px; line-height: 1.1; letter-spacing: 0.02em;">
-                SPIRAL<span style="color: #00C2CB;">GROOVE</span>
-              </h1>
-              <p style="margin: 5px 0 0 0; color: #FF2E63; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3em;">Records</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #FFF9F0;">
-          <tr>
-            <td style="padding: 50px 30px; background-color: #FFF9F0;">
-              <h2 style="margin: 0 0 20px 0; font-family: 'Shrikhand', cursive; color: #231F20; font-size: 32px; line-height: 1.2; letter-spacing: 0.02em;">Reset Your Password</h2>
-              <p style="margin: 0 0 20px 0; color: #231F20; font-size: 16px; line-height: 1.7; font-weight: 500;">
-                We received a request to reset your password for your Spiral Groove Records account (<strong>${email}</strong>).
-              </p>
-              <p style="margin: 0 0 40px 0; color: #231F20; font-size: 16px; line-height: 1.7; font-weight: 500;">
-                Click the button below to create a new password. This link will expire in <strong>${expiresIn}</strong>.
-              </p>
-              <div style="text-align: center; margin: 40px 0;">
-                <a href="${resetUrl}" style="display: inline-block; padding: 16px 32px; background-color: #00C2CB; color: #231F20; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 4px 4px 0px 0px #231F20;">Reset Password</a>
-              </div>
-              <p style="margin: 40px 0 15px 0; color: #231F20; font-size: 14px; line-height: 1.6; font-weight: 500;">
-                If the button doesn't work, copy and paste this link into your browser:
-              </p>
-              <p style="margin: 0 0 30px 0; padding: 15px; background-color: #FFF9F0; border: 2px solid #231F20; border-radius: 8px; word-break: break-all; color: #231F20; font-size: 11px; font-family: monospace; line-height: 1.6;">
-                ${resetUrl}
-              </p>
-              <div style="background-color: #F9D776; padding: 20px; border-radius: 8px; border: 2px solid #231F20; margin-bottom: 20px; box-shadow: 4px 4px 0px 0px #231F20;">
-                <p style="margin: 0; color: #231F20; font-size: 14px; line-height: 1.6; font-weight: 600;">
-                  <strong>Security Notice:</strong> If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.
-                </p>
-              </div>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #231F20; border-top: 4px solid #FF2E63;">
-          <tr>
-            <td style="padding: 30px 20px; text-align: center; color: #FFF9F0; font-size: 12px;">
-              <p style="margin: 0 0 8px 0; font-weight: 600;">Spiral Groove Records</p>
-              <p style="margin: 0 0 8px 0; color: #999999;">215B Main Street, Milford, OH 45150</p>
-              <p style="margin: 15px 0 0 0;">
-                <a href="https://spiralgrooverecords.com" style="color: #00C2CB; text-decoration: none; font-weight: 600; margin: 0 10px;">Visit our website</a>
-                <span style="color: #666666;">|</span>
-                <a href="mailto:info@spiralgrooverecords.com" style="color: #00C2CB; text-decoration: none; font-weight: 600; margin: 0 10px;">Contact us</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
+  const safeEmail = escapeHtml(email)
+  const safeResetUrl = String(resetUrl || '')
+  const safeExpires = escapeHtml(expiresIn)
+
+  const bodyHtml = `
+    <h2 style="margin: 0 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.15; letter-spacing: 0.02em;">
+      Reset your password
+    </h2>
+    <p style="margin: 0 0 14px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600;">
+      We received a request to reset the password for <strong>${safeEmail}</strong>.
+    </p>
+    <p style="margin: 0 0 14px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600;">
+      This link expires in <strong>${safeExpires}</strong>.
+    </p>
+
+    ${renderButton({ href: safeResetUrl, label: 'Reset password', tone: 'teal' })}
+
+    <p style="margin: 18px 0 10px 0; color: ${BRAND.black}; font-size: 13px; line-height: 1.6; font-weight: 600;">
+      If the button doesn’t work, copy and paste this link into your browser:
+    </p>
+    <div style="padding: 12px 12px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; word-break: break-all; color: ${BRAND.black}; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace; line-height: 1.6;">
+      ${escapeHtml(safeResetUrl)}
+    </div>
+
+    <div style="margin-top: 14px; padding: 14px 16px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
+        <strong>Security note:</strong> If you didn’t request this, ignore this email—your password won’t change.
+      </p>
+    </div>
   `.trim()
+
+  return renderLayout({
+    title: 'Reset Your Password',
+    preheader: 'Reset link inside (expires soon).',
+    bodyHtml,
+  })
 }
 
 /**
@@ -493,124 +444,103 @@ export function generateOrderStatusUpdateEmail(data) {
       </tr>
     `
   }).join('') : ''
-  
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Status Update ${orderNumber}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Shrikhand&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Inter', sans-serif; background-color: #FFF9F0;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #FFF9F0;">
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #231F20; border-bottom: 4px solid #FF2E63;">
-          <tr>
-            <td style="padding: 40px 20px; text-align: center;">
-              <h1 style="margin: 0; font-family: 'Montserrat', sans-serif; color: #FFFFFF; font-size: 36px; line-height: 1.1; letter-spacing: 0.02em; font-weight: 800;">
-                SPIRAL<span style="color: #00C2CB;">GROOVE</span>
-              </h1>
-              <p style="margin: 5px 0 0 0; color: #FF2E63; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3em; font-family: 'Montserrat', sans-serif;">Records</p>
-            </td>
+
+  const baseUrl = getBaseUrl()
+  const safeOrderNumber = escapeHtml(orderNumber || '')
+  const safeStatusTitle = escapeHtml(statusInfo.title)
+  const safeMessage = escapeHtml(statusMessage || statusInfo.message || '')
+  const safeActionText = escapeHtml(statusInfo.actionText || 'View order')
+  const safeActionMessage = escapeHtml(statusInfo.actionMessage || '')
+
+  const cardAccent = statusInfo.color || BRAND.teal
+  const actionTone = cardAccent === '#00C2CB' ? 'teal' : 'orange'
+
+  const bodyHtml = `
+    <div style="text-align:center; margin-bottom: 18px;">
+      <div style="display:inline-block; width: 72px; height: 72px; border-radius: 999px; background-color: ${cardAccent}; border: 2px solid ${BRAND.black}; box-shadow: 4px 4px 0px 0px ${BRAND.black}; line-height: 72px; font-weight: 900; color: ${BRAND.black}; font-size: 34px;">
+        ${escapeHtml(statusInfo.icon || '✓')}
+      </div>
+    </div>
+
+    <h2 style="margin: 0 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.1; text-align:center; letter-spacing: 0.02em;">
+      ${safeStatusTitle}
+    </h2>
+    <p style="margin: 0 0 18px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600; text-align:center;">
+      ${safeMessage}
+    </p>
+
+    <div style="margin: 18px 0 0 0; padding: 18px; background-color: ${BRAND.black}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${cardAccent};">
+      <p style="margin: 0 0 8px 0; color: ${BRAND.cream}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
+        Order number
+      </p>
+      <p style="margin: 0; color: ${BRAND.teal}; font-size: 22px; font-weight: 900; letter-spacing: 0.06em;">
+        ${safeOrderNumber}
+      </p>
+    </div>
+
+    ${items.length > 0 ? `
+      <h3 style="margin: 22px 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 22px; letter-spacing: 0.02em;">
+        Items
+      </h3>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; overflow: hidden;">
+        <thead>
+          <tr style="background-color: ${BRAND.black};">
+            <th style="padding: 12px 10px; text-align: left; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Item</th>
+            <th style="padding: 12px 10px; text-align: center; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Qty</th>
+            <th style="padding: 12px 10px; text-align: right; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Price</th>
           </tr>
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #FFF9F0;">
-          <tr>
-            <td style="padding: 50px 30px; background-color: #FFF9F0;">
-              <div style="text-align: center; margin-bottom: 30px;">
-                <div style="display: inline-block; width: 70px; height: 70px; background-color: ${statusInfo.color}; border-radius: 50%; line-height: 70px; text-align: center; font-size: 40px; color: #FFF9F0; font-weight: bold; box-shadow: 4px 4px 0px 0px #231F20;">${statusInfo.icon}</div>
-              </div>
-              <h2 style="margin: 0 0 15px 0; font-family: 'Montserrat', sans-serif; color: #231F20; font-size: 32px; text-align: center; letter-spacing: 0.02em; font-weight: 700;">${statusInfo.title}</h2>
-              <p style="margin: 0 0 30px 0; color: #231F20; font-size: 16px; text-align: center; font-weight: 500; font-family: 'Inter', sans-serif;">${statusMessage || statusInfo.message}</p>
-              
-              <div style="background-color: #231F20; padding: 25px; border-radius: 8px; margin-bottom: 30px; box-shadow: 4px 4px 0px 0px ${statusInfo.color};">
-                <p style="margin: 0 0 10px 0; color: #FFF9F0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; font-family: 'Montserrat', sans-serif;">Order Number</p>
-                <p style="margin: 0; color: #00C2CB; font-size: 28px; font-weight: 700; font-family: 'Montserrat', sans-serif;">${orderNumber}</p>
-              </div>
-              
-              ${items.length > 0 ? `
-              <h3 style="margin: 0 0 20px 0; font-family: 'Montserrat', sans-serif; color: #231F20; font-size: 24px; letter-spacing: 0.02em; font-weight: 700;">Order Items</h3>
-              <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; background-color: #FFF9F0; border: 2px solid #231F20; border-radius: 8px; overflow: hidden;">
-                <thead>
-                  <tr style="background-color: #231F20;">
-                    <th style="padding: 14px 12px; text-align: left; color: #FFF9F0; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Item</th>
-                    <th style="padding: 14px 12px; text-align: center; color: #FFF9F0; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Qty</th>
-                    <th style="padding: 14px 12px; text-align: right; color: #FFF9F0; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${itemsHtml}
-                </tbody>
-              </table>
-              ` : ''}
-              
-              ${total ? `
-              <div style="text-align: right; margin-bottom: 30px; padding: 20px; background-color: #FFF9F0; border: 2px solid #231F20; border-radius: 8px;">
-                <p style="margin: 0; color: #231F20; font-size: 18px; font-weight: 600; font-family: 'Inter', sans-serif;">
-                  Total: <span style="color: #00C2CB; font-size: 32px; font-weight: 700; font-family: 'Montserrat', sans-serif;">${formattedTotal}</span>
-                </p>
-              </div>
-              ` : ''}
-              
-              ${deliveryMethod === 'pickup' && pickupLocation ? `
-              <div style="background-color: #FFF9F0; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #231F20;">
-                <p style="margin: 0 0 10px 0; color: #231F20; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;">Pickup Location</p>
-                <p style="margin: 0; color: #231F20; font-size: 16px; line-height: 1.6; font-weight: 500;">
-                  ${pickupLocation}
-                </p>
-              </div>
-              ` : ''}
-              
-              ${statusInfo.actionMessage ? `
-              <div style="background-color: ${statusInfo.color === '#FF2E63' ? '#F9D776' : statusInfo.color}; padding: 20px; border-radius: 8px; border: 2px solid #231F20; margin-bottom: 30px; box-shadow: 4px 4px 0px 0px #231F20;">
-                <p style="margin: 0; color: #231F20; font-size: 14px; line-height: 1.6; font-weight: 600;">
-                  <strong>${statusInfo.actionText}:</strong> ${statusInfo.actionMessage}
-                </p>
-              </div>
-              ` : ''}
-              
-              ${estimatedDelivery ? `
-              <div style="background-color: #FFF9F0; padding: 15px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #231F20;">
-                <p style="margin: 0; color: #231F20; font-size: 14px; line-height: 1.6; font-weight: 500;">
-                  <strong>Estimated Delivery:</strong> ${estimatedDelivery}
-                </p>
-              </div>
-              ` : ''}
-              
-              <div style="text-align: center; margin: 40px 0;">
-                <a href="https://spiralgrooverecords.com/order-status?order=${orderNumber}&email=${encodeURIComponent(customerEmail)}" style="display: inline-block; padding: 16px 32px; background-color: #00C2CB; color: #231F20; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 4px 4px 0px 0px #231F20;">View Order Details</a>
-              </div>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 600px; margin: 0 auto; background-color: #231F20; border-top: 4px solid #FF2E63;">
-          <tr>
-            <td style="padding: 30px 20px; text-align: center; color: #FFF9F0; font-size: 12px;">
-              <p style="margin: 0 0 8px 0; font-weight: 600;">Spiral Groove Records</p>
-              <p style="margin: 0 0 8px 0; color: #999999;">215B Main Street, Milford, OH 45150</p>
-              <p style="margin: 15px 0 0 0;">
-                <a href="https://spiralgrooverecords.com" style="color: #00C2CB; text-decoration: none; font-weight: 600; margin: 0 10px;">Visit our website</a>
-                <span style="color: #666666;">|</span>
-                <a href="mailto:info@spiralgrooverecords.com" style="color: #00C2CB; text-decoration: none; font-weight: 600; margin: 0 10px;">Contact us</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+    ` : ''}
+
+    ${total ? `
+      <div style="margin: 0 0 14px 0; padding: 14px 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px;">
+        <p style="margin: 0; color: ${BRAND.black}; font-size: 16px; font-weight: 900; text-align: right;">
+          Total: <span style="font-size: 22px; letter-spacing: 0.02em;">${escapeHtml(formattedTotal)}</span>
+        </p>
+      </div>
+    ` : ''}
+
+    ${(deliveryMethod === 'pickup' && pickupLocation) ? `
+      <div style="margin: 0 0 14px 0; padding: 14px 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px;">
+        <p style="margin: 0 0 8px 0; color: ${BRAND.gray600}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
+          Pickup location
+        </p>
+        <p style="margin: 0; color: ${BRAND.black}; font-size: 15px; line-height: 1.6; font-weight: 600;">
+          ${escapeHtml(pickupLocation)}
+        </p>
+      </div>
+    ` : ''}
+
+    ${safeActionMessage ? `
+      <div style="margin-top: 14px; padding: 14px 16px; background-color: ${cardAccent === BRAND.red ? BRAND.mustard : cardAccent}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+        <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
+          <strong>${safeActionText}:</strong> ${safeActionMessage}
+        </p>
+      </div>
+    ` : ''}
+
+    ${estimatedDelivery ? `
+      <div style="margin-top: 14px; padding: 14px 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px;">
+        <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
+          <strong>Estimated delivery:</strong> ${escapeHtml(estimatedDelivery)}
+        </p>
+      </div>
+    ` : ''}
+
+    ${renderButton({
+      href: `${baseUrl}/order-status?order=${encodeURIComponent(orderNumber || '')}&email=${encodeURIComponent(customerEmail || '')}`,
+      label: 'View order details',
+      tone: actionTone,
+    })}
   `.trim()
+
+  return renderLayout({
+    title: `Order Status Update ${orderNumber || ''}`.trim(),
+    preheader: `Update for order ${orderNumber || ''}.`,
+    bodyHtml,
+  })
 }

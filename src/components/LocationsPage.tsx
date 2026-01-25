@@ -100,26 +100,62 @@ export const LocationsPage: React.FC<LocationsPageProps> = ({ viewMode }) => {
                 </div>
              </div>
 
-             {/* Partnerships */}
+             {/* Where we're featured */}
              <div>
-                 <h2 className={`font-display text-3xl mb-6 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Official Listening Stations</h2>
-                 <p className="text-gray-600 mb-6">Find our curated selections at these fine local establishments.</p>
+                 <h2 className={`font-display text-3xl mb-6 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Where We’re Featured</h2>
+                 <p className="text-gray-600 mb-6">Press, spotlights, and official listings.</p>
                  
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     <div className={`p-4 border ${isRetro ? 'border-brand-black bg-brand-cream' : 'border-gray-200 rounded-lg'}`}>
-                         <div className="flex items-center gap-2 mb-2">
-                             <Coffee size={18} className="text-brand-black" />
-                             <h4 className="font-bold">Bean & Leaf</h4>
+                     <a
+                         href="https://www.cincinnatimagazine.com/article/the-beat-lives-on-at-spiral-groove-records/"
+                         target="_blank"
+                         rel="noreferrer"
+                         className={`group p-4 border transition-all ${
+                             isRetro
+                                 ? 'border-brand-black bg-brand-cream hover:bg-brand-mustard/40 shadow-retro hover:shadow-retro-hover'
+                                 : 'border-gray-200 rounded-lg hover:shadow-md'
+                         }`}
+                     >
+                         <div className="flex items-center justify-between gap-3 mb-2">
+                             <h4 className="font-bold">Cincinnati Magazine</h4>
+                             <span className={`text-[10px] font-bold uppercase tracking-widest ${isRetro ? 'text-brand-black/60' : 'text-gray-500'}`}>Read</span>
                          </div>
-                         <p className="text-xs text-gray-600">The best pour-over in Milford. Ask for the Spiral Blend.</p>
-                     </div>
-                     <div className={`p-4 border ${isRetro ? 'border-brand-black bg-brand-cream' : 'border-gray-200 rounded-lg'}`}>
-                         <div className="flex items-center gap-2 mb-2">
-                             <Beer size={18} className="text-brand-black" />
-                             <h4 className="font-bold">Little Miami Brewing</h4>
+                         <p className="text-xs text-gray-600">“The Beat Lives on at Spiral Groove Records”</p>
+                     </a>
+
+                     <a
+                         href="https://discoverclermont.com/things-to-do/shopping/arts-music-books/spiral-groove-records/"
+                         target="_blank"
+                         rel="noreferrer"
+                         className={`group p-4 border transition-all ${
+                             isRetro
+                                 ? 'border-brand-black bg-brand-cream hover:bg-brand-mustard/40 shadow-retro hover:shadow-retro-hover'
+                                 : 'border-gray-200 rounded-lg hover:shadow-md'
+                         }`}
+                     >
+                         <div className="flex items-center justify-between gap-3 mb-2">
+                             <h4 className="font-bold">Discover Clermont</h4>
+                             <span className={`text-[10px] font-bold uppercase tracking-widest ${isRetro ? 'text-brand-black/60' : 'text-gray-500'}`}>View</span>
                          </div>
-                         <p className="text-xs text-gray-600">Sip a hazy IPA while listening to our monthly curated playlist.</p>
-                     </div>
+                         <p className="text-xs text-gray-600">Official local guide listing and shop overview</p>
+                     </a>
+
+                     <a
+                         href="https://recordstoreday.com/Store/23354"
+                         target="_blank"
+                         rel="noreferrer"
+                         className={`group p-4 border transition-all sm:col-span-2 ${
+                             isRetro
+                                 ? 'border-brand-black bg-brand-cream hover:bg-brand-mustard/40 shadow-retro hover:shadow-retro-hover'
+                                 : 'border-gray-200 rounded-lg hover:shadow-md'
+                         }`}
+                     >
+                         <div className="flex items-center justify-between gap-3 mb-2">
+                             <h4 className="font-bold">Record Store Day</h4>
+                             <span className={`text-[10px] font-bold uppercase tracking-widest ${isRetro ? 'text-brand-black/60' : 'text-gray-500'}`}>Open</span>
+                         </div>
+                         <p className="text-xs text-gray-600">Official store profile (events + details)</p>
+                     </a>
                  </div>
              </div>
 
