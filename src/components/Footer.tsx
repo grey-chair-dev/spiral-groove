@@ -148,7 +148,7 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
                </div>
             </a>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs font-medium">
-              Your neighborhood destination for curated vinyl, hi-fi gear, and music culture. Keeping the analog spirit alive in Milford since 2014.
+              Your neighborhood destination for curated vinyl, hi-fi gear, and music culture. Keeping the analog spirit alive in Milford since 2020.
             </p>
           </div>
 
