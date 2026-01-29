@@ -26,7 +26,7 @@ export function ProductDetailView({
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const gallery = buildGallery(product)
-  const isOnSale = product.stockCount <= 10
+  const isLowStock = product.stockCount <= 10
 
   const handleAddToCart = () => {
     onAddToCart(quantity)
@@ -44,9 +44,9 @@ export function ProductDetailView({
             ← Back
           </button>
           <div className="flex items-center gap-3">
-            {isOnSale && (
+            {isLowStock && (
               <span className="rounded-full bg-secondary px-4 py-1 text-xs font-semibold text-white">
-                Sale
+                Low stock
               </span>
             )}
             <span className="text-xs uppercase tracking-[0.3em] text-secondary">
@@ -64,7 +64,7 @@ export function ProductDetailView({
                 alt={product.name}
                 className="h-full w-full object-cover"
               />
-              {isOnSale && (
+              {isLowStock && (
                 <div className="absolute left-4 top-4 rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-white">
                   Limited Stock
                 </div>

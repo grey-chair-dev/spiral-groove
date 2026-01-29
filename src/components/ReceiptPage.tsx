@@ -207,7 +207,7 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({ order, viewMode, onBac
               <div className="text-center space-y-6 relative z-10">
                  <div className="space-y-2">
                     <p className="font-bold uppercase text-sm">Thank You for Digging!</p>
-                    <p className="text-xs opacity-70">Returns accepted within 14 days with original receipt and packaging.</p>
+                    <p className="text-xs opacity-70">Return Policy: Vintage Vinyl 48 hours. New Vinyl 30 days (sealed exchange; opened 50% value). Equipment sealed in box: $15 restocking fee. $5 restocking fee on all new returns.</p>
                  </div>
                  
                  {/* Fake Barcode */}

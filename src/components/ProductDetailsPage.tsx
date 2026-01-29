@@ -19,8 +19,6 @@ interface ProductDetailsPageProps {
   onNavigate?: (page: Page, filter?: string, artist?: string) => void;
 }
 
-const SALES_FILTERS = ['Bargain Bin', 'On Sale', 'Clearance', 'Mystery'];
-
 export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ 
   product, 
   viewMode, 
@@ -114,8 +112,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
   ];
 
   const filterName = previousFilter && previousFilter !== 'All' ? previousFilter : 'Catalog';
-  const isSalesPath = previousFilter && SALES_FILTERS.includes(previousFilter);
-  const rootLabel = isSalesPath ? 'Sales' : 'Catalog';
+  const rootLabel = 'Catalog';
 
   return (
     <div className="animate-in fade-in duration-500 min-h-screen">
@@ -287,7 +284,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                         : 'bg-brand-teal hover:bg-teal-600 shadow-md hover:shadow-lg'}
                    `}
                  >
-                    {isSoldOut ? 'Join Waitlist' : 'ADD TO CRATE'}
+                    {isSoldOut ? 'SOLD OUT' : 'ADD TO CRATE'}
                  </Button>
               </div>
 
@@ -305,7 +302,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                      </div>
                      <div className="flex items-center gap-2">
                         <Disc size={16} className="text-brand-teal" />
-                        <span>ULTRASONIC CLEANED</span>
+                        <span>SEALED ONLINE</span>
                      </div>
                    </>
                  )}

@@ -226,13 +226,13 @@ export function ContactUsPage({
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-brand">
                 <h3 className="mb-4 text-lg font-semibold text-white">Need immediate help?</h3>
                 <p className="mb-4 text-sm text-slate-300">
-                  Check out our <a href="/faq" className="text-primary hover:underline">FAQ page</a> for quick answers to common questions.
+                  Contact us with any questions and we’ll help you out as soon as we can.
                 </p>
                 <button
-                  onClick={() => navigate('/faq')}
+                  onClick={() => navigate('/contact')}
                   className="w-full rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white/80 hover:border-white/40 transition"
                 >
-                  Visit FAQ
+                  Contact Us
                 </button>
               </div>
             </div>

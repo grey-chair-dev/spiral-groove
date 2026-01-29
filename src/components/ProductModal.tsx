@@ -111,7 +111,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
                       <div className="flex items-start gap-3 mb-3 text-brand-red">
                         <AlertCircle size={18} className="mt-0.5" />
                          <p className="text-sm font-bold leading-relaxed">
-                            This item is currently out of stock. Join the waitlist to be notified when we find another copy.
+                            This item is currently out of stock.
                          </p>
                       </div>
                     ) : (

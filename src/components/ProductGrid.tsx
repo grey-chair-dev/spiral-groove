@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product } from '../../types';
-import { Plus, Sparkles, Filter, Disc, ChevronLeft, ChevronRight, ChevronDown, Check, DollarSign, Mic2, X, SlidersHorizontal, ArrowUpDown, Tag } from 'lucide-react';
+import { Plus, Sparkles, Filter, Disc, ChevronLeft, ChevronRight, ChevronDown, Check, DollarSign, Mic2, X, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { ViewMode } from '../../types';
@@ -23,7 +23,7 @@ interface ProductGridProps {
   limit?: number;
 }
 
-const QUICK_FILTERS = ["All", "New Arrivals", "On Sale", "Bargain Bin", "Clearance"] as const;
+const QUICK_FILTERS = ["All", "New Arrivals", "Bargain Bin"] as const;
 
 // Category filter should be record format only (per productEnums.ts)
 const FORMAT_FILTERS: RecordFormat[] = [
@@ -223,9 +223,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
     // 1) Browse
     if (activeBrowse === "New Arrivals") result = result.filter(p => p.isNewArrival);
-    if (activeBrowse === "On Sale") result = result.filter(p => p.onSale === true);
     if (activeBrowse === "Bargain Bin") result = result.filter(p => (p.tags || []).some(t => t.toLowerCase().includes('bargain')));
-    if (activeBrowse === "Clearance") result = result.filter(p => (p.tags || []).some(t => t.toLowerCase().includes('clearance')));
 
     // 2) Legacy single token (Equipment/Merch/Apparel/etc). Kept for existing deep-links.
     if (legacyFilter) {
@@ -310,7 +308,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     // Price Logic
     if (activePriceRange !== 'all') {
         result = result.filter(p => {
-             const currentPrice = p.salePrice || p.price;
+             const currentPrice = p.price;
              if (activePriceRange === 'under-25') return currentPrice < 25;
              if (activePriceRange === '25-50') return currentPrice >= 25 && currentPrice < 50;
              if (activePriceRange === '50-100') return currentPrice >= 50 && currentPrice < 100;
@@ -325,7 +323,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   // 2. Sort
   const sortedProducts = useMemo(() => {
     const sorted = [...filteredProducts];
-    const getPrice = (p: Product) => p.salePrice || p.price;
+    const getPrice = (p: Product) => p.price;
 
     switch (sortBy) {
       case 'price-asc': return sorted.sort((a, b) => getPrice(a) - getPrice(b));
@@ -418,7 +416,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   // Determine if we should use product-style layout (square boxes) or non-product-style layout
   const shouldUseProductStyleLayout = useMemo(() => {
     // If "All" or special filters, check the actual products' categories
-    if (activeBrowse === "All" || activeBrowse === "New Arrivals" || activeBrowse === "On Sale" || activeBrowse === "Bargain Bin" || activeBrowse === "Clearance") {
+    if (activeBrowse === "All" || activeBrowse === "New Arrivals" || activeBrowse === "Bargain Bin") {
       if (filteredProducts.length === 0) return true; // Default to product style
       
       // Check if most products are from product-style categories
@@ -845,18 +843,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                               </span>
                                           </div>
                                         )}
-                                        {!isSoldOut && !product.isNewArrival && product.onSale && (
-                                          <div className="absolute top-0 left-0 z-20 transform -translate-x-1 -translate-y-1 sm:-translate-x-2 sm:-translate-y-2">
-                                              <span className={`inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest shadow-lg
-                                                ${viewMode === 'retro' 
-                                                  ? 'bg-brand-red text-white border-2 border-brand-black transform -rotate-3 hover-wobble shadow-pop-sm' 
-                                                  : 'bg-red-600 text-white rounded-sm shadow-md'}
-                                              `}>
-                                                <Tag size={12} className="mr-1.5 hidden sm:block" />
-                                                Sale
-                                              </span>
-                                          </div>
-                                        )}
                                         {!isSoldOut && product.tags && product.tags.length > 0 && !product.tags[0].toLowerCase().includes('new vinyl') && (
                                           <div className="absolute top-2 right-2 z-20">
                                               <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest shadow-md
@@ -903,28 +889,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                       `}>
                                         <div className="flex flex-col">
                                             {isSoldOut && <span className="text-[10px] font-bold uppercase text-brand-red tracking-wide leading-none mb-0.5">Sold Out</span>}
-                                            
-                                            {product.salePrice && !isSoldOut ? (
-                                               <div className="flex flex-col gap-0.5">
-                                                   <span className="text-xs font-bold text-gray-400 line-through decoration-gray-400 decoration-1">
-                                                         ${product.price.toFixed(2)}
-                                                   </span>
-                                                   <span className={`font-header font-extrabold tabular-nums text-lg tracking-wide leading-none
-                                                      ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
-                                                   `}>
-                                                       ${product.salePrice.toFixed(2)}
-                                                   </span>
-                                               </div>
-                                            ) : (
-                                               <div className="flex items-baseline gap-2">
-                                                 <span className={`font-header font-extrabold tabular-nums text-lg tracking-wide leading-none
-                                                  ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
-                                                   ${isSoldOut ? 'opacity-40 line-through decoration-2 decoration-brand-black' : ''}
-                                                 `}>
-                                                   ${product.price.toFixed(2)}
-                                                 </span>
-                                               </div>
-                                            )}
+                                            <div className="flex items-baseline gap-2">
+                                              <span className={`font-header font-extrabold tabular-nums text-lg tracking-wide leading-none
+                                               ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
+                                                ${isSoldOut ? 'opacity-40 line-through decoration-2 decoration-brand-black' : ''}
+                                              `}>
+                                                ${product.price.toFixed(2)}
+                                              </span>
+                                            </div>
                                         </div>
                                         <button 
                                           disabled={isSoldOut}
@@ -940,7 +912,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                           }
                                         `}>
                                           {isSoldOut ? (
-                                             <span className="flex items-center gap-1">Notify</span>
+                                             <span className="flex items-center gap-1">Sold Out</span>
                                           ) : (
                                              <span className="flex items-center gap-1.5">Add <Plus size={14} strokeWidth={3} /></span>
                                           )}
@@ -1071,7 +1043,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                             `}
                                           >
                                             {isSoldOut ? (
-                                              <span className="flex items-center gap-1.5">Notify</span>
+                                              <span className="flex items-center gap-1.5">Sold Out</span>
                                             ) : (
                                               <span className="flex items-center gap-1.5">Add <Plus size={14} strokeWidth={3} /></span>
                                             )}

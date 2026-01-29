@@ -91,7 +91,7 @@ export function ProductDetailPage({
   }
   
   const gallery = buildGallery(product)
-  const isOnSale = product.stockCount <= 10
+  const isLowStock = product.stockCount <= 10
   const isSaved = wishlistFeatureEnabled && onToggleWishlist
     ? useMemo(() => {
         try {
@@ -182,9 +182,9 @@ export function ProductDetailPage({
                 alt={product.name}
                 className="h-full w-full object-cover"
               />
-              {isOnSale && (
+              {isLowStock && (
                 <div className="absolute left-4 top-4 rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-white">
-                  Sale
+                  Limited Stock
                 </div>
               )}
             </div>
@@ -213,7 +213,7 @@ export function ProductDetailPage({
           <div className="space-y-6">
             <div>
               <div className="flex items-center gap-3 mb-3">
-                {isOnSale && (
+                {isLowStock && (
                   <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-white">
                     Limited Stock
                   </span>

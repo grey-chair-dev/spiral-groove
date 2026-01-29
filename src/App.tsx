@@ -16,14 +16,12 @@ import { Toast } from './components/ui/Toast';
 import { EventsPage } from './components/EventsPage';
 import { AboutPage } from './components/AboutPage';
 import { LocationsPage } from './components/LocationsPage';
-import { SalesPage } from './components/SalesPage';
 import { WeBuyPage } from './components/WeBuyPage';
 import { CatalogPage } from './components/CatalogPage';
 import { ProductDetailsPage } from './components/ProductDetailsPage';
 import { OrdersPage } from './components/OrdersPage';
 import { ReceiptPage } from './components/ReceiptPage';
 import { OrderStatusPage } from './components/OrderStatusPage';
-import { FAQPage } from './components/FAQPage';
 import { ContactPage } from './components/ContactPage';
 import { StaffPicksPage } from './components/StaffPicksPage';
 import { CartPage } from './components/CartPage';
@@ -45,14 +43,12 @@ const VALID_PAGES: Page[] = [
   'events',
   'about',
   'locations',
-  'sales',
   'we-buy',
   'catalog',
   'product',
   'orders',
   'receipt',
   'order-status',
-  'faq',
   'contact',
   'staff-picks',
   'cart',
@@ -110,7 +106,8 @@ function parseRouteFromLocation(input: {
     case 'locations':
       return { page: 'locations' };
     case 'sales':
-      return { page: 'sales' };
+      // Back-compat: old /sales URL now lands on the catalog.
+      return { page: 'catalog', filter: 'All' };
     case 'we-buy':
       return { page: 'we-buy' };
     case 'catalog': {
@@ -137,7 +134,8 @@ function parseRouteFromLocation(input: {
       return { page: 'order-status', orderStatusParams: { id, email } };
     }
     case 'faq':
-      return { page: 'faq' };
+      // Back-compat: old /faq URL now lands on Contact.
+      return { page: 'contact' };
     case 'contact':
       return { page: 'contact' };
     case 'staff-picks':
@@ -405,14 +403,12 @@ function App() {
       'events': 'Events - Spiral Groove Records',
       'about': 'About - Spiral Groove Records',
       'locations': 'Locations - Spiral Groove Records',
-      'sales': 'Sales - Spiral Groove Records',
       'we-buy': 'We Buy Records - Spiral Groove Records',
       'catalog': 'Catalog - Spiral Groove Records',
       'product': selectedProduct ? `${selectedProduct.title} - Spiral Groove Records` : 'Product - Spiral Groove Records',
       'orders': 'Orders - Spiral Groove Records',
       'receipt': 'Receipt - Spiral Groove Records',
       'order-status': 'Order Status - Spiral Groove Records',
-      'faq': 'FAQ - Spiral Groove Records',
       'contact': 'Contact - Spiral Groove Records',
       'staff-picks': 'Staff Picks - Spiral Groove Records',
       'cart': 'Cart - Spiral Groove Records',
@@ -915,7 +911,6 @@ function App() {
         )}
         {currentPage === 'about' && <AboutPage viewMode={effectiveViewMode} />}
         {currentPage === 'locations' && <LocationsPage viewMode={effectiveViewMode} />}
-        {currentPage === 'sales' && <SalesPage viewMode={effectiveViewMode} onNavigate={handleNavigate} />}
         {currentPage === 'we-buy' && <WeBuyPage viewMode={effectiveViewMode} onNavigate={handleNavigate} />}
         {currentPage === 'catalog' && (
             <>
@@ -1018,9 +1013,6 @@ function App() {
                 initialOrderNumber={orderStatusParams.id}
                 initialEmail={orderStatusParams.email}
             />
-        )}
-        {currentPage === 'faq' && (
-            <FAQPage viewMode={effectiveViewMode} />
         )}
         {currentPage === 'contact' && (
             <ContactPage viewMode={effectiveViewMode} />

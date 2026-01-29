@@ -15,8 +15,6 @@ interface CatalogPageProps {
     onFilterChange?: (filter: string) => void;
 }
 
-const SALES_FILTERS = ['Bargain Bin', 'On Sale', 'Clearance', 'Mystery'];
-
 export const CatalogPage: React.FC<CatalogPageProps> = ({ 
     viewMode, 
     products, 
@@ -28,30 +26,18 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({
     onNavigate,
     onFilterChange
 }) => {
-    const isSalesFilter = initialFilter && SALES_FILTERS.includes(initialFilter);
-
     return (
         <div className="animate-in fade-in duration-500 pt-8 min-h-screen">
              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
                 <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center flex-wrap">
                     <span className="cursor-pointer hover:text-brand-orange transition-colors" onClick={() => onNavigate('home')}>Home</span> 
                     <span className="mx-2 opacity-50">/</span> 
-                    
-                    {isSalesFilter ? (
-                        <span 
-                            className="cursor-pointer hover:text-brand-orange transition-colors" 
-                            onClick={() => onNavigate('sales')}
-                        >
-                            Sales
-                        </span>
-                    ) : (
-                        <span 
-                            className={`cursor-pointer transition-colors ${!initialFilter || initialFilter === 'All' ? 'text-brand-black' : 'hover:text-brand-orange'}`} 
-                            onClick={() => onFilterChange && onFilterChange('All')}
-                        >
-                            Catalog
-                        </span>
-                    )}
+                    <span 
+                        className={`cursor-pointer transition-colors ${!initialFilter || initialFilter === 'All' ? 'text-brand-black' : 'hover:text-brand-orange'}`} 
+                        onClick={() => onFilterChange && onFilterChange('All')}
+                    >
+                        Catalog
+                    </span>
 
                     {initialFilter && initialFilter !== 'All' && (
                         <>

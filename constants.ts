@@ -84,7 +84,7 @@ export const PRODUCTS: Product[] = [
     genre: 'Post-Punk',
     condition: 'VG+',
     isNewArrival: false,
-    tags: ['Clearance'],
+    tags: ['Last Chance'],
     inStock: true,
     releaseDate: '1979-06-15'
   },
@@ -152,7 +152,7 @@ export const PRODUCTS: Product[] = [
     format: 'LP',
     genre: 'Rock',
     condition: 'VG',
-    tags: ['Clearance'],
+    tags: ['Last Chance'],
     inStock: true,
     releaseDate: '1973-03-01'
   }

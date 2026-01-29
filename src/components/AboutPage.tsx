@@ -29,6 +29,17 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
     },
   ];
 
+  const ownerImages: Array<{ src: string; alt: string }> = [
+    {
+      src: '/images/IMG_9247.jpeg',
+      alt: 'Store owner photo',
+    },
+    {
+      src: '/images/IMG_9246.jpeg',
+      alt: 'Store owner with the community',
+    },
+  ];
+
   return (
     <div className="animate-in fade-in duration-500">
       <Section>
@@ -47,10 +58,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
               </p>
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
+           <div className="grid grid-cols-1">
               
               {/* Main Content */}
-              <div className="md:col-span-7 space-y-6 text-lg leading-relaxed text-gray-700 font-medium">
+              <div className="space-y-6 text-lg leading-relaxed text-gray-700 font-medium">
                  <p className="first-letter:text-5xl first-letter:font-display first-letter:float-left first-letter:mr-3 first-letter:mt-[-6px]">
                     The shop didn't start as <em>Spiral Groove</em>. It was originally a local record store called <strong>Earworm Records</strong>. Around <strong>2020, Adam and Trisha Mitzel took over the business and rebranded it as Spiral Groove Records</strong>. That change didn't just swap the sign outside – it repositioned the store with a renewed focus on community, vinyl culture, and in-person music experience.
                  </p>
@@ -65,25 +76,51 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
                  </p>
               </div>
 
-              {/* Sidebar / Image */}
-              <div className="md:col-span-5 space-y-8">
-                 <div className={`relative aspect-[3/4] ${isRetro ? 'border-2 border-brand-black p-2 bg-white shadow-retro' : 'rounded-2xl overflow-hidden'}`}>
-                    <img 
-                        src="/images/IMG_2490.jpeg" 
-                        alt="Spiral Groove Records storefront with neon record sign" 
-                        className={`w-full h-full object-cover ${isRetro ? 'grayscale-[20%]' : ''}`}
-                        loading="lazy"
-                        decoding="async"
-                    />
-                    {isRetro && <div className="absolute -bottom-4 -right-4 bg-brand-orange text-brand-black px-4 py-2 border-2 border-brand-black font-bold uppercase text-xs transform rotate-3">Our Fearless Leader</div>}
-                 </div>
-                 
-                 <div className="text-center">
-                    <h4 className="font-display text-xl mb-2">Adam Mitzel</h4>
-                    <p className="text-sm text-gray-500 uppercase tracking-widest font-bold">Owner</p>
-                 </div>
+           </div>
+
+           {/* Owner Photos */}
+           <div className="mt-16">
+              <div className="text-center mb-10">
+                <span className={`inline-block px-4 py-1.5 mb-4 text-xs font-bold uppercase tracking-[0.2em] 
+                  ${isRetro ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-pop-sm' : 'bg-gray-100 text-gray-900 rounded-full'}
+                `}>
+                  Owner
+                </span>
+                <h3 className={`font-display text-3xl md:text-4xl leading-tight ${isRetro ? 'text-brand-black' : 'text-black'}`}>
+                  The face behind the shop.
+                </h3>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {ownerImages.map((img) => {
+                  const isCommunityPhoto = img.src === '/images/IMG_9246.jpeg';
+                  return (
+                    <figure
+                      key={img.src}
+                      className={`group relative overflow-hidden
+                        ${isRetro ? 'border-2 border-brand-black bg-white shadow-retro' : 'rounded-2xl border border-gray-100 shadow-sm'}
+                      `}
+                    >
+                      <div className="aspect-[4/3]">
+                        <img
+                          src={img.src}
+                          alt={img.alt}
+                          className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]
+                            ${isRetro ? 'grayscale-[10%]' : ''}
+                            ${isCommunityPhoto ? 'object-[70%_20%]' : ''}
+                          `}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </div>
+                    </figure>
+                  );
+                })}
+              </div>
+
+              <div className={`mt-6 text-center text-sm font-medium ${isRetro ? 'text-brand-black/70' : 'text-gray-500'}`}>
+                Want to sell a collection? <button className="underline hover:opacity-70" onClick={() => (window.location.href = '/contact')}>Contact us</button>.
+              </div>
            </div>
 
            {/* Photo Gallery */}

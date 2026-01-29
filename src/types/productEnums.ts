@@ -23,7 +23,7 @@ export enum RecordFormat {
 
 /**
  * Record Condition - Condition grading system
- * Based on Goldmine Standard (common in record collecting)
+ * Based on common record-collecting grading standards
  */
 export enum RecordCondition {
   // Near Mint (best condition)
@@ -352,7 +352,6 @@ export enum StaffPickStatus {
   NONE = 'none',                // Not a staff pick
   FEATURED = 'featured',        // Featured staff pick
   NEW_ARRIVAL = 'new_arrival',  // New arrival pick
-  CLEARANCE = 'clearance',      // Clearance pick
 }
 
 /**

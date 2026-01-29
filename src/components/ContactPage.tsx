@@ -103,7 +103,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ viewMode }) => {
                  `}>
                     <h3 className="font-display text-2xl mb-4">Buying Records?</h3>
                     <p className="mb-6 opacity-90">
-                        We buy used vinyl every day. For collections over 500 pieces, we make house calls.
+                        We buy used vinyl every day. For large collections, contact us first so we can plan the best time.
                     </p>
                     <div className="flex justify-center">
                         <Button 

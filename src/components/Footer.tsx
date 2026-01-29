@@ -162,7 +162,6 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
                 { label: 'Equipment', page: 'catalog', filter: 'Equipment' },
                 { label: 'Merch', page: 'catalog', filter: 'Merch' },
                 { label: 'Staff Picks', page: 'staff-picks' },
-                { label: 'On Sale', page: 'sales' },
               ].map((item) => (
                 <li key={item.label}>
                   <a 
@@ -191,7 +190,6 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
                   { label: 'Locations', page: 'locations' },
                   { label: 'We Buy Records', page: 'we-buy' },
                   { label: 'Our Story', page: 'about' },
-                  { label: 'FAQ', page: 'faq' },
                   { label: 'Order Status', page: 'order-status' }
               ].map((item) => (
                 <li key={item.label}>
