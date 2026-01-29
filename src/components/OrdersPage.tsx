@@ -1,10 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
-import { ViewMode, Page, Order } from '../../types';
+import { ViewMode, Page, Order, User } from '../../types';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { Package, Clock, CheckCircle2, Disc, MapPin, Store, Loader2, AlertCircle } from 'lucide-react';
-import { useUser } from '../auth/StackAuthProvider'; // Import auth hook
 import { mapOrderStatus } from '../utils/orderStatus';
 
 interface OrdersPageProps {
@@ -12,11 +11,11 @@ interface OrdersPageProps {
   onNavigate: (page: Page, filter?: string) => void;
   onViewReceipt: (order: Order) => void;
   onLoginClick: () => void;
+  user: User | null;
 }
 
-export const OrdersPage: React.FC<OrdersPageProps> = ({ viewMode, onNavigate, onViewReceipt, onLoginClick }) => {
+export const OrdersPage: React.FC<OrdersPageProps> = ({ viewMode, onNavigate, onViewReceipt, onLoginClick, user }) => {
   const isRetro = viewMode === 'retro';
-  const { user } = useUser();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +64,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ viewMode, onNavigate, on
     };
 
     fetchOrders();
-  }, [user]);
+  }, [user?.email]);
 
   if (loading) {
       return (

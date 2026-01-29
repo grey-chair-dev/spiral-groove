@@ -992,6 +992,7 @@ function App() {
         )}
         {currentPage === 'orders' && (
             <OrdersPage 
+                user={user}
                 viewMode={effectiveViewMode}
                 onNavigate={handleNavigate}
                 onViewReceipt={handleViewReceipt}

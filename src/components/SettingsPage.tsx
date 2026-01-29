@@ -13,6 +13,8 @@ interface SettingsPageProps {
   onUpdateUser: (user: User) => void;
 }
 
+type SettingsTab = 'profile' | 'notifications' | 'security' | 'preferences';
+
 export const SettingsPage: React.FC<SettingsPageProps> = ({ 
   user, 
   viewMode, 
@@ -21,6 +23,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   onUpdateUser 
 }) => {
   const isRetro = viewMode === 'retro';
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   
   // Local state for form fields
   const [formData, setFormData] = useState({
@@ -123,23 +126,25 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 
-                {/* Left Column: Navigation / Tabs (Visual only for now) */}
+                {/* Left Column: Navigation / Tabs */}
                 <div className={`p-6 hidden lg:block sticky top-24
                     ${isRetro 
                         ? 'bg-white border-2 border-brand-black shadow-retro' 
                         : 'bg-white border border-gray-200 rounded-xl shadow-sm'}
                 `}>
                     <nav className="space-y-1">
-                        {[
-                            { icon: UserIcon, label: 'Profile Details', active: true },
-                            { icon: Bell, label: 'Notifications', active: false },
-                            { icon: Lock, label: 'Password & Security', active: false },
-                            { icon: Palette, label: 'Preferences', active: false },
-                        ].map((item) => (
+                        {([
+                            { id: 'profile' as const, icon: UserIcon, label: 'Profile Details' },
+                            { id: 'notifications' as const, icon: Bell, label: 'Notifications' },
+                            { id: 'security' as const, icon: Lock, label: 'Password & Security' },
+                            { id: 'preferences' as const, icon: Palette, label: 'Preferences' },
+                        ]).map((item) => (
                             <button 
                                 key={item.label}
+                                type="button"
+                                onClick={() => setActiveTab(item.id)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold transition-colors rounded-lg text-left
-                                    ${item.active 
+                                    ${activeTab === item.id 
                                         ? (isRetro ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-pop-sm' : 'bg-gray-100 text-black')
                                         : 'text-gray-500 hover:bg-gray-50 hover:text-black'}
                                 `}
@@ -153,6 +158,32 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
                 {/* Right Column: Forms */}
                 <div className="lg:col-span-2 space-y-8">
+                    {/* Mobile Tabs */}
+                    <div className={`lg:hidden p-3 border-2
+                      ${isRetro ? 'bg-white border-brand-black shadow-retro' : 'bg-white border-gray-200 rounded-xl shadow-sm'}
+                    `}>
+                      <div className="flex gap-2 overflow-x-auto">
+                        {([
+                          { id: 'profile' as const, label: 'Profile' },
+                          { id: 'notifications' as const, label: 'Notifications' },
+                          { id: 'security' as const, label: 'Security' },
+                          { id: 'preferences' as const, label: 'Preferences' },
+                        ]).map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => setActiveTab(t.id)}
+                            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors
+                              ${activeTab === t.id
+                                ? (isRetro ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-pop-sm' : 'bg-gray-100 text-black rounded-lg')
+                                : (isRetro ? 'text-gray-600 border-2 border-transparent hover:border-brand-black/20' : 'text-gray-600 hover:bg-gray-50 rounded-lg')}
+                            `}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     
                     {/* Feedback Message */}
                     {message && (
@@ -167,6 +198,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
                     <form onSubmit={handleSubmit}>
                         {/* 1. Public Profile */}
+                        {activeTab === 'profile' && (
                         <div className={`p-6 md:p-8 mb-8 relative
                             ${isRetro 
                                 ? 'bg-white border-2 border-brand-black shadow-retro' 
@@ -253,8 +285,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                                 </div>
                             </div>
                         </div>
+                        )}
 
-                        {/* 2. Notifications & Preferences */}
+                        {/* 2. Preferences */}
+                        {activeTab === 'preferences' && (
                         <div className={`p-6 md:p-8 mb-8 relative
                             ${isRetro 
                                 ? 'bg-white border-2 border-brand-black shadow-retro' 
@@ -304,60 +338,72 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                                         </label>
                                     </div>
                                 </div>
-
-                                <div className="border-t border-gray-100 pt-6 space-y-4">
-                                    <label className="flex items-center justify-between cursor-pointer group">
-                                        <div>
-                                            <div className="font-bold text-sm mb-1 group-hover:text-brand-orange transition-colors">Marketing Newsletter</div>
-                                            <div className="text-xs text-gray-500">Receive updates about new arrivals and events.</div>
-                                        </div>
-                                        <div className="relative">
-                                            <input 
-                                                type="checkbox" 
-                                                name="newsletter"
-                                                checked={formData.newsletter}
-                                                onChange={handleChange}
-                                                className="sr-only peer" 
-                                            />
-                                            <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-focus:ring-brand-orange transition-all
-                                                ${isRetro 
-                                                    ? 'bg-gray-200 peer-checked:bg-brand-black border-2 border-brand-black' 
-                                                    : 'bg-gray-200 peer-checked:bg-black'}
-                                            `}></div>
-                                            <div className={`absolute top-1 left-1 bg-white border border-gray-300 rounded-full h-4 w-4 transition-all peer-checked:translate-x-full
-                                                ${isRetro ? 'border-brand-black' : ''}
-                                            `}></div>
-                                        </div>
-                                    </label>
-                                    
-                                    <label className="flex items-center justify-between cursor-pointer group">
-                                        <div>
-                                            <div className="font-bold text-sm mb-1 group-hover:text-brand-orange transition-colors">Order Notifications</div>
-                                            <div className="text-xs text-gray-500">Receive updates about your order status via your preferred method.</div>
-                                        </div>
-                                        <div className="relative">
-                                            <input 
-                                                type="checkbox" 
-                                                name="notifications"
-                                                checked={formData.notifications}
-                                                onChange={handleChange}
-                                                className="sr-only peer" 
-                                            />
-                                            <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-focus:ring-brand-orange transition-all
-                                                ${isRetro 
-                                                    ? 'bg-gray-200 peer-checked:bg-brand-black border-2 border-brand-black' 
-                                                    : 'bg-gray-200 peer-checked:bg-black'}
-                                            `}></div>
-                                            <div className={`absolute top-1 left-1 bg-white border border-gray-300 rounded-full h-4 w-4 transition-all peer-checked:translate-x-full
-                                                ${isRetro ? 'border-brand-black' : ''}
-                                            `}></div>
-                                        </div>
-                                    </label>
-                                </div>
                             </div>
                         </div>
+                        )}
 
-                        {/* 3. Security (Mock) */}
+                        {/* 3. Notifications */}
+                        {activeTab === 'notifications' && (
+                        <div className={`p-6 md:p-8 mb-8 relative
+                            ${isRetro 
+                                ? 'bg-white border-2 border-brand-black shadow-retro' 
+                                : 'bg-white border border-gray-200 rounded-xl shadow-sm'}
+                        `}>
+                            <h2 className="font-display text-2xl mb-6 pb-4 border-b border-gray-100">Notifications</h2>
+                            <div className="space-y-4">
+                                <label className="flex items-center justify-between cursor-pointer group">
+                                    <div>
+                                        <div className="font-bold text-sm mb-1 group-hover:text-brand-orange transition-colors">Marketing Newsletter</div>
+                                        <div className="text-xs text-gray-500">Receive updates about new arrivals and events.</div>
+                                    </div>
+                                    <div className="relative">
+                                        <input 
+                                            type="checkbox" 
+                                            name="newsletter"
+                                            checked={formData.newsletter}
+                                            onChange={handleChange}
+                                            className="sr-only peer" 
+                                        />
+                                        <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-focus:ring-brand-orange transition-all
+                                            ${isRetro 
+                                                ? 'bg-gray-200 peer-checked:bg-brand-black border-2 border-brand-black' 
+                                                : 'bg-gray-200 peer-checked:bg-black'}
+                                        `}></div>
+                                        <div className={`absolute top-1 left-1 bg-white border border-gray-300 rounded-full h-4 w-4 transition-all peer-checked:translate-x-full
+                                            ${isRetro ? 'border-brand-black' : ''}
+                                        `}></div>
+                                    </div>
+                                </label>
+                                
+                                <label className="flex items-center justify-between cursor-pointer group">
+                                    <div>
+                                        <div className="font-bold text-sm mb-1 group-hover:text-brand-orange transition-colors">Order Notifications</div>
+                                        <div className="text-xs text-gray-500">Receive updates about your order status via your preferred method.</div>
+                                    </div>
+                                    <div className="relative">
+                                        <input 
+                                            type="checkbox" 
+                                            name="notifications"
+                                            checked={formData.notifications}
+                                            onChange={handleChange}
+                                            className="sr-only peer" 
+                                        />
+                                        <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-focus:ring-brand-orange transition-all
+                                            ${isRetro 
+                                                ? 'bg-gray-200 peer-checked:bg-brand-black border-2 border-brand-black' 
+                                                : 'bg-gray-200 peer-checked:bg-black'}
+                                        `}></div>
+                                        <div className={`absolute top-1 left-1 bg-white border border-gray-300 rounded-full h-4 w-4 transition-all peer-checked:translate-x-full
+                                            ${isRetro ? 'border-brand-black' : ''}
+                                        `}></div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        )}
+
+                        {/* 4. Security */}
+                        {activeTab === 'security' && (
                         <div className={`p-6 md:p-8 mb-8 relative
                             ${isRetro 
                                 ? 'bg-white border-2 border-brand-black shadow-retro' 
@@ -403,6 +449,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                                 </div>
                             </div>
                         </div>
+                        )}
 
                         {/* Save Button */}
                         <div className="sticky bottom-6 z-10 flex justify-end">
@@ -420,6 +467,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     </form>
 
                     {/* Danger Zone */}
+                    {activeTab === 'security' && (
                     <div className="mt-12 pt-8 border-t border-gray-200">
                         <h3 className="text-red-600 font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
                             <Shield size={16} /> Danger Zone
@@ -429,6 +477,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                             Delete Account
                         </Button>
                     </div>
+                    )}
 
                 </div>
              </div>

@@ -455,7 +455,7 @@ export const Header: React.FC<HeaderProps> = ({
                              </div>
                              
                              {/* User Dropdown */}
-                             <div className={`absolute top-full right-0 pt-3 transition-all duration-200 origin-top-right z-[70]
+                             <div className={`absolute top-full right-0 pt-3 transition-all duration-200 origin-top-right z-[200]
                                 ${isUserMenuOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}
                              `}>
                                 <div className={`w-56 p-2 rounded-xl shadow-2xl border flex flex-col gap-1 overflow-hidden
