@@ -38,10 +38,13 @@ function getNeonAuthConfig(): AuthProvider {
     platformWindow?.__neon_auth_url
 
   const projectId =
-    env.VITE_STACK_PROJECT_ID ?? env.STACK_PROJECT_ID
+    env.VITE_STACK_PROJECT_ID ??
+    env.NEXT_PUBLIC_STACK_PROJECT_ID ??
+    env.STACK_PROJECT_ID
 
   const publishableKey =
     env.VITE_STACK_PUBLISHABLE_CLIENT_KEY ??
+    env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY ??
     env.STACK_PUBLISHABLE_CLIENT_KEY
 
   return {

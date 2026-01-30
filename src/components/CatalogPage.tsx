@@ -32,12 +32,12 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({
                 <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center flex-wrap">
                     <span className="cursor-pointer hover:text-brand-orange transition-colors" onClick={() => onNavigate('home')}>Home</span> 
                     <span className="mx-2 opacity-50">/</span> 
-                    <span 
-                        className={`cursor-pointer transition-colors ${!initialFilter || initialFilter === 'All' ? 'text-brand-black' : 'hover:text-brand-orange'}`} 
-                        onClick={() => onFilterChange && onFilterChange('All')}
-                    >
-                        Catalog
-                    </span>
+                        <span 
+                            className={`cursor-pointer transition-colors ${!initialFilter || initialFilter === 'All' ? 'text-brand-black' : 'hover:text-brand-orange'}`} 
+                            onClick={() => onFilterChange && onFilterChange('All')}
+                        >
+                            Catalog
+                        </span>
 
                     {initialFilter && initialFilter !== 'All' && (
                         <>

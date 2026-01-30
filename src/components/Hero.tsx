@@ -44,15 +44,23 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate, products, onPr
       if (f.includes('cd') || f.includes('cassette') || f.includes('tape')) return false
       return f.includes('lp') || f.includes('vinyl') || f.includes('12"') || f.includes('12\'') || f.length === 0
     }
+    const isNonMusic = (p: Product) => {
+      const haystack = `${p.format || ''} ${(p.tags || []).join(' ')} ${(p.categories || []).join(' ')}`
+      return /(equipment|turntable|receiver|speakers|speaker|poster|puzzle|crates|crate|sleeves|cleaner|book|dvd|misc|merch|gift\s*card)/i.test(
+        haystack
+      )
+    }
     const hasTag = (p: Product, re: RegExp) => (p.tags || []).some((t) => re.test(String(t)))
     const isBestSeller = (p: Product) =>
       hasTag(p, /best\s*seller|bestseller|top\s*seller|popular|trending|hot/i)
 
-    const albumPool = products.filter(inStock).filter(isAlbum)
+    // "Newest album" should reflect the most recently added album from Neon.
+    // /api/products returns products_cache ordered by created_at DESC, so `products[0]` is newest.
+    // We then filter down to "album-like" items to avoid picking equipment/merch.
+    const albumPoolNewestFirst = products.filter((p) => !isNonMusic(p)).filter(isAlbum)
     const newest =
-      albumPool.find((p) => p.isNewArrival) ||
-      products.filter(inStock).find((p) => p.isNewArrival) ||
-      albumPool[0] ||
+      albumPoolNewestFirst[0] ||
+      products.filter((p) => !isNonMusic(p))[0] ||
       products.filter(inStock)[0] ||
       products[0]
 

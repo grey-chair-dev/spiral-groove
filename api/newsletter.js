@@ -9,6 +9,22 @@
 
 import { withWebHandler } from './_vercelNodeAdapter.js'
 import { notifyWebhook } from './notifyWebhook.js'
+import crypto from 'crypto'
+
+async function forwardToNewsletterWebhook(payload) {
+  const webhookUrl = process.env.MAKE_NEWSLETTER_SIGNUP_WEBHOOK_URL || process.env.MAKE_NEWSLETTER_WEBHOOK_URL
+  if (!webhookUrl) return { attempted: false }
+  const res = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const text = await res.text().catch(() => '')
+  if (!res.ok) {
+    return { attempted: true, ok: false, status: res.status, body: (text || '').slice(0, 500) }
+  }
+  return { attempted: true, ok: true }
+}
 
 /**
  * @param {Request} request
@@ -81,23 +97,83 @@ export async function webHandler(request) {
 
     console.log('[Newsletter API] Processing subscription:', { email })
 
+    // Check if already subscribed to avoid re-sending welcome / double-counting.
+    let existing = null
+    try {
+      const { query } = await import('./db.js')
+      const existingRes = await query(
+        'SELECT email, subscribed FROM email_list WHERE email = $1 LIMIT 1',
+        [email]
+      )
+      existing = existingRes?.rows?.[0] || null
+      if (existing?.subscribed === true) {
+        // Dev-only escape hatch: allow re-sending the welcome email for testing purposes.
+        const forceSendWelcome = Boolean(requestBody?.forceSendWelcome || requestBody?.force)
+        const allowForce = process.env.NODE_ENV !== 'production' && forceSendWelcome
+        if (allowForce) {
+          console.log('[Newsletter API] Force-sending welcome email (dev)', { email })
+        } else {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'Already subscribed.',
+            alreadySubscribed: true,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'POST, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type',
+            },
+          }
+        )
+        }
+      }
+    } catch (e) {
+      // If DB is unavailable, fall back to insert flow.
+      console.warn('[Newsletter API] Could not pre-check existing subscription:', e?.message || e)
+    }
+
+    // Forward to Make.com (marketing list / CRM) if configured
+    const newsletterPayload = {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      source: requestBody.source || 'website',
+      email: String(email).trim(),
+      firstName: requestBody.firstName || null,
+      lastName: requestBody.lastName || null,
+      pageUrl: requestBody.pageUrl || '',
+      userAgent: requestBody.userAgent || '',
+    }
+    try {
+      const forwarded = await forwardToNewsletterWebhook(newsletterPayload)
+      if (forwarded.attempted && forwarded.ok === false) {
+        console.error('[Newsletter API] Newsletter webhook error', forwarded)
+      }
+    } catch (e) {
+      console.error('[Newsletter API] Newsletter webhook request failed:', e)
+    }
+
     // Store in database
     try {
       const { query } = await import('./db.js')
       await query(
-        `INSERT INTO email_list (email, first_name, last_name, source, subscribed, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, TRUE, NOW(), NOW())
+        `INSERT INTO email_list (email, first_name, last_name, source, subscribed)
+         VALUES ($1, $2, $3, $4, TRUE)
          ON CONFLICT (email) 
          DO UPDATE SET 
            first_name = COALESCE(EXCLUDED.first_name, email_list.first_name),
            last_name = COALESCE(EXCLUDED.last_name, email_list.last_name),
+           source = COALESCE(EXCLUDED.source, email_list.source),
            subscribed = TRUE,
            updated_at = NOW()`,
         [
           email,
           requestBody.firstName || null,
           requestBody.lastName || null,
-          'website'
+          requestBody.source || 'website'
         ]
       )
       console.log('[Newsletter API] Subscription saved to database:', email)
@@ -115,7 +191,7 @@ export async function webHandler(request) {
       data: {
         firstName: requestBody.firstName || null,
         lastName: requestBody.lastName || null,
-        source: 'website',
+        source: requestBody.source || 'website',
       },
       dedupeKey: `newsletter:${email}`,
     })
@@ -124,7 +200,7 @@ export async function webHandler(request) {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Successfully subscribed to newsletter!'
+        message: existing?.subscribed === false ? 'Welcome back! You have been re-subscribed.' : 'Successfully subscribed to newsletter!'
       }),
       {
         status: 200,

@@ -38,22 +38,24 @@ function shouldSend(dedupeKey, ttlMs) {
  * @param {Object} [params.data] - Additional data for the email (order details, user info, etc.)
  * @param {string} [params.dedupeKey] - Optional deduplication key
  * @param {number} [params.dedupeTtlMs] - Deduplication TTL in milliseconds
- * @returns {Promise<void>}
+ * @returns {Promise<{ attempted: boolean, ok: boolean, status?: number, statusText?: string, reason?: string }>}
  */
-export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedupeTtlMs = DEFAULT_DEDUPE_TTL_MS }) {
+export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedupeTtlMs = DEFAULT_DEDUPE_TTL_MS, force = false }) {
   try {
     // Get webhook URL
     const webhookUrl = process.env.MAKE_EMAIL_WEBHOOK_URL
     if (!webhookUrl) {
       console.warn('[Email Webhook] No MAKE_EMAIL_WEBHOOK_URL configured')
-      return
+      return { attempted: false, ok: false, reason: 'missing_MAKE_EMAIL_WEBHOOK_URL' }
     }
 
-    // Deduplication check
-    const key = dedupeKey || `email:${type}:${to}:${Date.now() - (Date.now() % (dedupeTtlMs / 10))}`
-    if (!shouldSend(key, dedupeTtlMs)) {
-      console.log('[Email Webhook] Skipping duplicate email:', { type, to })
-      return
+    // Deduplication check (skip if force=true)
+    if (!force) {
+      const key = dedupeKey || `email:${type}:${to}:${Date.now() - (Date.now() % (dedupeTtlMs / 10))}`
+      if (!shouldSend(key, dedupeTtlMs)) {
+        console.log('[Email Webhook] Skipping duplicate email:', { type, to })
+        return { attempted: false, ok: true, reason: 'deduped' }
+      }
     }
 
     // Generate HTML email content based on type
@@ -99,7 +101,7 @@ export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedup
     // Send to webhook
     if (typeof fetch !== 'function') {
       console.warn('[Email Webhook] fetch() not available; skipping email')
-      return
+      return { attempted: false, ok: false, reason: 'fetch_unavailable' }
     }
 
     const response = await fetch(webhookUrl, {
@@ -117,14 +119,17 @@ export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedup
         status: response.status,
         statusText: response.statusText,
       })
+      return { attempted: true, ok: false, status: response.status, statusText: response.statusText, reason: 'webhook_non_2xx' }
     } else {
       if (process.env.NODE_ENV !== 'production') {
         console.log('[Email Webhook] Email sent:', { type, to, status: response.status })
       }
+      return { attempted: true, ok: true, status: response.status, statusText: response.statusText }
     }
   } catch (error) {
     console.error('[Email Webhook] Error sending email:', error?.message || error)
     // Don't throw - email failures shouldn't break the main flow
+    return { attempted: true, ok: false, reason: 'exception' }
   }
 }
 

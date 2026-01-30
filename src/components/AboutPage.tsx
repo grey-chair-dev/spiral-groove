@@ -9,7 +9,7 @@ interface AboutPageProps {
 
 export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
   const isRetro = viewMode === 'retro';
-  
+
   const galleryImages: Array<{ src: string; alt: string }> = [
     {
       src: '/images/IMG_2500.jpeg',
@@ -116,12 +116,12 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
                     </figure>
                   );
                 })}
-              </div>
-
+                 </div>
+                 
               <div className={`mt-6 text-center text-sm font-medium ${isRetro ? 'text-brand-black/70' : 'text-gray-500'}`}>
                 Want to sell a collection? <button className="underline hover:opacity-70" onClick={() => (window.location.href = '/contact')}>Contact us</button>.
               </div>
-           </div>
+                 </div>
 
            {/* Photo Gallery */}
            <div className="mt-20">

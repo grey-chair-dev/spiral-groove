@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { trackPageView, trackProductView, trackAddToCart, trackRemoveFromCart, trackBeginCheckout, trackPurchase, trackSearch, trackNewsletterSignup, trackSignup, trackLogin } from './utils/analytics';
+import React, { useMemo, useState, useEffect } from 'react';
+import { trackPageView, trackProductView, trackAddToCart, trackRemoveFromCart, trackBeginCheckout, trackPurchase, trackSearch, trackNewsletterSignup, trackSignup } from './utils/analytics';
 import { Header } from './components/Header';
 import { NeonCursor } from './components/NeonCursor';
 import { Hero } from './components/Hero';
@@ -11,7 +11,6 @@ import { EventsSection } from './components/EventsSection';
 import { Footer } from './components/Footer';
 import { Chatbot } from './components/Chatbot';
 import { ProductModal } from './components/ProductModal';
-import { AuthModal } from './components/AuthModal';
 import { Toast } from './components/ui/Toast';
 import { EventsPage } from './components/EventsPage';
 import { AboutPage } from './components/AboutPage';
@@ -19,7 +18,6 @@ import { LocationsPage } from './components/LocationsPage';
 import { WeBuyPage } from './components/WeBuyPage';
 import { CatalogPage } from './components/CatalogPage';
 import { ProductDetailsPage } from './components/ProductDetailsPage';
-import { OrdersPage } from './components/OrdersPage';
 import { ReceiptPage } from './components/ReceiptPage';
 import { OrderStatusPage } from './components/OrderStatusPage';
 import { ContactPage } from './components/ContactPage';
@@ -27,16 +25,16 @@ import { StaffPicksPage } from './components/StaffPicksPage';
 import { CartPage } from './components/CartPage';
 import { CheckoutPage } from './components/CheckoutPage';
 import { OrderConfirmationPage } from './components/OrderConfirmationPage';
-import { SettingsPage } from './components/SettingsPage';
 import { SearchPage } from './components/SearchPage';
 import { ClientLoginPage } from './components/ClientLoginPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { TermsPage } from './components/TermsPage';
 import { AccessibilityPage } from './components/AccessibilityPage';
-import { PRODUCTS, STAFF_PICKS, EVENTS } from '../constants';
-import { Product, ViewMode, User, Page, Order, Event, CartItem } from '../types';
+import { PRODUCTS, STAFF_PICKS } from '../constants';
+import { Product, ViewMode, Page, Order, Event, CartItem } from '../types';
 import { fetchProducts as fetchApiProducts, Product as ApiProduct } from './dataAdapter';
 import { getDefaultProductImage } from './utils/defaultProductImage';
+import { fetchEvents as fetchApiEvents } from './eventsAdapter';
 
 const VALID_PAGES: Page[] = [
   'home',
@@ -46,7 +44,6 @@ const VALID_PAGES: Page[] = [
   'we-buy',
   'catalog',
   'product',
-  'orders',
   'receipt',
   'order-status',
   'contact',
@@ -54,7 +51,6 @@ const VALID_PAGES: Page[] = [
   'cart',
   'checkout',
   'order-confirmation',
-  'settings',
   'search',
   'privacy',
   'terms',
@@ -127,7 +123,8 @@ function parseRouteFromLocation(input: {
       return { page: 'product', productId: decodeURIComponent(second) };
     }
     case 'orders':
-      return { page: 'orders' };
+      // Account feature removed: redirect to order status lookup.
+      return { page: 'order-status' };
     case 'order-status': {
       const id = second ? decodeURIComponent(second) : '';
       const email = third ? decodeURIComponent(third) : '';
@@ -147,7 +144,8 @@ function parseRouteFromLocation(input: {
     case 'order-confirmation':
       return { page: 'order-confirmation' };
     case 'settings':
-      return { page: 'settings' };
+      // Account feature removed: redirect home.
+      return { page: 'home' };
     case 'privacy':
       return { page: 'privacy' };
     case 'terms':
@@ -215,6 +213,36 @@ function App() {
     search: window.location.search,
     hash: window.location.hash,
   });
+
+  const ORDER_LOOKUP_STORAGE_KEY = 'sg_order_lookup_v1';
+  const RECEIPT_ORDER_STORAGE_KEY = 'sg_receipt_order_v1';
+
+  const readOrderLookupFromSession = (): { id: string; email: string } => {
+    try {
+      const raw = sessionStorage.getItem(ORDER_LOOKUP_STORAGE_KEY);
+      if (!raw) return { id: '', email: '' };
+      const parsed = JSON.parse(raw);
+      return {
+        id: typeof parsed?.id === 'string' ? parsed.id : '',
+        email: typeof parsed?.email === 'string' ? parsed.email : '',
+      };
+    } catch {
+      return { id: '', email: '' };
+    }
+  };
+
+  const readReceiptOrderFromSession = (): Order | null => {
+    try {
+      const raw = sessionStorage.getItem(RECEIPT_ORDER_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      if (typeof parsed.id !== 'string') return null;
+      return parsed as Order;
+    } catch {
+      return null;
+    }
+  };
   const [viewMode, setViewMode] = useState<ViewMode>('retro');
   // "Modern mode" has been removed. We keep the toggle state for UI copy,
   // but force the styling to always use the Electric (retro) theme.
@@ -222,9 +250,10 @@ function App() {
   const [currentPage, setCurrentPage] = useState<Page>(initialRoute.page);
   const [currentFilter, setCurrentFilter] = useState<string | undefined>(initialRoute.filter);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(() => {
+    // If user refreshes while on /receipt, restore the last viewed receipt from sessionStorage.
+    return initialRoute.page === 'receipt' ? readReceiptOrderFromSession() : null;
+  });
   const [searchQuery, setSearchQuery] = useState<string>(initialRoute.searchQuery ?? '');
 
   const [clientAuthed, setClientAuthed] = useState<boolean>(() => {
@@ -242,17 +271,110 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
+
+  // Events State (loaded from Neon via /api/events)
+  const [events, setEvents] = useState<Event[]>([]);
+
+  const parseEventStart = (event: Event): Date | null => {
+    const raw = (event.startTime || '').trim();
+    if (raw) {
+      const isoish = raw.includes('T') ? raw : raw.replace(' ', 'T');
+      const d = new Date(isoish);
+      if (!Number.isNaN(d.getTime())) return d;
+    }
+    const dateISO = (event.dateISO || '').trim();
+    if (dateISO) {
+      const d = new Date(`${dateISO}T00:00:00`);
+      if (!Number.isNaN(d.getTime())) return d;
+    }
+    return null;
+  };
+
+  const upcomingEventsForHome = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return (events || [])
+      .map((e) => ({ e, start: parseEventStart(e) }))
+      .filter(({ start }) => !start || start >= startOfToday)
+      .sort((a, b) => {
+        const at = a.start?.getTime() ?? Number.POSITIVE_INFINITY;
+        const bt = b.start?.getTime() ?? Number.POSITIVE_INFINITY;
+        return at - bt;
+      })
+      .map(({ e }) => e)
+      .slice(0, 3);
+  }, [events]);
   
   // Cart & Toast State
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const CART_STORAGE_KEY = 'sg_cart_v1';
+
+  const readCartFromStorage = (): CartItem[] => {
+    try {
+      if (typeof window === 'undefined') return [];
+      const raw = window.localStorage.getItem(CART_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+
+      // Basic runtime validation to avoid hard-crashing on bad/migrated data.
+      return parsed
+        .filter((x: any) => x && typeof x === 'object')
+        .map((x: any) => ({
+          product: x.product,
+          quantity: Number(x.quantity) || 0,
+        }))
+        .filter(
+          (x: any) =>
+            x.product &&
+            typeof x.product === 'object' &&
+            typeof x.product.id === 'string' &&
+            x.quantity > 0
+        );
+    } catch {
+      return [];
+    }
+  };
+
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => readCartFromStorage());
   const [toast, setToast] = useState({ show: false, message: '' });
+
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    } catch {
+      // ignore (private mode / quota)
+    }
+  }, [cartItems]);
   
   // Last Order State for Confirmation Page
   const [lastPlacedOrder, setLastPlacedOrder] = useState<Order | null>(null);
   const [orderStatusParams, setOrderStatusParams] = useState<{ id: string; email: string }>(
-    initialRoute.orderStatusParams ?? { id: '', email: '' }
+    initialRoute.orderStatusParams ?? readOrderLookupFromSession()
   );
   const [pendingProductId, setPendingProductId] = useState<string | null>(initialRoute.productId ?? null);
+
+  // Persist the latest order lookup so it survives refresh / navigating to receipt and back.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(ORDER_LOOKUP_STORAGE_KEY, JSON.stringify(orderStatusParams));
+    } catch {
+      // ignore (private mode / blocked storage)
+    }
+  }, [orderStatusParams]);
+
+  // Persist the last viewed receipt so /receipt can survive refresh.
+  useEffect(() => {
+    try {
+      if (selectedOrder) {
+        sessionStorage.setItem(RECEIPT_ORDER_STORAGE_KEY, JSON.stringify(selectedOrder));
+      } else {
+        sessionStorage.removeItem(RECEIPT_ORDER_STORAGE_KEY);
+      }
+    } catch {
+      // ignore
+    }
+  }, [selectedOrder]);
 
   const parseArtistAndTitle = (cleanName: string): { artist: string; title: string } => {
     const fallbackArtist = 'Various Artists';
@@ -561,6 +683,26 @@ function App() {
     loadProducts();
   }, []);
 
+  // Fetch events from API (Neon events table)
+  useEffect(() => {
+    let mounted = true;
+    const loadEvents = async () => {
+      try {
+        const apiEvents = await fetchApiEvents();
+        if (!mounted) return;
+        setEvents(apiEvents);
+      } catch (err) {
+        console.error('[App] Failed to load events:', err);
+        if (!mounted) return;
+        setEvents([]);
+      }
+    };
+    loadEvents();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setCurrentPage('product');
@@ -696,25 +838,7 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleLogin = (userData: User) => {
-    setUser(userData);
-    setIsAuthModalOpen(false);
-    setToast({ show: true, message: `Welcome back, ${userData.name}!` });
-    // Track login
-    trackLogin('email');
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setToast({ show: true, message: "Successfully signed out." });
-    if (currentPage === 'orders' || currentPage === 'receipt' || currentPage === 'settings') {
-        setCurrentPage('home');
-    }
-  };
-  
-  const handleUpdateUser = (updatedUser: User) => {
-    setUser(updatedUser);
-  };
+  // Account/login features removed.
   
   const [selectedArtist, setSelectedArtist] = useState<string | undefined>(undefined);
 
@@ -781,6 +905,11 @@ function App() {
   const handleViewReceipt = (order: Order) => {
       setSelectedOrder(order);
       setCurrentPage('receipt');
+      try {
+        window.history.pushState(null, '', toPathFromState({ page: 'receipt' }));
+      } catch {
+        // ignore
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -793,7 +922,7 @@ function App() {
   };
   
   const handleRSVP = (event: Event) => {
-    const to = 'info@spiralgrooverecords.com'
+    const to = 'adam@spiralgrooverecords.com'
     const subject = `RSVP: ${event.title} — ${event.date} ${event.time}`
     const body = [
       `Hi Spiral Groove Records,`,
@@ -841,11 +970,6 @@ function App() {
       <Header 
         viewMode={viewMode} 
         onCartClick={() => handleNavigate('cart')}
-        user={user}
-        onLoginClick={() => setIsAuthModalOpen(true)}
-        onLogoutClick={handleLogout}
-        onViewOrders={() => handleNavigate('orders')}
-        onAccountSettings={() => handleNavigate('settings')}
         onNavigate={handleNavigate}
         onProductClick={handleProductClick}
         cartCount={cartCount}
@@ -895,7 +1019,7 @@ function App() {
                     onNavigate={handleNavigate}
                 />
                 <EventsSection 
-                    events={EVENTS} 
+                    events={upcomingEventsForHome} 
                     viewMode={effectiveViewMode}
                     onNavigate={handleNavigate}
                     onRSVP={handleRSVP}
@@ -907,6 +1031,7 @@ function App() {
             <EventsPage 
                 viewMode={effectiveViewMode} 
                 onRSVP={handleRSVP}
+                events={events}
             />
         )}
         {currentPage === 'about' && <AboutPage viewMode={effectiveViewMode} />}
@@ -976,8 +1101,6 @@ function App() {
             <CheckoutPage 
                 cartItems={cartItems}
                 viewMode={effectiveViewMode}
-                user={user}
-                onLoginClick={() => setIsAuthModalOpen(true)}
                 onBack={() => handleNavigate('cart')}
                 onPlaceOrder={handlePlaceOrder}
             />
@@ -990,20 +1113,11 @@ function App() {
                 onPrintReceipt={handlePrintReceiptFromOrderConfirmation}
             />
         )}
-        {currentPage === 'orders' && (
-            <OrdersPage 
-                user={user}
-                viewMode={effectiveViewMode}
-                onNavigate={handleNavigate}
-                onViewReceipt={handleViewReceipt}
-                onLoginClick={() => setIsAuthModalOpen(true)}
-            />
-        )}
         {currentPage === 'receipt' && selectedOrder && (
             <ReceiptPage 
                 order={selectedOrder}
                 viewMode={effectiveViewMode}
-                onBack={() => handleNavigate('orders')}
+                onBack={() => handleNavigate('order-status')}
             />
         )}
         {currentPage === 'order-status' && (
@@ -1011,6 +1125,15 @@ function App() {
                 viewMode={effectiveViewMode} 
                 onNavigate={handleNavigate}
                 onViewReceipt={handleViewReceipt}
+                onPersistLookup={(params) => {
+                  setOrderStatusParams(params);
+                  try {
+                    // Keep the URL in sync so refresh restores the lookup automatically.
+                    window.history.replaceState(null, '', toPathFromState({ page: 'order-status', orderStatusParams: params }));
+                  } catch {
+                    // ignore
+                  }
+                }}
                 initialOrderNumber={orderStatusParams.id}
                 initialEmail={orderStatusParams.email}
             />
@@ -1023,15 +1146,6 @@ function App() {
                 viewMode={effectiveViewMode}
                 onProductClick={handleProductClick}
                 onNavigate={handleNavigate}
-            />
-        )}
-        {currentPage === 'settings' && (
-            <SettingsPage 
-                user={user}
-                viewMode={effectiveViewMode}
-                onNavigate={handleNavigate}
-                onLogout={handleLogout}
-                onUpdateUser={handleUpdateUser}
             />
         )}
         {currentPage === 'privacy' && (
@@ -1056,13 +1170,7 @@ function App() {
 
       <Footer viewMode={effectiveViewMode} onNavigate={handleNavigate} />
 
-      {/* Auth Modal */}
-      <AuthModal 
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onLogin={handleLogin}
-        viewMode={effectiveViewMode}
-      />
+      {/* Account features removed. */}
 
       <Toast 
         isVisible={toast.show} 

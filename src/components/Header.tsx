@@ -1,17 +1,12 @@
 
 import React, { useLayoutEffect, useState, useEffect, useRef } from 'react';
-import { ShoppingCart, Menu, X, Search, ChevronDown, User as UserIcon, LogOut, Package, Settings } from 'lucide-react';
-import { ViewMode, User, Page, Product } from '../../types';
+import { ShoppingCart, Menu, X, Search, ChevronDown } from 'lucide-react';
+import { ViewMode, Page, Product } from '../../types';
 import { ProductCategory, RecordFormat } from '../types/productEnums';
 
 interface HeaderProps {
   viewMode: ViewMode;
   onCartClick: () => void;
-  user: User | null;
-  onLoginClick: () => void;
-  onLogoutClick: () => void;
-  onViewOrders?: () => void;
-  onAccountSettings?: () => void;
   onNavigate: (page: Page, filter?: string) => void;
   onProductClick?: (product: Product) => void;
   cartCount?: number;
@@ -133,11 +128,6 @@ const NAV_ITEMS: NavItem[] = [
 export const Header: React.FC<HeaderProps> = ({ 
   viewMode, 
   onCartClick, 
-  user, 
-  onLoginClick, 
-  onLogoutClick,
-  onViewOrders,
-  onAccountSettings,
   onNavigate,
   onProductClick,
   cartCount = 0,
@@ -150,7 +140,6 @@ export const Header: React.FC<HeaderProps> = ({
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -205,29 +194,8 @@ export const Header: React.FC<HeaderProps> = ({
     }
   }, [isMobileSearchOpen]);
 
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.user-menu-container')) {
-        setIsUserMenuOpen(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
   const toggleMobileGroup = (label: string) => {
     setMobileExpanded(prev => prev === label ? null : label);
-  };
-
-  const handleUserIconClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) {
-      onLoginClick();
-    } else {
-      setIsUserMenuOpen(!isUserMenuOpen);
-    }
   };
 
   const handleNavClick = (e: React.MouseEvent, page?: Page, filter?: string) => {
@@ -441,67 +409,12 @@ export const Header: React.FC<HeaderProps> = ({
                      </button>
                      */}
 
-                     {/* Account Button */}
-                     <div 
-                        className="user-menu-container flex items-center justify-center w-10 h-10 cursor-pointer relative"
-                        onClick={handleUserIconClick}
+                     <button
+                       type="button"
+                       aria-label="Cart"
+                       onClick={onCartClick}
+                       className="flex items-center gap-3 group cursor-pointer relative md:mr-0"
                      >
-                        {user ? (
-                           <>
-                             <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 overflow-hidden transition-all
-                                ${isRetro ? 'border-brand-black shadow-pop-sm hover:border-[#00C2CB] hover:neon-glow-orange' : 'border-gray-200 shadow-sm hover:shadow-neon-orange'}
-                             `}>
-                                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                             </div>
-                             
-                             {/* User Dropdown */}
-                             <div className={`absolute top-full right-0 pt-3 transition-all duration-200 origin-top-right z-[200]
-                                ${isUserMenuOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}
-                             `}>
-                                <div className={`w-56 p-2 rounded-xl shadow-2xl border flex flex-col gap-1 overflow-hidden
-                                   ${isRetro ? 'bg-white border-brand-black shadow-retro-sm' : 'bg-white border-gray-100'}
-                                `}>
-                                   <div className="px-4 py-3 border-b border-gray-100 mb-1">
-                                      <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Signed in as</div>
-                                      <div className={`font-bold truncate ${isRetro ? 'font-header' : 'font-sans'}`}>{user.name}</div>
-                                   </div>
-                                   
-                                   <button 
-                                      onClick={(e) => { e.stopPropagation(); setIsUserMenuOpen(false); onViewOrders?.(); }}
-                                      className="text-left px-4 py-2.5 text-sm hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors font-medium text-gray-700"
-                                   >
-                                      <Package size={16} className="text-gray-400" />
-                                      Orders
-                                   </button>
-                                   <button 
-                                      onClick={(e) => { e.stopPropagation(); setIsUserMenuOpen(false); onAccountSettings?.(); }}
-                                      className="text-left px-4 py-2.5 text-sm hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors font-medium text-gray-700"
-                                   >
-                                      <Settings size={16} className="text-gray-400" />
-                                      Account Settings
-                                   </button>
-                                   
-                                   <div className="h-px bg-gray-100 my-1"></div>
-                                   
-                                   <button 
-                                      onClick={(e) => { e.stopPropagation(); setIsUserMenuOpen(false); onLogoutClick(); }}
-                                      className="text-left px-4 py-2.5 text-sm hover:bg-red-50 text-red-600 rounded-lg flex items-center gap-3 transition-colors font-bold"
-                                   >
-                                      <LogOut size={16} /> Sign Out
-                                   </button>
-                                </div>
-                             </div>
-                           </>
-                        ) : (
-                           <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border flex items-center justify-center transition-colors
-                              ${isRetro ? 'border-white/20 hover:bg-white/10 hover:border-[#00C2CB]' : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'}
-                           `}>
-                             <UserIcon size={20} className={`transition-colors ${isRetro ? 'text-white hover:text-[#00C2CB]' : 'text-current'}`} />
-                           </div>
-                        )}
-                     </div>
-
-                     <button onClick={onCartClick} className="flex items-center gap-3 group cursor-pointer relative md:mr-0">
                         <div className="relative p-2">
                            <ShoppingCart size={24} strokeWidth={2} className={`transition-all group-hover:scale-110 ${isRetro ? 'text-white group-hover:text-[#00C2CB] group-hover:drop-shadow-[0_0_10px_rgba(0,194,203,0.8)]' : 'text-black group-hover:text-brand-orange'} `} />
                            {cartCount > 0 && (

@@ -114,8 +114,8 @@ export const siteConfig: SiteConfig = {
     },
   ],
   contact: {
-    phone: '(513) 248-0000',
-    email: 'hello@spiralgrooverecords.com',
+    phone: '(513) 600-8018',
+    email: 'adam@spiralgrooverecords.com',
     location: '215B Main Street, Milford, OH 45150',
     hours: 'Open daily · 10a – 8p',
   },

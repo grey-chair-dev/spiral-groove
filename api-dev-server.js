@@ -50,6 +50,21 @@ const server = createServer(async (req, res) => {
           if (route === 'products') {
             const module = await import('./api/products.js')
             handler = module.webHandler ?? module.default
+          } else if (route === 'events') {
+            const module = await import('./api/events.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'event-inquiry') {
+            const module = await import('./api/event-inquiry.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'contact-inquiry') {
+            const module = await import('./api/contact-inquiry.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'newsletter') {
+            const module = await import('./api/newsletter.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'newsletter/unsubscribe') {
+            const module = await import('./api/newsletter/unsubscribe.js')
+            handler = module.webHandler ?? module.default
           } else if (route === 'webhook/test') {
             const module = await import('./api/webhook/test.js')
             handler = module.webHandler ?? module.default

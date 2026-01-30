@@ -25,8 +25,10 @@ interface FooterProps {
 
 const NewsletterForm: React.FC = () => {
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'already'; text: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,16 +47,29 @@ const NewsletterForm: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({
+          email: email.trim(),
+          firstName: firstName.trim() || null,
+          lastName: lastName.trim() || null,
+          source: 'footer',
+          pageUrl: typeof window !== 'undefined' ? window.location.href : '',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setMessage({ type: 'success', text: 'Subscribed!' });
-        setEmail('');
-        // Track newsletter signup
-        trackNewsletterSignup('footer');
+        if (data.alreadySubscribed) {
+          setMessage({ type: 'already', text: data.message || 'Already subscribed.' });
+        } else {
+          setMessage({ type: 'success', text: data.message || 'Subscribed!' });
+          setEmail('');
+          setFirstName('');
+          setLastName('');
+          // Track newsletter signup
+          trackNewsletterSignup('footer');
+        }
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to subscribe' });
       }
@@ -69,22 +84,45 @@ const NewsletterForm: React.FC = () => {
   return (
     <div className="relative">
       <form className="relative group" onSubmit={handleSubmit}>
-        <input 
-          type="email" 
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email" 
-          disabled={isSubmitting}
-          required
-          className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:bg-white/10 transition-colors disabled:opacity-50"
-        />
-        <button 
-          type="submit"
-          disabled={isSubmitting}
-          className="absolute right-1 top-1 bottom-1 px-3 bg-brand-orange text-brand-black font-bold uppercase text-[10px] tracking-wider hover:bg-brand-mustard transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? '...' : 'Join'}
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+          <input
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="First name (optional)"
+            disabled={isSubmitting}
+            autoComplete="given-name"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:bg-white/10 transition-colors disabled:opacity-50"
+          />
+          <input
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Last name (optional)"
+            disabled={isSubmitting}
+            autoComplete="family-name"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:bg-white/10 transition-colors disabled:opacity-50"
+          />
+        </div>
+
+        <div className="relative">
+          <input 
+            type="email" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email" 
+            disabled={isSubmitting}
+            required
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:bg-white/10 transition-colors disabled:opacity-50"
+          />
+          <button 
+            type="submit"
+            disabled={isSubmitting}
+            className="absolute right-1 top-1 bottom-1 px-3 bg-brand-orange text-brand-black font-bold uppercase text-[10px] tracking-wider hover:bg-brand-mustard transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? '...' : 'Join'}
+          </button>
+        </div>
       </form>
       
       {/* Message Display */}
@@ -94,6 +132,8 @@ const NewsletterForm: React.FC = () => {
         `}>
           {message.type === 'success' ? (
             <CheckCircle2 size={12} />
+          ) : message.type === 'already' ? (
+            <X size={12} />
           ) : (
             <AlertCircle size={12} />
           )}

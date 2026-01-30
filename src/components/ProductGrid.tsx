@@ -889,14 +889,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                       `}>
                                         <div className="flex flex-col">
                                             {isSoldOut && <span className="text-[10px] font-bold uppercase text-brand-red tracking-wide leading-none mb-0.5">Sold Out</span>}
-                                            <div className="flex items-baseline gap-2">
-                                              <span className={`font-header font-extrabold tabular-nums text-lg tracking-wide leading-none
-                                               ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
-                                                ${isSoldOut ? 'opacity-40 line-through decoration-2 decoration-brand-black' : ''}
-                                              `}>
-                                                ${product.price.toFixed(2)}
-                                              </span>
-                                            </div>
+                                               <div className="flex items-baseline gap-2">
+                                                 <span className={`font-header font-extrabold tabular-nums text-lg tracking-wide leading-none
+                                                  ${viewMode === 'retro' ? 'text-brand-black drop-shadow-[1px_1px_0px_#231F20]' : 'text-black'}
+                                                   ${isSoldOut ? 'opacity-40 line-through decoration-2 decoration-brand-black' : ''}
+                                                 `}>
+                                                   ${product.price.toFixed(2)}
+                                                 </span>
+                                               </div>
                                         </div>
                                         <button 
                                           disabled={isSoldOut}

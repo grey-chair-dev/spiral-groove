@@ -10,6 +10,7 @@ interface OrderStatusPageProps {
   viewMode: ViewMode;
   onNavigate: (page: Page, filter?: string) => void;
   onViewReceipt: (order: Order) => void;
+  onPersistLookup?: (params: { id: string; email: string }) => void;
   initialOrderNumber?: string;
   initialEmail?: string;
 }
@@ -18,6 +19,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
   viewMode, 
   onNavigate, 
   onViewReceipt,
+  onPersistLookup,
   initialOrderNumber,
   initialEmail
 }) => {
@@ -64,18 +66,28 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
             // Transform API order to UI Order type if needed
             // The API returns normalized data, let's map it
             const apiOrder = data.orders[0];
+            const apiItems = Array.isArray(apiOrder.items) ? apiOrder.items : [];
+            const normalizedDbStatus = String(apiOrder.status || '').toUpperCase().trim();
+            const resolvedOrderNumber = String(apiOrder.order_number || currentSearchId || '').trim();
+            const resolvedEmail = String(currentEmail || '').trim();
+
+            // Persist lookup in app state (so refresh / receipt-back keeps the lookup inputs).
+            if (onPersistLookup && (resolvedOrderNumber || resolvedEmail)) {
+              onPersistLookup({ id: resolvedOrderNumber, email: resolvedEmail });
+            }
             const uiOrder: Order = {
                 id: apiOrder.order_number || apiOrder.id,
                 date: new Date(apiOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                status: mapOrderStatus(apiOrder.status), // Map DB status to UI status
+                // Store the canonical DB status so the UI can reflect it accurately (PROPOSED/RESERVED/PREPARED/COMPLETED/CANCELED).
+                status: normalizedDbStatus || mapOrderStatus(apiOrder.status),
                 total: apiOrder.total_cents / 100,
                 subtotal: apiOrder.total_cents / 100, // API might not return subtotal separate yet, using total for now
                 tax: 0, // Calculated on frontend or needs to be stored
-                items: apiOrder.items.map((item: any) => ({
+                items: apiItems.map((item: any) => ({
                     title: item.name,
                     artist: 'Unknown', // Backend might not store artist for ad-hoc items
-                    format: 'LP',
-                    price: item.price
+                    format: item.quantity && Number(item.quantity) > 1 ? `x${Number(item.quantity)}` : 'LP',
+                    price: Number(item.price) || 0,
                 })),
                 location: 'Milford Shop'
             };
@@ -183,43 +195,82 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                         </div>
                     )}
 
-                    <div className="flex flex-col md:flex-row gap-8 items-start justify-between mb-8">
+                    {(() => {
+                        const dbStatus = String(result.status || '').toUpperCase().trim();
+                        const isCanceled = dbStatus === 'CANCELED' || dbStatus === 'CANCELLED';
+
+                        const progressIndex = (() => {
+                            switch (dbStatus) {
+                                case 'PROPOSED':
+                                case 'OPEN': // legacy
+                                    return 0;
+                                case 'RESERVED':
+                                    return 1;
+                                case 'PREPARED':
+                                    return 2;
+                                case 'COMPLETED':
+                                    return 3;
+                                default:
+                                    return 0;
+                            }
+                        })();
+
+                        const stepActive = (idx: number) => !isCanceled && progressIndex >= idx;
+                        const barWidth = isCanceled ? 0 : `${(progressIndex / 3) * 100}%`;
+
+                        return (
+                          <>
+                            <div className="flex flex-col md:flex-row gap-8 items-start justify-between mb-8">
                         <div>
                             <h3 className="font-display text-3xl mb-1">{result.id}</h3>
                             <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">Placed on {result.date}</p>
                         </div>
                         <div className={`px-4 py-2 flex items-center gap-2 font-bold uppercase tracking-wider text-sm
                             ${isRetro 
-                                ? 'bg-brand-orange border-2 border-brand-black text-brand-black shadow-pop-sm' 
-                                : 'bg-orange-100 text-orange-800 rounded-full px-6'}
+                                ? (isCanceled ? 'bg-brand-red border-2 border-brand-black text-white shadow-pop-sm' : 'bg-brand-orange border-2 border-brand-black text-brand-black shadow-pop-sm')
+                                : (isCanceled ? 'bg-red-100 text-red-800 rounded-full px-6' : 'bg-orange-100 text-orange-800 rounded-full px-6')}
                         `}>
-                            <Clock size={16} /> {result.status}
+                            <Clock size={16} /> {dbStatus || 'PROPOSED'}
                         </div>
                     </div>
 
                     {/* Progress Bar (Visual) */}
                     <div className="mb-10 relative">
                         <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-300 -translate-y-1/2 z-0"></div>
-                        <div className="absolute top-1/2 left-0 w-2/3 h-1 bg-brand-teal -translate-y-1/2 z-0"></div>
+                        <div
+                          className={`absolute top-1/2 left-0 h-1 -translate-y-1/2 z-0 transition-all duration-300 ${isCanceled ? 'bg-gray-300' : 'bg-brand-teal'}`}
+                          style={{ width: barWidth }}
+                        ></div>
                         <div className="relative z-10 flex justify-between">
                             <div className="flex flex-col items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-brand-teal text-white flex items-center justify-center border-2 border-white shadow-sm"><CheckCircle2 size={16} /></div>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${stepActive(0) ? 'bg-brand-teal text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                  <CheckCircle2 size={16} />
+                                </div>
                                 <span className="text-[10px] font-bold uppercase tracking-wider">Ordered</span>
                             </div>
                             <div className="flex flex-col items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-brand-teal text-white flex items-center justify-center border-2 border-white shadow-sm"><CheckCircle2 size={16} /></div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider">Processing</span>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${stepActive(1) ? 'bg-brand-teal text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                  <CheckCircle2 size={16} />
+                                </div>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider ${stepActive(1) ? '' : 'text-gray-400'}`}>Processing</span>
                             </div>
                             <div className="flex flex-col items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-brand-teal text-white flex items-center justify-center border-2 border-white shadow-sm"><CheckCircle2 size={16} /></div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider">Ready</span>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${stepActive(2) ? 'bg-brand-teal text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                  <CheckCircle2 size={16} />
+                                </div>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider ${stepActive(2) ? '' : 'text-gray-400'}`}>Ready</span>
                             </div>
                             <div className="flex flex-col items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center border-2 border-white"><CheckCircle2 size={16} /></div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Picked Up</span>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${stepActive(3) ? 'bg-brand-teal text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                  <CheckCircle2 size={16} />
+                                </div>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider ${stepActive(3) ? '' : 'text-gray-400'}`}>Picked Up</span>
                             </div>
                         </div>
                     </div>
+                          </>
+                        );
+                    })()}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-8 border-b border-gray-300/50 mb-8">
                         <div>

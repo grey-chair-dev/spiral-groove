@@ -31,6 +31,61 @@ const jsonReplacer = (key, value) => {
   return typeof value === 'bigint' ? value.toString() : value;
 }
 
+let didEnsureProductsCacheSalesColumns = false
+
+async function ensureProductsCacheSalesColumns() {
+  if (didEnsureProductsCacheSalesColumns) return
+  try {
+    // Best-effort, idempotent schema update so we can track best/worst sellers.
+    // If you prefer migrations, we can move this into a one-off script.
+    await query(`ALTER TABLE products_cache ADD COLUMN IF NOT EXISTS sold_count INTEGER NOT NULL DEFAULT 0`)
+    await query(`ALTER TABLE products_cache ADD COLUMN IF NOT EXISTS last_sold_at TIMESTAMPTZ`)
+    didEnsureProductsCacheSalesColumns = true
+  } catch (e) {
+    // Don't fail checkout if schema update is blocked; just skip sold tracking.
+    console.warn('[Payment API] Unable to ensure products_cache sales columns:', e?.message || e)
+  }
+}
+
+async function incrementSoldCounts(cartItems) {
+  if (!Array.isArray(cartItems) || cartItems.length === 0) return
+  try {
+    await ensureProductsCacheSalesColumns()
+
+    // Aggregate quantities per product id
+    const qtyById = new Map()
+    for (const item of cartItems) {
+      const id = item?.id
+      const qty = Number(item?.quantity || 0)
+      if (!id || !Number.isFinite(qty) || qty <= 0) continue
+      qtyById.set(id, (qtyById.get(id) || 0) + qty)
+    }
+    if (qtyById.size === 0) return
+
+    const params = []
+    const tuples = []
+    let i = 1
+    for (const [id, qty] of qtyById.entries()) {
+      params.push(String(id), Number(qty))
+      // Cast parameters so Postgres doesn't infer qty as TEXT (which breaks integer arithmetic).
+      tuples.push(`($${i}::text, $${i + 1}::int)`)
+      i += 2
+    }
+
+    await query(
+      `UPDATE products_cache pc
+       SET sold_count = COALESCE(pc.sold_count, 0) + v.qty,
+           last_sold_at = NOW()
+       FROM (VALUES ${tuples.join(',')}) AS v(id, qty)
+       WHERE pc.id = v.id`,
+      params
+    )
+  } catch (e) {
+    // Never block checkout success on analytics.
+    console.warn('[Payment API] Unable to increment sold_count:', e?.message || e)
+  }
+}
+
 /**
  * @param {Request} request
  * @returns {Promise<Response>}
@@ -446,6 +501,19 @@ export async function webHandler(request) {
         // customerId and squareCustomerId are already set
 
         // B. Create Order in Neon
+        // Store pickup/contact info AND purchased items inside pickup_details (JSONB) so order lookup/status
+        // can render without depending on other tables/joins.
+        const pickupDetailsPayload = {
+          ...(pickupForm || {}),
+          items: Array.isArray(cartItems)
+            ? cartItems.map((it) => ({
+                id: it?.id ?? null,
+                name: it?.name ?? '',
+                quantity: Number(it?.quantity) || 0,
+                price: Number(it?.price) || 0,
+              }))
+            : [],
+        }
         await query(
           `INSERT INTO orders (
             id,
@@ -465,8 +533,8 @@ export async function webHandler(request) {
             payment.orderId || orderId,
             payment.id,
             payment.amountMoney?.amount ? Number(payment.amountMoney.amount) : 0,
-            'OPEN', // Order status: OPEN = order confirmed (payment status is separate)
-            JSON.stringify(pickupForm || {})
+            'PROPOSED', // New order just came in (canonical initial state)
+            JSON.stringify(pickupDetailsPayload)
           ]
         )
 
@@ -518,6 +586,9 @@ export async function webHandler(request) {
              }
           }
         }
+
+        // D. Update product sold counts for best/worst-seller analytics (best-effort)
+        await incrementSoldCounts(cartItems)
 
         console.log('[Payment API] Order saved to Neon successfully')
 

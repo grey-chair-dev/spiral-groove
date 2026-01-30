@@ -185,27 +185,6 @@ export const STAFF_PICKS: StaffPick[] = [
   }
 ];
 
-export const EVENTS: Event[] = [
-  {
-    id: 'e1',
-    title: 'Local Showcase: The Vibe',
-    date: 'OCT 14',
-    time: '8:00 PM',
-    description: 'Our monthly showcase of local electronic talent. No cover.',
-    type: 'Live Show',
-    imageUrl: 'https://picsum.photos/600/400?random=90'
-  },
-  {
-    id: 'e2',
-    title: 'Sunday Spin: Blue Note Era',
-    date: 'OCT 22',
-    time: '11:00 AM',
-    description: 'Coffee and classics. We play the entire Blue Note catalog from 1964.',
-    type: 'Listening Party',
-    imageUrl: 'https://picsum.photos/600/400?random=91'
-  }
-];
-
 export const GENRE_DATA = [
   { name: 'Rock', value: 35 },
   { name: 'Jazz', value: 25 },

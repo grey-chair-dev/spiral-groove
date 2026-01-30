@@ -150,8 +150,8 @@ export const AccessibilityPage: React.FC<AccessibilityPageProps> = ({ viewMode, 
                 </p>
                 <p className="text-gray-700 mb-2">
                   <strong>Phone:</strong>{' '}
-                  <a href="tel:+15135551234" className="text-brand-orange hover:underline">
-                    (513) 555-1234
+                  <a href="tel:+15136008018" className="text-brand-orange hover:underline">
+                    (513) 600-8018
                   </a>
                 </p>
                 <p className="text-gray-700">

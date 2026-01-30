@@ -1,7 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ViewMode, Event } from '../../types';
-import { EVENTS } from '../../constants';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { Mic2, Calendar, Mail, MapPin, Clock } from 'lucide-react';
@@ -9,39 +8,153 @@ import { Mic2, Calendar, Mail, MapPin, Clock } from 'lucide-react';
 interface EventsPageProps {
   viewMode: ViewMode;
   onRSVP: (event: Event) => void;
+  events: Event[];
 }
 
-const PAST_EVENTS: Event[] = [
-  {
-    id: 'p1',
-    title: 'Neon Psych Fest',
-    date: 'SEP 2023',
-    time: '8:00 PM',
-    description: 'A 3-day exploration of local shoegaze and psych rock.',
-    type: 'Live Show',
-    imageUrl: 'https://picsum.photos/600/400?random=88'
-  },
-  {
-    id: 'p2',
-    title: 'Dilla Day Celebration',
-    date: 'FEB 2023',
-    time: '12:00 PM',
-    description: 'All day hip-hop instrumentals and donut pop-up.',
-    type: 'Listening Party',
-    imageUrl: 'https://picsum.photos/600/400?random=89'
+function parseEventStart(event: Event): Date | null {
+  const raw = (event.startTime || '').trim()
+  if (raw) {
+    const isoish = raw.includes('T') ? raw : raw.replace(' ', 'T')
+    const d = new Date(isoish)
+    if (!Number.isNaN(d.getTime())) return d
   }
-];
+  const dateISO = (event.dateISO || '').trim()
+  if (dateISO) {
+    const d = new Date(`${dateISO}T00:00:00`)
+    if (!Number.isNaN(d.getTime())) return d
+  }
+  return null
+}
 
-export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
-  const [formData, setFormData] = useState({ name: '', org: '', date: '', message: '' });
+export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    org: '',
+    date: '',
+    message: '',
+    sendCopy: false,
+  });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const [archivePage, setArchivePage] = useState(1);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const normalizeUsPhone = (raw: string): string => {
+    const digits = String(raw || '').replace(/\D/g, '')
+    if (digits.length === 11 && digits.startsWith('1')) return digits.slice(1)
+    return digits
+  }
+
+  const isValidUsPhone = (raw: string): boolean => {
+    const digits = normalizeUsPhone(raw)
+    return digits.length === 0 || digits.length === 10
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setPhoneError(null);
+
+    if (formData.phone && !isValidUsPhone(formData.phone)) {
+      setIsSubmitting(false);
+      setPhoneError('Please enter a valid 10-digit US phone number (or leave blank).');
+      return;
+    }
+    try {
+      const res = await fetch('/api/event-inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          pageUrl: typeof window !== 'undefined' ? window.location.href : '',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`Request failed (${res.status})`);
+      }
+      setSubmitted(true);
+    } catch (err: any) {
+      console.error('[EventsPage] Failed to submit inquiry:', err);
+      setSubmitError('Could not send your inquiry. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isRetro = viewMode === 'retro';
+  const { upcomingEvents, pastEvents } = useMemo(() => {
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+    const enriched = (events || []).map((e) => ({ e, start: parseEventStart(e) }))
+    const upcoming = enriched
+      .filter(({ start }) => !start || start >= startOfToday)
+      .sort((a, b) => {
+        const at = a.start?.getTime() ?? Number.POSITIVE_INFINITY
+        const bt = b.start?.getTime() ?? Number.POSITIVE_INFINITY
+        return at - bt
+      })
+      .map(({ e }) => e)
+
+    const past = enriched
+      .filter(({ start }) => start && start < startOfToday)
+      .sort((a, b) => (b.start?.getTime() ?? 0) - (a.start?.getTime() ?? 0))
+      .map(({ e }) => e)
+
+    return { upcomingEvents: upcoming, pastEvents: past }
+  }, [events])
+
+  const preferredDateOptions = useMemo(() => {
+    const out: Array<{ value: string; label: string }> = []
+    out.push({ value: '', label: 'Select a preferred date (optional)' })
+    out.push({ value: 'Flexible', label: 'Flexible / Not sure yet' })
+
+    const fmt = (d: Date) =>
+      d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      const label = fmt(d)
+      out.push({ value: label, label })
+    }
+
+    out.push({ value: 'Other (see message)', label: 'Other (describe in message)' })
+    return out
+  }, [])
+
+  const UPCOMING_PAGE_SIZE = 3;
+  const ARCHIVE_PAGE_SIZE = 3;
+
+  const upcomingTotalPages = Math.max(1, Math.ceil(upcomingEvents.length / UPCOMING_PAGE_SIZE));
+  const archiveTotalPages = Math.max(1, Math.ceil(pastEvents.length / ARCHIVE_PAGE_SIZE));
+
+  const safeUpcomingPage = Math.min(Math.max(1, upcomingPage), upcomingTotalPages);
+  const safeArchivePage = Math.min(Math.max(1, archivePage), archiveTotalPages);
+
+  const upcomingPageItems = upcomingEvents.slice(
+    (safeUpcomingPage - 1) * UPCOMING_PAGE_SIZE,
+    safeUpcomingPage * UPCOMING_PAGE_SIZE
+  );
+  const archivePageItems = pastEvents.slice(
+    (safeArchivePage - 1) * ARCHIVE_PAGE_SIZE,
+    safeArchivePage * ARCHIVE_PAGE_SIZE
+  );
+
+  // Reset pagination when data changes (e.g., fresh fetch)
+  useEffect(() => {
+    setUpcomingPage(1);
+    setArchivePage(1);
+  }, [upcomingEvents.length, pastEvents.length]);
 
   return (
     <div className="animate-in fade-in duration-500">
@@ -57,7 +170,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
          <div className="relative z-10 text-center px-4 max-w-4xl">
              <span className="inline-block px-3 py-1 mb-4 text-xs font-bold uppercase tracking-widest bg-brand-orange text-brand-black rounded-sm transform -rotate-2">The Spiral Stage</span>
              <h1 className="font-display text-5xl md:text-7xl text-white mb-6">Live at the Shop</h1>
-             <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto font-medium">An intimate 50-cap venue for listening parties, signings, and local showcases.</p>
+             <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto font-medium">An intimate venue for listening parties, signings, and local showcases.</p>
          </div>
       </div>
 
@@ -75,7 +188,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
             </div>
 
             <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
-                {EVENTS.map((event) => (
+                {upcomingPageItems.map((event) => (
                     <div key={event.id} className={`group relative flex flex-col md:flex-row transition-all
                         ${isRetro 
                             ? 'bg-white border-2 border-brand-black shadow-retro hover:shadow-retro-hover' 
@@ -134,6 +247,18 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
                                         <span className="flex items-center gap-1"><Clock size={14} /> {event.time}</span>
                                         <span className="flex items-center gap-1"><MapPin size={14} /> Spiral Groove</span>
                                     </div>
+                                    {event.linkUrl && (
+                                      <a
+                                        href={event.linkUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={`text-xs font-bold uppercase tracking-wider transition-colors
+                                          ${isRetro ? 'text-brand-black hover:text-brand-orange' : 'text-gray-700 hover:text-black'}
+                                        `}
+                                      >
+                                        Details
+                                      </a>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -149,6 +274,34 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
                     </div>
                 ))}
             </div>
+            {upcomingEvents.length === 0 && (
+              <div className="max-w-2xl mx-auto text-center text-gray-600 mt-8">
+                No upcoming events are listed right now — check back soon.
+              </div>
+            )}
+            {upcomingEvents.length > 0 && upcomingTotalPages > 1 && (
+              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setUpcomingPage((p) => Math.max(1, p - 1))}
+                  disabled={safeUpcomingPage <= 1}
+                >
+                  Prev
+                </Button>
+                <div className="text-xs font-bold uppercase tracking-wider text-gray-600">
+                  Page {safeUpcomingPage} of {upcomingTotalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setUpcomingPage((p) => Math.min(upcomingTotalPages, p + 1))}
+                  disabled={safeUpcomingPage >= upcomingTotalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
@@ -183,25 +336,73 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
                           `}
                         />
                         <input 
+                          type="email" 
+                          placeholder="Email" 
+                          required
+                          value={formData.email}
+                          onChange={(e) => setFormData({...formData, email: e.target.value})}
+                          className={`w-full p-4 border-2 font-medium focus:outline-none transition-all
+                             ${isRetro ? 'bg-white border-brand-black focus:shadow-pop-sm' : 'bg-gray-50 border-gray-200 rounded-lg'}
+                          `}
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input 
                           type="text" 
                           placeholder="Band / Organization" 
-                          required
                           value={formData.org}
                           onChange={(e) => setFormData({...formData, org: e.target.value})}
                           className={`w-full p-4 border-2 font-medium focus:outline-none transition-all
                              ${isRetro ? 'bg-white border-brand-black focus:shadow-pop-sm' : 'bg-gray-50 border-gray-200 rounded-lg'}
                           `}
                         />
+                        <input 
+                          type="tel" 
+                          placeholder="Phone (optional)" 
+                          value={formData.phone}
+                          onChange={(e) => {
+                            const next = e.target.value
+                            setFormData({ ...formData, phone: next })
+                            if (phoneError) setPhoneError(null)
+                          }}
+                          onBlur={() => {
+                            if (formData.phone && !isValidUsPhone(formData.phone)) {
+                              setPhoneError('Please enter a valid 10-digit US phone number (or leave blank).')
+                            }
+                          }}
+                          inputMode="tel"
+                          autoComplete="tel"
+                          aria-invalid={phoneError ? 'true' : 'false'}
+                          className={`w-full p-4 border-2 font-medium focus:outline-none transition-all
+                             ${phoneError ? 'border-red-600' : ''}
+                             ${isRetro ? 'bg-white border-brand-black focus:shadow-pop-sm' : 'bg-gray-50 border-gray-200 rounded-lg'}
+                          `}
+                        />
                     </div>
+                    {phoneError && (
+                      <div className="text-sm font-medium text-red-600">
+                        {phoneError}
+                      </div>
+                    )}
                     <input 
-                      type="text" 
-                      placeholder="Preferred Date(s)" 
-                      value={formData.date}
-                      onChange={(e) => setFormData({...formData, date: e.target.value})}
-                      className={`w-full p-4 border-2 font-medium focus:outline-none transition-all
-                         ${isRetro ? 'bg-white border-brand-black focus:shadow-pop-sm' : 'bg-gray-50 border-gray-200 rounded-lg'}
-                      `}
+                      type="text"
+                      className="hidden"
+                      aria-hidden="true"
+                      tabIndex={-1}
                     />
+                    <select
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      className={`w-full p-4 border-2 font-medium focus:outline-none transition-all appearance-none cursor-pointer
+                        ${isRetro ? 'bg-white border-brand-black focus:shadow-pop-sm' : 'bg-gray-50 border-gray-200 rounded-lg'}
+                      `}
+                    >
+                      {preferredDateOptions.map((opt) => (
+                        <option key={opt.value || opt.label} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                     <textarea 
                       placeholder="Tell us about your event idea..." 
                       rows={5}
@@ -212,7 +413,23 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
                          ${isRetro ? 'bg-white border-brand-black focus:shadow-pop-sm' : 'bg-gray-50 border-gray-200 rounded-lg'}
                       `}
                     ></textarea>
-                    <Button type="submit" size="lg" className="mt-2">Submit Inquiry</Button>
+                    <label className="flex items-start gap-3 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={!!formData.sendCopy}
+                        onChange={(e) => setFormData({ ...formData, sendCopy: e.target.checked })}
+                        className="mt-1 h-4 w-4 border-2 border-brand-black"
+                      />
+                      <span className="font-medium">Send me a copy of my responses</span>
+                    </label>
+                    {submitError && (
+                      <div className="text-sm font-medium text-red-600">
+                        {submitError}
+                      </div>
+                    )}
+                    <Button type="submit" size="lg" className="mt-2" disabled={isSubmitting}>
+                      {isSubmitting ? 'Sending…' : 'Submit Inquiry'}
+                    </Button>
                 </form>
              )}
           </div>
@@ -221,19 +438,59 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP }) => {
           <div>
              <h2 className={`font-display text-3xl mb-8 ${isRetro ? 'text-brand-black' : 'text-black'}`}>Archive</h2>
              <div className="space-y-6">
-                {PAST_EVENTS.map(event => (
+                {archivePageItems.map(event => (
                     <div key={event.id} className="flex gap-4 group opacity-70 hover:opacity-100 transition-opacity">
                         <div className={`w-24 h-24 flex-shrink-0 overflow-hidden ${isRetro ? 'border-2 border-brand-black grayscale' : 'rounded-lg'}`}>
                             <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1">
                             <span className="text-xs font-bold uppercase tracking-widest text-gray-500">{event.date}</span>
-                            <h3 className="font-bold text-xl mb-1">{event.title}</h3>
+                            <div className="flex items-start justify-between gap-3">
+                              <h3 className="font-bold text-xl mb-1">{event.title}</h3>
+                              {event.linkUrl && (
+                                <a
+                                  href={event.linkUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-brand-orange transition-colors whitespace-nowrap mt-1"
+                                >
+                                  Details
+                                </a>
+                              )}
+                            </div>
                             <p className="text-sm text-gray-600 leading-snug">{event.description}</p>
                         </div>
                     </div>
                 ))}
+                {pastEvents.length === 0 && (
+                  <div className="text-sm text-gray-600 opacity-70">
+                    No archived events yet.
+                  </div>
+                )}
              </div>
+             {pastEvents.length > 0 && archiveTotalPages > 1 && (
+               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => setArchivePage((p) => Math.max(1, p - 1))}
+                   disabled={safeArchivePage <= 1}
+                 >
+                   Prev
+                 </Button>
+                 <div className="text-xs font-bold uppercase tracking-wider text-gray-600">
+                   Page {safeArchivePage} of {archiveTotalPages}
+                 </div>
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => setArchivePage((p) => Math.min(archiveTotalPages, p + 1))}
+                   disabled={safeArchivePage >= archiveTotalPages}
+                 >
+                   Next
+                 </Button>
+               </div>
+             )}
           </div>
 
         </div>

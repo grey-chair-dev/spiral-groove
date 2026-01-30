@@ -68,6 +68,18 @@ export const EventsSection: React.FC<EventsSectionProps> = ({ events, viewMode, 
                     <MapPin size={14} />
                     <span>In-Store • {event.time}</span>
                  </div>
+                 {event.linkUrl && (
+                   <a
+                     href={event.linkUrl}
+                     target="_blank"
+                     rel="noreferrer"
+                     className={`text-xs font-bold uppercase tracking-wider transition-colors
+                       ${viewMode === 'retro' ? 'text-brand-black hover:text-brand-orange' : 'text-gray-700 hover:text-black'}
+                     `}
+                   >
+                     Details <ArrowRight size={14} className="inline-block ml-1 -mt-[1px]" />
+                   </a>
+                 )}
                </div>
             </div>
           </div>

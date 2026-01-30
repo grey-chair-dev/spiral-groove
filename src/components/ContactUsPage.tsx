@@ -49,22 +49,72 @@ export function ContactUsPage({
   onTermsOfService,
 }: ContactUsPageProps) {
   const navigate = useNavigate()
+  const instagramDmUrl = 'https://ig.me/m/spiral_groove_records_'
+  const instagramProfileUrl = 'https://www.instagram.com/spiral_groove_records_/'
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    subject: '',
+    phone: '',
+    subject: 'General',
     message: '',
+    sendCopy: false,
   })
   const [formSubmitted, setFormSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const isValidUsPhone = (raw: string): boolean => {
+    const digits = String(raw || '').replace(/\D/g, '')
+    const normalized = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits
+    return normalized.length === 0 || normalized.length === 10
+  }
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // In production, this would submit to a backend API
-    setFormSubmitted(true)
-    setTimeout(() => {
-      setFormSubmitted(false)
-      setFormData({ name: '', email: '', subject: '', message: '' })
-    }, 2000)
+    setSubmitError(null)
+    setPhoneError(null)
+
+    if (formData.phone && !isValidUsPhone(formData.phone)) {
+      setPhoneError('Please enter a valid 10-digit US phone number (or leave blank).')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const res = await fetch('/api/contact-inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          topic: formData.subject,
+          pageUrl: typeof window !== 'undefined' ? window.location.href : '',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        }),
+      })
+      if (!res.ok) {
+        const ct = res.headers.get('content-type') || ''
+        const text = await res.text().catch(() => '')
+        if (ct.includes('application/json') && text) {
+          try {
+            const parsed = JSON.parse(text)
+            const details = parsed?.details?.body ? ` (${parsed.details.body})` : ''
+            throw new Error(`${parsed?.error || 'Request failed'}${details}`)
+          } catch {
+            throw new Error(text || `Request failed (${res.status})`)
+          }
+        }
+        throw new Error(text || `Request failed (${res.status})`)
+      }
+      setFormSubmitted(true)
+      setFormData({ name: '', email: '', phone: '', subject: 'General', message: '', sendCopy: false })
+      setTimeout(() => setFormSubmitted(false), 2000)
+    } catch (err) {
+      console.error('[ContactUsPage] Failed to submit inquiry:', err)
+      setSubmitError(err instanceof Error ? err.message : 'Could not send your message. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -152,19 +202,75 @@ export function ContactUsPage({
                     />
                   </div>
                   <div>
+                    <label htmlFor="phone" className="mb-2 block text-sm font-medium text-slate-300">
+                      Phone (optional)
+                    </label>
+                    <input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => {
+                        setFormData({ ...formData, phone: e.target.value })
+                        if (phoneError) setPhoneError(null)
+                      }}
+                      onBlur={() => {
+                        if (formData.phone && !isValidUsPhone(formData.phone)) {
+                          setPhoneError('Please enter a valid 10-digit US phone number (or leave blank).')
+                        }
+                      }}
+                      inputMode="tel"
+                      autoComplete="tel"
+                      aria-invalid={phoneError ? 'true' : 'false'}
+                      className={`w-full rounded-2xl border bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none
+                        ${phoneError ? 'border-red-500/60' : 'border-white/20'}
+                      `}
+                      placeholder="(513) 600-8018"
+                    />
+                    {phoneError && <div className="mt-2 text-sm text-red-400">{phoneError}</div>}
+                  </div>
+                  <div>
                     <label htmlFor="subject" className="mb-2 block text-sm font-medium text-slate-300">
                       Subject *
                     </label>
-                    <input
+                    <select
                       id="subject"
-                      type="text"
                       value={formData.subject}
                       onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                       required
                       className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none"
-                      placeholder="What's this about?"
-                    />
+                    >
+                      <option value="General">General</option>
+                      <option value="Order Support">Order Support</option>
+                      <option value="Selling Records">Selling Records</option>
+                      <option value="Personal">Personal</option>
+                    </select>
                   </div>
+
+                  {formData.subject === 'Personal' && (
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-sm text-slate-300 mb-3">
+                        For personal messages, the fastest way is a DM.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <a
+                          href={instagramDmUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full sm:w-auto rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-brand hover:bg-primary/80 transition text-center"
+                        >
+                          DM on Instagram
+                        </a>
+                        <a
+                          href={instagramProfileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full sm:w-auto rounded-full border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white/80 hover:border-white/40 transition text-center"
+                        >
+                          View Profile
+                        </a>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label htmlFor="message" className="mb-2 block text-sm font-medium text-slate-300">
                       Message *
@@ -179,11 +285,22 @@ export function ContactUsPage({
                       placeholder="Tell us how we can help..."
                     />
                   </div>
+                  <label className="flex items-start gap-3 text-sm text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={!!formData.sendCopy}
+                      onChange={(e) => setFormData({ ...formData, sendCopy: e.target.checked })}
+                      className="mt-1 h-4 w-4 rounded border border-white/30 bg-white/5"
+                    />
+                    <span>Send me a copy of my responses</span>
+                  </label>
+                  {submitError && <div className="text-sm text-red-400">{submitError}</div>}
                   <button
                     type="submit"
+                    disabled={isSubmitting}
                     className="w-full rounded-full bg-primary px-6 py-4 text-base font-semibold text-white shadow-brand hover:bg-primary/80 transition"
                   >
-                    Send Message
+                    {isSubmitting ? 'Sending…' : 'Send Message'}
                   </button>
                 </form>
               )}

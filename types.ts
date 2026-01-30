@@ -32,6 +32,11 @@ export interface Event {
   description: string;
   type: 'Live Show' | 'Listening Party' | 'Signing';
   imageUrl: string;
+  linkUrl?: string;
+  category?: string;
+  dateISO?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface UserPreferences {
@@ -74,4 +79,22 @@ export interface Order {
 
 export type ViewMode = 'retro' | 'modern';
 
-export type Page = 'home' | 'events' | 'about' | 'locations' | 'we-buy' | 'catalog' | 'product' | 'orders' | 'receipt' | 'order-status' | 'contact' | 'staff-picks' | 'cart' | 'checkout' | 'order-confirmation' | 'settings' | 'search' | 'privacy' | 'terms' | 'accessibility';
+export type Page =
+  | 'home'
+  | 'events'
+  | 'about'
+  | 'locations'
+  | 'we-buy'
+  | 'catalog'
+  | 'product'
+  | 'receipt'
+  | 'order-status'
+  | 'contact'
+  | 'staff-picks'
+  | 'cart'
+  | 'checkout'
+  | 'order-confirmation'
+  | 'search'
+  | 'privacy'
+  | 'terms'
+  | 'accessibility';

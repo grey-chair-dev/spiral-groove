@@ -153,9 +153,9 @@ export const WeBuyPage: React.FC<WeBuyPageProps> = ({ viewMode, onNavigate }) =>
          <div className="max-w-4xl mx-auto mb-24">
             <div className={`p-8 md:p-12 border-2 relative overflow-hidden
               ${isRetro ? 'bg-brand-black border-brand-black text-brand-cream shadow-retro' : 'bg-black text-white rounded-2xl'}
-            `}>
+             `}>
               <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-                <div>
+                    <div>
                   <h2 className="font-display text-3xl md:text-4xl mb-3 text-white">Have a big collection?</h2>
                   <p className="text-lg text-gray-300 max-w-2xl">
                     Just reach out first. Tell us roughly how many items, what genres, and the overall condition—photos help.
@@ -164,8 +164,8 @@ export const WeBuyPage: React.FC<WeBuyPageProps> = ({ viewMode, onNavigate }) =>
                     <p className="mt-4 text-sm text-gray-300/90 font-medium">
                       Tip: include your name, phone number, approximate count, and a couple photos. We’ll reply as soon as we can.
                     </p>
-                  )}
-                </div>
+                        )}
+                    </div>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     variant={isRetro ? 'primary' : 'primary'}
@@ -182,8 +182,8 @@ export const WeBuyPage: React.FC<WeBuyPageProps> = ({ viewMode, onNavigate }) =>
                     What to include
                   </Button>
                 </div>
-              </div>
-            </div>
+                </div>
+             </div>
          </div>
 
       </Section>

@@ -51,7 +51,7 @@ export async function webHandler(request) {
     }
 
     const body = await request.json()
-    const { order_id, status } = body
+    const { order_id, status, forceEmail } = body
 
     if (!order_id) {
       return new Response(
@@ -79,8 +79,8 @@ export async function webHandler(request) {
       )
     }
 
-    // Try to find order by square_order_id first, then by order_number
-    // Also fetch customer email and order details for email notification
+    // Try to find order by square_order_id first, then by order_number.
+    // Derive customer email/name from pickup_details (JSONB) to avoid depending on other tables.
     const orderResult = await query(
       `SELECT 
          o.id,
@@ -88,11 +88,8 @@ export async function webHandler(request) {
          o.square_order_id,
          o.status as current_status,
          o.total_cents,
-         o.pickup_details,
-         c.email as customer_email,
-         CONCAT(c.first_name, ' ', c.last_name) as customer_name
+         o.pickup_details
        FROM orders o
-       LEFT JOIN customers c ON o.customer_id = c.id
        WHERE o.square_order_id = $1 OR o.order_number = $1 
        LIMIT 1`,
       [order_id]
@@ -114,6 +111,14 @@ export async function webHandler(request) {
     const order = orderResult.rows[0]
     const dbOrderId = order.id
     const previousStatus = order.current_status
+    const pickupDetails =
+      order.pickup_details && typeof order.pickup_details === 'string'
+        ? (() => { try { return JSON.parse(order.pickup_details) } catch { return {} } })()
+        : (order.pickup_details || {})
+
+    const customerEmail = pickupDetails?.email || null
+    const customerName =
+      [pickupDetails?.firstName, pickupDetails?.lastName].filter(Boolean).join(' ') || 'Valued Customer'
 
     // Update the order status
     await query(
@@ -123,7 +128,7 @@ export async function webHandler(request) {
       [status, dbOrderId]
     )
 
-    // Fetch updated order with items for email
+    // Fetch updated order (orders table only)
     const updatedOrder = await query(
       `SELECT 
          o.id,
@@ -132,56 +137,61 @@ export async function webHandler(request) {
          o.status,
          o.total_cents,
          o.updated_at,
-         c.email as customer_email,
-         CONCAT(c.first_name, ' ', c.last_name) as customer_name
+         o.pickup_details
        FROM orders o
-       LEFT JOIN customers c ON o.customer_id = c.id
        WHERE o.id = $1`,
       [dbOrderId]
     )
 
-    // Fetch order items for email
-    const orderItems = await query(
-      `SELECT 
-         name,
-         quantity,
-         price_cents
-       FROM order_items
-       WHERE order_id = $1`,
-      [dbOrderId]
-    )
+    const updatedPickup =
+      updatedOrder.rows[0]?.pickup_details && typeof updatedOrder.rows[0].pickup_details === 'string'
+        ? (() => { try { return JSON.parse(updatedOrder.rows[0].pickup_details) } catch { return {} } })()
+        : (updatedOrder.rows[0]?.pickup_details || {})
+
+    const itemsFromPickup = Array.isArray(updatedPickup?.items) ? updatedPickup.items : []
 
     // Send email notification if status changed and customer email exists
     console.log(`[Orders Update API] Checking email conditions:`, {
       previousStatus,
       newStatus: status,
       statusChanged: previousStatus !== status,
-      customerEmail: order.customer_email ? 'exists' : 'missing',
+      customerEmail: customerEmail ? 'exists' : 'missing',
       orderNumber: order.order_number,
     })
     
-    if (previousStatus !== status && order.customer_email) {
+    let emailAttempted = false
+    let emailSent = false
+    let emailSkipReason = null
+
+    if (!forceEmail && previousStatus === status) {
+      emailSkipReason = 'status_unchanged'
+    } else if (!customerEmail) {
+      emailSkipReason = 'missing_customer_email'
+    } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
+      emailSkipReason = 'missing_MAKE_EMAIL_WEBHOOK_URL'
+    }
+
+    if (!emailSkipReason) {
       try {
         const { sendEmail } = await import('../sendEmail.js')
         const total = order.total_cents ? (Number(order.total_cents) / 100).toFixed(2) : '0.00'
-        const pickupDetails = order.pickup_details ? JSON.parse(order.pickup_details) : {}
         
-        console.log(`[Orders Update API] Sending status update email to ${order.customer_email} for order ${order.order_number}`)
+        console.log(`[Orders Update API] Sending status update email to ${customerEmail} for order ${order.order_number}`)
         
-        await sendEmail({
+        const sendResult = await sendEmail({
           type: 'order_status_update',
-          to: order.customer_email,
+          to: customerEmail,
           subject: `Order Status Update ${order.order_number} - Spiral Groove Records`,
           data: {
             orderNumber: order.order_number,
-            customerName: order.customer_name || 'Valued Customer',
-            customerEmail: order.customer_email,
+            customerName,
+            customerEmail,
             status: status,
             previousStatus: previousStatus,
-            items: orderItems.rows.map(item => ({
-              name: item.name,
-              quantity: item.quantity,
-              price: item.price_cents ? (Number(item.price_cents) / 100) : 0,
+            items: itemsFromPickup.map((item) => ({
+              name: item?.name || '',
+              quantity: Number(item?.quantity) || 0,
+              price: Number(item?.price) || 0,
             })),
             total: total,
             currency: 'USD',
@@ -189,27 +199,42 @@ export async function webHandler(request) {
             pickupLocation: pickupDetails.address || '215B Main Street, Milford, OH 45150',
           },
           dedupeKey: `order_status_update:${order.order_number}:${status}`,
+          force: Boolean(forceEmail),
         })
-        console.log(`[Orders Update API] ✅ Status update email sent for order ${order.order_number}`)
+        emailAttempted = Boolean(sendResult?.attempted)
+        emailSent = Boolean(sendResult?.ok)
+        if (!sendResult?.ok) {
+          emailSkipReason = sendResult?.reason || 'send_failed'
+        }
+        console.log(`[Orders Update API] ✅ Status update email result for order ${order.order_number}`, sendResult)
       } catch (emailError) {
         console.error('[Orders Update API] ❌ Failed to send status update email:', emailError)
         console.error('[Orders Update API] Error details:', emailError.stack)
+        emailSent = false
+        emailSkipReason = 'send_failed'
         // Don't fail the request if email fails
       }
     } else {
-      if (previousStatus === status) {
-        console.log(`[Orders Update API] ⚠️  Status unchanged (${status}), skipping email`)
-      }
-      if (!order.customer_email) {
-        console.log(`[Orders Update API] ⚠️  No customer email found for order ${order.order_number}, skipping email`)
-      }
+      console.log(`[Orders Update API] ⚠️  Skipping email: ${emailSkipReason}`, {
+        previousStatus,
+        status,
+        customerEmail: customerEmail ? 'exists' : 'missing',
+        hasWebhook: Boolean(process.env.MAKE_EMAIL_WEBHOOK_URL),
+      })
     }
 
     return new Response(
       JSON.stringify({ 
         success: true,
         order: updatedOrder.rows[0],
-        message: `Order status updated to: ${status}`
+        message: `Order status updated to: ${status}`,
+        email: {
+          attempted: emailAttempted,
+          sent: emailSent,
+          skipReason: emailSkipReason,
+          to: customerEmail || null,
+          force: Boolean(forceEmail),
+        }
       }),
       {
         status: 200,

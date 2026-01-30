@@ -149,7 +149,7 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({ order, viewMode, onBac
                  <div className="space-y-1 text-xs uppercase tracking-wide opacity-80">
                     <p>215B Main Street</p>
                     <p>Milford, OH 45150</p>
-                    <p>(513) 555-0199</p>
+                    <p>(513) 600-8018</p>
                     <p>www.spiralgroove.com</p>
                  </div>
               </div>

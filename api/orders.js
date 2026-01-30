@@ -50,41 +50,28 @@ export async function webHandler(request) {
     let sql = `
       SELECT 
         o.id,
+        o.customer_id,
         o.order_number,
         o.square_order_id,
+        o.square_payment_id,
         o.total_cents,
         o.status,
         o.pickup_details,
         o.created_at,
-        c.email as customer_email,
-        c.phone as customer_phone,
-        CONCAT(c.first_name, ' ', c.last_name) as customer_name,
-        COALESCE(
-          JSON_AGG(
-            JSON_BUILD_OBJECT(
-              'id', oi.product_id,
-              'name', oi.name,
-              'quantity', oi.quantity,
-              'price', oi.price_cents / 100.0
-            )
-          ) FILTER (WHERE oi.id IS NOT NULL),
-          '[]'
-        ) as items
+        o.updated_at
       FROM orders o
-      LEFT JOIN customers c ON o.customer_id = c.id
-      LEFT JOIN order_items oi ON o.id = oi.order_id
       WHERE 1=1
     `
     const params = []
 
     if (email) {
       params.push(email)
-      sql += ` AND c.email = $${params.length}`
+      sql += ` AND LOWER(COALESCE(o.pickup_details->>'email','')) = LOWER($${params.length})`
     }
     
     if (phone) {
       params.push(phone)
-      sql += ` AND c.phone = $${params.length}`
+      sql += ` AND COALESCE(o.pickup_details->>'phone','') = $${params.length}`
     }
 
     if (orderNumber) {
@@ -92,14 +79,32 @@ export async function webHandler(request) {
       sql += ` AND o.order_number = $${params.length}`
     }
 
-    sql += ' GROUP BY o.id, c.id ORDER BY o.created_at DESC LIMIT 50'
+    sql += ' ORDER BY o.created_at DESC LIMIT 50'
 
     const result = await query(sql, params)
+
+    // Normalize response: ensure pickup_details + items are consistently shaped.
+    const orders = (result.rows || []).map((row) => {
+      const pickup = row.pickup_details && typeof row.pickup_details === 'string'
+        ? (() => { try { return JSON.parse(row.pickup_details) } catch { return {} } })()
+        : (row.pickup_details || {})
+
+      const items = Array.isArray(pickup?.items) ? pickup.items : []
+
+      return {
+        ...row,
+        pickup_details: pickup,
+        items,
+        customer_email: pickup?.email || null,
+        customer_phone: pickup?.phone || null,
+        customer_name: [pickup?.firstName, pickup?.lastName].filter(Boolean).join(' ') || null,
+      }
+    })
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        orders: result.rows 
+        orders
       }),
       {
         status: 200,

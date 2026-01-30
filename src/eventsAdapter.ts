@@ -1,0 +1,124 @@
+/**
+ * Events Data Adapter
+ *
+ * Fetches events from the Neon PostgreSQL database via /api/events.
+ */
+
+import type { Event } from '../types'
+
+type ApiEvent = {
+  id: number
+  eventType: string | null
+  eventName: string
+  artist: string | null
+  venue: string | null
+  eventDescription: string
+  confidence: number | null
+  eventImageUrl: string | null
+  eventPermalink: string | null
+  fingerprint: string | null
+  dateISO: string | null
+  dateLabel: string | null
+  startTimeLabel: string | null
+  endTimeLabel: string | null
+  startTime: string | null
+  endTime: string | null
+  startDateTimeISO: string | null
+  endDateTimeISO: string | null
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+type EventsApiResponse =
+  | { success: true; events: ApiEvent[]; stale?: boolean }
+  | { success: false; error?: string; message?: string }
+
+const EVENTS_CACHE_KEY = 'sg:lastEventsCache:v1'
+const EVENTS_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000 // 24 hours
+
+type EventsCachePayload = {
+  ts: number
+  events: Event[]
+}
+
+function readCachedEvents(): Event[] | null {
+  try {
+    const raw = localStorage.getItem(EVENTS_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as EventsCachePayload
+    if (!parsed?.ts || !Array.isArray(parsed.events)) return null
+    if (Date.now() - parsed.ts > EVENTS_CACHE_MAX_AGE_MS) return null
+    return parsed.events
+  } catch {
+    return null
+  }
+}
+
+function writeCachedEvents(events: Event[]) {
+  try {
+    const payload: EventsCachePayload = { ts: Date.now(), events }
+    localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(payload))
+  } catch {
+    // ignore (private mode / quota)
+  }
+}
+
+function mapEventTypeToUiType(eventType: string | null | undefined): Event['type'] {
+  const t = (eventType || '').toLowerCase()
+  // Your schema guarantees: upcoming | same_day | recap
+  // We map those into the UI's display types.
+  if (t === 'recap') return 'Live Show'
+  if (t === 'same_day') return 'Live Show'
+  return 'Live Show'
+}
+
+function getSafeImageUrl(url: string | null | undefined): string {
+  const u = (url || '').trim()
+  if (!u) return 'https://picsum.photos/600/400?random=90'
+  return u
+}
+
+export async function fetchEvents(): Promise<Event[]> {
+  try {
+    // @ts-ignore - Vite environment variables
+    const apiUrl = import.meta.env.VITE_EVENTS_API_URL || '/api/events'
+    const res = await fetch(apiUrl, { headers: { accept: 'application/json' } })
+    const rawText = await res.text()
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch events: ${res.status} ${res.statusText} ${rawText || ''}`.trim())
+    }
+
+    const data = JSON.parse(rawText) as EventsApiResponse
+    if (!data || data.success !== true || !Array.isArray((data as any).events)) {
+      throw new Error('Invalid events response')
+    }
+
+    const mapped: Event[] = data.events.map((row) => ({
+      id: String(row.id),
+      title: row.eventName || '',
+      description: row.eventDescription || '',
+      type: mapEventTypeToUiType(row.eventType),
+      imageUrl: getSafeImageUrl(row.eventImageUrl),
+      date: (row.dateLabel || '').trim() || (row.dateISO || ''),
+      time: (row.startTimeLabel || '').trim() || '',
+      linkUrl: row.eventPermalink || undefined,
+      category: row.venue || undefined,
+      dateISO: row.dateISO || undefined,
+      startTime: row.startDateTimeISO || row.startTime || undefined,
+      endTime: row.endDateTimeISO || row.endTime || undefined,
+    }))
+
+    writeCachedEvents(mapped)
+    return mapped
+  } catch (e) {
+    console.error('[Events] Failed to fetch events:', e)
+    const cached = readCachedEvents()
+    if (cached && cached.length > 0) {
+      console.warn('[Events] Using cached events (last-known-good) due to fetch error')
+      return cached
+    }
+    return []
+  }
+}
+

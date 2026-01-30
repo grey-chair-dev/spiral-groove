@@ -11,8 +11,10 @@ interface NewsletterProps {
 
 export const Newsletter: React.FC<NewsletterProps> = ({ onSuccess }) => {
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'already'; text: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,18 +33,31 @@ export const Newsletter: React.FC<NewsletterProps> = ({ onSuccess }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({
+          email: email.trim(),
+          firstName: firstName.trim() || null,
+          lastName: lastName.trim() || null,
+          source: 'newsletter_component',
+          pageUrl: typeof window !== 'undefined' ? window.location.href : '',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setMessage({ type: 'success', text: data.message || 'Successfully subscribed!' });
-        setEmail('');
-        // Track newsletter signup
-        trackNewsletterSignup('newsletter_component');
-        if (onSuccess) {
-          onSuccess(data.message || 'Successfully subscribed!');
+        if (data.alreadySubscribed) {
+          setMessage({ type: 'already', text: data.message || 'Already subscribed.' });
+        } else {
+          setMessage({ type: 'success', text: data.message || 'Successfully subscribed!' });
+          setEmail('');
+          setFirstName('');
+          setLastName('');
+          // Track newsletter signup
+          trackNewsletterSignup('newsletter_component');
+          if (onSuccess) {
+            onSuccess(data.message || 'Successfully subscribed!');
+          }
         }
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to subscribe. Please try again.' });
@@ -81,6 +96,26 @@ export const Newsletter: React.FC<NewsletterProps> = ({ onSuccess }) => {
         </p>
         
         <form className="relative max-w-lg mx-auto group" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="First name (optional)"
+              disabled={isSubmitting}
+              autoComplete="given-name"
+              className="w-full h-12 bg-brand-cream border-2 border-white px-6 rounded-lg sm:rounded-full text-brand-black placeholder-brand-black/40 focus:outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange focus:ring-offset-2 focus:ring-offset-black transition-all font-bold text-base shadow-lg disabled:opacity-50"
+            />
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Last name (optional)"
+              disabled={isSubmitting}
+              autoComplete="family-name"
+              className="w-full h-12 bg-brand-cream border-2 border-white px-6 rounded-lg sm:rounded-full text-brand-black placeholder-brand-black/40 focus:outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange focus:ring-offset-2 focus:ring-offset-black transition-all font-bold text-base shadow-lg disabled:opacity-50"
+            />
+          </div>
           <div className="flex flex-col sm:block relative">
             <input 
               type="email" 
@@ -111,6 +146,8 @@ export const Newsletter: React.FC<NewsletterProps> = ({ onSuccess }) => {
             `}>
               {message.type === 'success' ? (
                 <CheckCircle2 size={16} />
+              ) : message.type === 'already' ? (
+                <X size={16} />
               ) : (
                 <AlertCircle size={16} />
               )}

@@ -1,17 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { CartItem, ViewMode, User } from '../../types';
+import { CartItem, ViewMode } from '../../types';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
-import { ArrowLeft, Lock, CreditCard, Store, MapPin, User as UserIcon, Ghost } from 'lucide-react';
+import { ArrowLeft, Lock, CreditCard, Store, MapPin } from 'lucide-react';
 import { loadSquareSdk } from '../utils/loadSquareSdk';
 import { initializeSquarePayments, generatePaymentToken, processPayment, SquarePayments, SquareCard } from '../services/squarePayment';
 
 interface CheckoutPageProps {
   cartItems: CartItem[];
   viewMode: ViewMode;
-  user: User | null;
-  onLoginClick: () => void;
   onBack: () => void;
   onPlaceOrder: (orderDetails: any) => void;
 }
@@ -19,14 +17,11 @@ interface CheckoutPageProps {
 export const CheckoutPage: React.FC<CheckoutPageProps> = ({ 
   cartItems, 
   viewMode, 
-  user,
-  onLoginClick,
   onBack,
   onPlaceOrder
 }) => {
   const isRetro = viewMode === 'retro';
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isGuest, setIsGuest] = useState(false);
   const [squarePayments, setSquarePayments] = useState<SquarePayments | null>(null);
   const [cardElement, setCardElement] = useState<SquareCard | null>(null);
   // Ref to track card element for cleanup without closure staleness
@@ -43,13 +38,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     cardElementRef.current = cardElement;
   }, [cardElement]);
 
-  // Auth Wall Logic
-  const showAuthWall = !user && !isGuest;
+  // Account features removed: checkout is always available (no auth wall).
+  const showAuthWall = false;
+  const isCartEmpty = (cartItems || []).length === 0;
 
   // Initialize Square SDK
   useEffect(() => {
     // Only initialize if we're past the auth wall and not already initialized
-    if (showAuthWall || isInitialized.current) return;
+    if (showAuthWall || isInitialized.current || isCartEmpty) return;
     
     const init = async () => {
       try {
@@ -78,7 +74,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     };
 
     init();
-  }, [showAuthWall]);
+  }, [showAuthWall, isCartEmpty]);
 
   // Callback ref - called when element is mounted/unmounted
   // Wrapped in useCallback to prevent recreation on every render
@@ -133,7 +129,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   // Effect to attach card when squarePayments becomes available OR element exists
   useEffect(() => {
-    if (!squarePayments || showAuthWall || cardAttachedRef.current) return;
+    if (!squarePayments || showAuthWall || cardAttachedRef.current || isCartEmpty) return;
     
     const element = cardContainerRef.current;
     if (!element) return; // Element not ready
@@ -195,7 +191,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     };
     
     attachCard();
-  }, [squarePayments, showAuthWall]);
+  }, [squarePayments, showAuthWall, isCartEmpty]);
 
   // Cleanup on unmount or when auth wall shows
   useEffect(() => {
@@ -231,6 +227,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setIsProcessing(true);
     
     try {
+        if (isCartEmpty || total <= 0) {
+            throw new Error('Add items to your cart before checking out.');
+        }
         if (!cardElement) {
             throw new Error('Payment form not ready');
         }
@@ -245,11 +244,18 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         // 2. Gather Order Data
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
+        const fullNameRaw = (formData.get('fullName') as string) || '';
+        const firstName = fullNameRaw.split(' ')[0] || '';
+        const lastName = fullNameRaw.split(' ').slice(1).join(' ') || '';
+        const email = (formData.get('email') as string) || '';
+        const phone = (formData.get('phone') as string) || '';
+        const newsletterOptIn = Boolean(formData.get('newsletterOptIn'));
+
         const pickupForm = {
-            firstName: (formData.get('fullName') as string).split(' ')[0],
-            lastName: (formData.get('fullName') as string).split(' ').slice(1).join(' ') || '',
-            email: formData.get('email') as string,
-            phone: formData.get('phone') as string
+            firstName,
+            lastName,
+            email,
+            phone
         };
 
         // 3. Process Payment on Backend
@@ -268,6 +274,24 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         );
 
         if (result.success) {
+            // Optional newsletter signup (non-blocking): use the same backend endpoint as the newsletter form.
+            if (newsletterOptIn && email) {
+                fetch('/api/newsletter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: String(email).trim(),
+                        firstName: firstName.trim() || null,
+                        lastName: lastName.trim() || null,
+                        source: 'checkout_opt_in',
+                        pageUrl: typeof window !== 'undefined' ? window.location.href : '',
+                        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+                    }),
+                }).catch((err) => {
+                    console.warn('[Checkout] Newsletter opt-in failed:', err);
+                });
+            }
+
             onPlaceOrder({
                 ...pickupForm,
                 deliveryMethod: 'pickup',
@@ -296,65 +320,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       }`}
     >
        <Section>
-          {showAuthWall ? (
-            <div className="max-w-4xl mx-auto">
-                <div className="mb-8">
-                    <button 
-                        onClick={onBack}
-                        className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-colors mb-4
-                            ${isRetro ? 'text-brand-black hover:text-brand-orange' : 'text-gray-500 hover:text-black'}
-                        `}
-                    >
-                        <ArrowLeft size={14} strokeWidth={3} /> Back to Cart
-                    </button>
-                    <h1 className={`font-display text-4xl md:text-5xl mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>
-                        Checkout
-                    </h1>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Login Option */}
-                    <div className={`p-8 md:p-12 flex flex-col items-center text-center border-2
-                        ${isRetro 
-                            ? 'bg-white border-brand-black shadow-retro' 
-                            : 'bg-white border-gray-200 rounded-xl shadow-sm'}
-                    `}>
-                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6
-                            ${isRetro ? 'bg-brand-orange border-2 border-brand-black text-brand-black' : 'bg-gray-100 text-gray-900'}
-                        `}>
-                            <UserIcon size={32} />
-                        </div>
-                        <h2 className="font-display text-2xl mb-3">Returning Customer?</h2>
-                        <p className="text-gray-500 mb-8 max-w-xs">
-                            Sign in to access your saved details and earn rewards on this purchase.
-                        </p>
-                        <Button onClick={onLoginClick} fullWidth>
-                            Sign In / Register
-                        </Button>
-                    </div>
-
-                    {/* Guest Option */}
-                    <div className={`p-8 md:p-12 flex flex-col items-center text-center border-2
-                        ${isRetro 
-                            ? 'bg-brand-cream border-brand-black shadow-retro' 
-                            : 'bg-gray-50 border-gray-200 rounded-xl'}
-                    `}>
-                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6
-                            ${isRetro ? 'bg-white border-2 border-brand-black text-gray-400' : 'bg-white text-gray-400 shadow-sm'}
-                        `}>
-                            <Ghost size={32} />
-                        </div>
-                        <h2 className="font-display text-2xl mb-3">Guest Checkout</h2>
-                        <p className="text-gray-500 mb-8 max-w-xs">
-                            No account? No problem. You can always create one later.
-                        </p>
-                        <Button variant={isRetro ? 'outline' : 'secondary'} onClick={() => setIsGuest(true)} fullWidth>
-                            Continue as Guest
-                        </Button>
-                    </div>
-                </div>
-            </div>
-          ) : (
+          {showAuthWall ? null : (
             <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 fade-in duration-300">
              
              {/* Header */}
@@ -370,6 +336,21 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <h1 className={`font-display text-4xl md:text-5xl ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Checkout</h1>
              </div>
 
+             {isCartEmpty ? (
+               <div
+                 className={`p-8 md:p-12 text-center border-2
+                   ${isRetro ? 'bg-white border-brand-black shadow-retro' : 'bg-white border-gray-200 rounded-xl shadow-sm'}
+                 `}
+               >
+                 <h2 className="font-display text-2xl mb-3">Your cart is empty</h2>
+                 <p className="text-gray-600 font-medium mb-6">
+                   Add something to your crate before checking out.
+                 </p>
+                 <Button onClick={onBack} className={isRetro ? 'shadow-pop hover:shadow-pop-hover' : ''}>
+                   Back to Cart
+                 </Button>
+               </div>
+             ) : (
              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
                 
                 {/* Left Column: Forms */}
@@ -395,7 +376,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                    type="text" 
                                    placeholder="Full Name" 
                                    required 
-                                   defaultValue={user?.name || ''}
+                                   defaultValue=""
                                    className={`w-full p-4 font-medium focus:outline-none transition-all
                                        ${isRetro 
                                          ? 'bg-brand-cream border-2 border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' 
@@ -410,7 +391,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                        type="email" 
                                        placeholder="Email Address" 
                                        required 
-                                       defaultValue={user?.email || ''}
+                                       defaultValue=""
                                        className={`w-full p-4 font-medium focus:outline-none transition-all
                                            ${isRetro 
                                              ? 'bg-brand-cream border-2 border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' 
@@ -422,7 +403,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                        type="tel" 
                                        placeholder="Phone Number" 
                                        required 
-                                       defaultValue={user?.phone || ''}
+                                       defaultValue=""
                                        className={`w-full p-4 font-medium focus:outline-none transition-all
                                            ${isRetro 
                                              ? 'bg-brand-cream border-2 border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' 
@@ -432,8 +413,15 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                </div>
 
                                <div className="flex items-center gap-2">
-                                   <input type="checkbox" id="newsletter" className="w-4 h-4 accent-brand-orange" />
-                                   <label htmlFor="newsletter" className="text-sm text-gray-600 font-medium cursor-pointer">Keep me updated on new arrivals and events.</label>
+                                   <input
+                                     type="checkbox"
+                                     id="newsletterOptIn"
+                                     name="newsletterOptIn"
+                                     className="w-4 h-4 accent-brand-orange"
+                                   />
+                                   <label htmlFor="newsletterOptIn" className="text-sm text-gray-600 font-medium cursor-pointer">
+                                     Keep me updated on new arrivals and events.
+                                   </label>
                                </div>
                            </div>
                        </div>
@@ -484,11 +472,16 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                            </div>
 
                            <div className="space-y-4">
+                               {!cardElement && !error && (
+                                 <div className="text-sm font-bold text-gray-600">
+                                   Loading secure payment form…
+                                 </div>
+                               )}
                                {/* Square Card Container */}
                                <div 
                                    id={containerId.current}
                                    ref={cardContainerCallbackRef}
-                                   className={`min-h-[100px] p-4 transition-all
+                                   className={`min-h-[140px] p-4 transition-all
                                        ${isRetro 
                                          ? 'bg-brand-cream border-2 border-brand-black' 
                                          : 'bg-white border border-gray-200 rounded-lg'}
@@ -558,7 +551,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         <Button 
                             fullWidth 
                             size="lg" 
-                            disabled={isProcessing}
+                            disabled={isProcessing || isCartEmpty || total <= 0}
                             onClick={(e) => {
                                 const form = document.getElementById('checkout-form') as HTMLFormElement;
                                 if (form) form.requestSubmit();
@@ -571,6 +564,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
 
              </div>
+             )}
 
             </div>
           )}

@@ -192,24 +192,24 @@ export function ShippingReturnsPage({
 
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
                   <h4 className="text-base font-semibold text-white mb-2">New Vinyl</h4>
-                  <ul className="space-y-2 text-sm text-slate-300">
-                    <li className="flex items-start gap-2">
-                      <span className="mt-1 h-2 w-2 rounded-full bg-accent flex-shrink-0" />
+                <ul className="space-y-2 text-sm text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1 h-2 w-2 rounded-full bg-accent flex-shrink-0" />
                       <span>30 days: still sealed can be exchanged for full value.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="mt-1 h-2 w-2 rounded-full bg-accent flex-shrink-0" />
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1 h-2 w-2 rounded-full bg-accent flex-shrink-0" />
                       <span>If opened: 50% value returned.</span>
-                    </li>
-                  </ul>
-                </div>
+                  </li>
+                </ul>
+              </div>
 
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
                   <h4 className="text-base font-semibold text-white mb-2">Equipment</h4>
                   <p className="text-sm text-slate-300">
                     Sealed, still in box: $15 restocking fee on return.
                   </p>
-                </div>
+            </div>
 
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
                   <h4 className="text-base font-semibold text-white mb-2">Restocking Fee</h4>

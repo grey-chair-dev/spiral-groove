@@ -11,8 +11,8 @@ interface Message {
 
 const STORE_INFO = {
   address: '215B Main Street, Milford, OH 45150',
-  phone: '(513) 248-0000',
-  email: 'info@spiralgrooverecords.com',
+  phone: '(513) 600-8018',
+  email: 'adam@spiralgrooverecords.com',
   hours: {
     monday: '10:00 AM - 8:00 PM',
     tuesday: '10:00 AM - 8:00 PM',

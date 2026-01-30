@@ -1,3 +1,5 @@
+import crypto from 'crypto'
+
 /**
  * Email HTML Templates
  * Generates HTML email content for each email type
@@ -18,8 +20,21 @@ const BRAND = {
 }
 
 function getBaseUrl() {
-  const raw = process.env.SITE_URL || 'https://spiralgrooverecords.com'
-  return raw.replace(/\/+$/, '')
+  // Prefer an explicit SITE_URL. Otherwise, use Vercel's deployment URL so
+  // assets like /full-logo.png resolve even if a custom domain is misconfigured.
+  const raw = process.env.SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://spiralgrooverecords.com')
+  const normalized = raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`
+  return normalized.replace(/\/+$/, '')
+}
+
+function getEmailLogoUrl(baseUrl) {
+  const override = process.env.EMAIL_LOGO_URL || ''
+  if (override) return override
+  return `${baseUrl}/full-logo.png`
+}
+
+function getContactEmail() {
+  return process.env.CONTACT_EMAIL || 'adam@spiralgrooverecords.com'
 }
 
 function escapeHtml(value) {
@@ -31,13 +46,33 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;')
 }
 
+function base64url(buf) {
+  return Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function getUnsubscribeSecret() {
+  return process.env.NEWSLETTER_UNSUBSCRIBE_SECRET || process.env.JWT_SECRET || ''
+}
+
+function createNewsletterUnsubscribeToken(email) {
+  const secret = getUnsubscribeSecret()
+  if (!secret) return null
+  const normalized = String(email || '').trim().toLowerCase()
+  const mac = crypto.createHmac('sha256', secret).update(normalized).digest()
+  return base64url(mac)
+}
+
+function encodeQuery(value) {
+  return encodeURIComponent(String(value || ''))
+}
+
 function renderButton({ href, label, tone = 'orange' }) {
   const bg = tone === 'teal' ? BRAND.teal : tone === 'black' ? BRAND.black : BRAND.orange
   const fg = tone === 'black' ? BRAND.cream : BRAND.black
 
   return `
     <div style="text-align:center; margin: 26px 0 0 0;">
-      <a href="${href}" style="display:inline-block; padding: 14px 22px; background-color: ${bg}; color: ${fg}; text-decoration:none; border-radius: 10px; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; border: 2px solid ${BRAND.black}; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <a href="${href}" style="display:inline-block; padding: 14px 22px; background-color: ${bg}; color: ${fg}; text-decoration:none; border-radius: 999px; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; border: 2px solid ${BRAND.black}; box-shadow: 6px 6px 0px 0px ${BRAND.black};">
         ${escapeHtml(label)}
       </a>
     </div>
@@ -46,7 +81,8 @@ function renderButton({ href, label, tone = 'orange' }) {
 
 function renderLayout({ title, preheader, bodyHtml }) {
   const baseUrl = getBaseUrl()
-  const logoUrl = `${baseUrl}/full-logo.png`
+  const logoUrl = getEmailLogoUrl(baseUrl)
+  const contactEmail = getContactEmail()
 
   return `
 <!DOCTYPE html>
@@ -65,7 +101,7 @@ function renderLayout({ title, preheader, bodyHtml }) {
   <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: ${BRAND.cream};">
     <tr>
       <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 640px; margin: 0 auto; background-color: ${BRAND.black}; border-bottom: 4px solid ${BRAND.orange};">
+        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 680px; margin: 0 auto; background-color: ${BRAND.black}; border-bottom: 4px solid ${BRAND.orange};">
           <tr>
             <td style="padding: 18px 18px 14px 18px; text-align: center;">
               <a href="${baseUrl}" style="text-decoration:none; display:inline-block;">
@@ -84,10 +120,19 @@ function renderLayout({ title, preheader, bodyHtml }) {
 
     <tr>
       <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 640px; margin: 0 auto; background-color: ${BRAND.cream};">
+        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 680px; margin: 0 auto; background-color: ${BRAND.cream};">
           <tr>
-            <td style="padding: 34px 22px 28px 22px; background-color: ${BRAND.cream};">
-              ${bodyHtml}
+            <td style="padding: 0; background-color: ${BRAND.cream};">
+              <div style="margin: 0 14px; border: 2px solid ${BRAND.black}; box-shadow: 8px 8px 0px 0px ${BRAND.black}; background: ${BRAND.cream};">
+                <div style="padding: 34px 22px 28px 22px; background-color: ${BRAND.cream};
+                  background-image:
+                    linear-gradient(${BRAND.black}10 1px, transparent 1px),
+                    linear-gradient(90deg, ${BRAND.black}10 1px, transparent 1px);
+                  background-size: 26px 26px;
+                  background-position: -1px -1px;">
+                  ${bodyHtml}
+                </div>
+              </div>
             </td>
           </tr>
         </table>
@@ -96,7 +141,7 @@ function renderLayout({ title, preheader, bodyHtml }) {
 
     <tr>
       <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 640px; margin: 0 auto; background-color: ${BRAND.black}; border-top: 4px solid ${BRAND.orange};">
+        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 680px; margin: 0 auto; background-color: ${BRAND.black}; border-top: 4px solid ${BRAND.orange};">
           <tr>
             <td style="padding: 22px 18px; text-align: center; color: ${BRAND.cream}; font-size: 12px;">
               <p style="margin: 0 0 6px 0; font-weight: 800; letter-spacing: 0.04em;">Spiral Groove Records</p>
@@ -104,7 +149,7 @@ function renderLayout({ title, preheader, bodyHtml }) {
               <p style="margin: 0;">
                 <a href="${baseUrl}" style="color: ${BRAND.teal}; text-decoration: none; font-weight: 700; margin: 0 10px;">Visit the site</a>
                 <span style="color: ${BRAND.gray600};">|</span>
-                <a href="mailto:info@spiralgrooverecords.com" style="color: ${BRAND.teal}; text-decoration: none; font-weight: 700; margin: 0 10px;">Contact</a>
+                <a href="mailto:${contactEmail}" style="color: ${BRAND.teal}; text-decoration: none; font-weight: 700; margin: 0 10px;">Contact</a>
               </p>
             </td>
           </tr>
@@ -124,6 +169,10 @@ export function generateNewsletterEmail(data) {
   const { firstName, lastName, email } = data
   const name = firstName ? `${firstName} ${lastName || ''}`.trim() : email.split('@')[0]
   const baseUrl = getBaseUrl()
+  const token = createNewsletterUnsubscribeToken(email)
+  const unsubscribeUrl = token
+    ? `${baseUrl}/api/newsletter/unsubscribe?email=${encodeQuery(email)}&token=${encodeQuery(token)}`
+    : null
 
   const bodyHtml = `
     <h2 style="margin: 0 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.15; letter-spacing: 0.02em;">
@@ -146,6 +195,10 @@ export function generateNewsletterEmail(data) {
     </div>
 
     ${renderButton({ href: `${baseUrl}/catalog`, label: 'Browse the catalog', tone: 'orange' })}
+
+    <p style="margin: 20px 0 0 0; color: ${BRAND.gray600}; font-size: 12px; line-height: 1.6; font-weight: 600; text-align:center;">
+      ${unsubscribeUrl ? `Want fewer emails? <a href="${unsubscribeUrl}" style="color:${BRAND.teal}; font-weight: 800; text-decoration:none;">Unsubscribe</a>.` : 'Want fewer emails? Reply to this email and ask to unsubscribe.'}
+    </p>
   `.trim()
 
   return renderLayout({
