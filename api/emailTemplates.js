@@ -39,7 +39,7 @@ function getReviewUrl() {
   return (
     process.env.SGR_REVIEW_URL ||
     process.env.REVIEW_URL ||
-    'https://www.google.com/search?q=Spiral+Groove+Records+review'
+    'https://www.google.com/maps/place/Spiral+Groove+Records/@39.1742742,-84.2984339,17z/data=!3m2!4b1!5s0x8841aac9305a4841:0xf7aca0c9046f7901!4m6!3m5!1s0x8841aab22ada7577:0xab535c9a0a82b016!8m2!3d39.1742742!4d-84.295859!16s%2Fg%2F11dfxntdfb?entry=ttu'
   )
 }
 
