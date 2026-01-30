@@ -17,9 +17,15 @@ dotenv.config({ path: envPath })
 dotenv.config() // Also load .env if it exists
 
 console.log('[API Dev Server] Loading environment variables...')
-console.log('[API Dev Server] SPR_DATABASE_URL:', process.env.SPR_DATABASE_URL ? 'SET (Neon)' : 'NOT SET')
+console.log('[API Dev Server] SGR_DATABASE_URL:', process.env.SGR_DATABASE_URL ? 'SET (Neon)' : 'NOT SET')
+console.log('[API Dev Server] SPR_DATABASE_URL:', process.env.SPR_DATABASE_URL ? 'SET (legacy)' : 'NOT SET')
 console.log('[API Dev Server] DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET')
-console.log('[API Dev Server] Using:', process.env.SPR_DATABASE_URL ? 'SPR_DATABASE_URL' : (process.env.DATABASE_URL ? 'DATABASE_URL' : 'NONE'))
+console.log(
+  '[API Dev Server] Using:',
+  process.env.SGR_DATABASE_URL
+    ? 'SGR_DATABASE_URL'
+    : (process.env.SPR_DATABASE_URL ? 'SPR_DATABASE_URL' : (process.env.DATABASE_URL ? 'DATABASE_URL' : 'NONE'))
+)
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

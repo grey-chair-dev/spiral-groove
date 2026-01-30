@@ -83,9 +83,9 @@ export async function webHandler(request) {
       )
     }
 
-    // Check if database connection string is available (prioritize SPR_DATABASE_URL for Neon)
-    if (!process.env.SPR_DATABASE_URL && !process.env.DATABASE_URL) {
-      throw new Error('SPR_DATABASE_URL or DATABASE_URL environment variable is not set')
+    // Check if database connection string is available (prioritize SGR_DATABASE_URL for Neon)
+    if (!process.env.SGR_DATABASE_URL && !process.env.SPR_DATABASE_URL && !process.env.DATABASE_URL) {
+      throw new Error('SGR_DATABASE_URL (preferred), SPR_DATABASE_URL (legacy), or DATABASE_URL environment variable is not set')
     }
 
     // Query all products from products_cache table
@@ -152,6 +152,7 @@ export async function webHandler(request) {
     console.error('[Products API] Error message:', error.message)
     console.error('[Products API] Error name:', error.name)
     console.error('[Products API] Error stack:', error.stack)
+    console.error('[Products API] SGR_DATABASE_URL available:', !!process.env.SGR_DATABASE_URL)
     console.error('[Products API] SPR_DATABASE_URL available:', !!process.env.SPR_DATABASE_URL)
     console.error('[Products API] DATABASE_URL available:', !!process.env.DATABASE_URL)
     console.error('[Products API] ===========================')
@@ -164,6 +165,7 @@ export async function webHandler(request) {
       context: {
         route: '/api/products',
         name: error?.name,
+        hasSgrDatabaseUrl: !!process.env.SGR_DATABASE_URL,
         hasSprDatabaseUrl: !!process.env.SPR_DATABASE_URL,
         hasDatabaseUrl: !!process.env.DATABASE_URL,
       },
@@ -175,9 +177,14 @@ export async function webHandler(request) {
     let userMessage = 'All product data must come from Neon. Please check your database connection.'
     
     // Check if it's a database connection error
-    if (error.message?.includes('DATABASE_URL') || error.message?.includes('SPR_DATABASE_URL') || error.message?.includes('connection')) {
-      console.error('[Products API] Neon database connection failed. Check SPR_DATABASE_URL environment variable.')
-      userMessage = 'Database connection failed. Check SPR_DATABASE_URL environment variable.'
+    if (
+      error.message?.includes('DATABASE_URL') ||
+      error.message?.includes('SPR_DATABASE_URL') ||
+      error.message?.includes('SGR_DATABASE_URL') ||
+      error.message?.includes('connection')
+    ) {
+      console.error('[Products API] Neon database connection failed. Check SGR_DATABASE_URL environment variable.')
+      userMessage = 'Database connection failed. Check SGR_DATABASE_URL environment variable.'
     }
     
     // Check if table doesn't exist
@@ -199,9 +206,12 @@ export async function webHandler(request) {
         message: error.message || 'Unknown error',
         name: error.name || 'Error',
         stack: error.stack,
+        hasSgrDatabaseUrl: !!process.env.SGR_DATABASE_URL,
         hasSprDatabaseUrl: !!process.env.SPR_DATABASE_URL,
         hasDatabaseUrl: !!process.env.DATABASE_URL,
-        usingConnectionString: process.env.SPR_DATABASE_URL ? 'SPR_DATABASE_URL' : (process.env.DATABASE_URL ? 'DATABASE_URL' : 'NONE'),
+        usingConnectionString: process.env.SGR_DATABASE_URL
+          ? 'SGR_DATABASE_URL'
+          : (process.env.SPR_DATABASE_URL ? 'SPR_DATABASE_URL' : (process.env.DATABASE_URL ? 'DATABASE_URL' : 'NONE')),
         suggestion: error.message?.includes('does not exist') ? 'Run: npm run sync:square to create the table' : undefined,
       } : undefined
     }

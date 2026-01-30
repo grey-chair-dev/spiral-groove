@@ -5,7 +5,7 @@
  * All product data is stored in and retrieved from Neon - this is the single source of truth.
  * Uses connection pooling for efficient database usage.
  * 
- * Required: SPR_DATABASE_URL (preferred) or DATABASE_URL environment variable with Neon connection string
+ * Required: SGR_DATABASE_URL (preferred) or DATABASE_URL environment variable with Neon connection string
  */
 
 import pg from 'pg'
@@ -23,12 +23,15 @@ export function getPool() {
     return pool
   }
 
-  // Prioritize SPR_DATABASE_URL for Neon, fallback to DATABASE_URL
-  const connectionString = process.env.SPR_DATABASE_URL || process.env.DATABASE_URL
+  // Prioritize SGR_DATABASE_URL for Neon, fallback to SPR_DATABASE_URL (legacy) then DATABASE_URL
+  const connectionString =
+    process.env.SGR_DATABASE_URL ||
+    process.env.SPR_DATABASE_URL ||
+    process.env.DATABASE_URL
 
   if (!connectionString) {
     throw new Error(
-      'SPR_DATABASE_URL or DATABASE_URL environment variable is not set. Please configure your Neon database connection string.'
+      'SGR_DATABASE_URL (preferred), SPR_DATABASE_URL (legacy), or DATABASE_URL environment variable is not set. Please configure your Neon database connection string.'
     )
   }
 

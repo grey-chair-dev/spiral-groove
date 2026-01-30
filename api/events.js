@@ -43,8 +43,8 @@ export async function webHandler(request) {
       })
     }
 
-    if (!process.env.SPR_DATABASE_URL && !process.env.DATABASE_URL) {
-      throw new Error('SPR_DATABASE_URL or DATABASE_URL environment variable is not set')
+    if (!process.env.SGR_DATABASE_URL && !process.env.SPR_DATABASE_URL && !process.env.DATABASE_URL) {
+      throw new Error('SGR_DATABASE_URL (preferred), SPR_DATABASE_URL (legacy), or DATABASE_URL environment variable is not set')
     }
 
     const result = await query(
@@ -134,6 +134,7 @@ export async function webHandler(request) {
       context: {
         route: '/api/events',
         name: error?.name,
+        hasSgrDatabaseUrl: !!process.env.SGR_DATABASE_URL,
         hasSprDatabaseUrl: !!process.env.SPR_DATABASE_URL,
         hasDatabaseUrl: !!process.env.DATABASE_URL,
       },
