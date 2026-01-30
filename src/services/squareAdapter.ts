@@ -12,7 +12,14 @@
  * - In an Express backend: use in your API endpoints
  */
 
-import { Client, Environment } from 'square'
+import { createRequire } from 'module'
+
+// The `square` SDK's ESM exports vary by version; using `require()` keeps runtime stable
+// and avoids TypeScript export mismatches in CI/Vercel builds.
+const require = createRequire(import.meta.url)
+const { SquareClient, SquareEnvironment } = require('square')
+
+type SquareClientInstance = any
 
 export type SquareConfig = {
   accessToken: string
@@ -37,9 +44,12 @@ export type SquareProduct = {
  * Initialize Square client
  */
 export function createSquareClient(config: SquareConfig) {
-  return new Client({
+  return new SquareClient({
     accessToken: config.accessToken,
-    environment: config.environment === 'production' ? Environment.Production : Environment.Sandbox,
+    environment:
+      config.environment === 'production'
+        ? SquareEnvironment.Production
+        : SquareEnvironment.Sandbox,
   })
 }
 
@@ -47,7 +57,7 @@ export function createSquareClient(config: SquareConfig) {
  * Fetch all catalog items from Square
  */
 export async function fetchSquareCatalogItems(
-  client: Client,
+  client: SquareClientInstance,
   locationId?: string,
 ): Promise<any[]> {
   try {
@@ -71,7 +81,7 @@ export async function fetchSquareCatalogItems(
  * Fetch inventory counts for catalog items
  */
 export async function fetchSquareInventory(
-  client: Client,
+  client: SquareClientInstance,
   catalogObjectIds: string[],
   locationId: string,
 ): Promise<Map<string, number>> {

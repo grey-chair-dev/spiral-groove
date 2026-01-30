@@ -117,6 +117,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { 
     label: 'Help', 
+    page: 'contact',
     hasDropdown: true,
     simpleDropdown: [
         { label: 'Pickup & Returns', page: 'locations' }, 

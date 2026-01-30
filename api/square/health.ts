@@ -4,9 +4,8 @@
  * Example: VITE_ADAPTER_HEALTH_URL=https://your-app.vercel.app/api/square/health
  */
 
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// Avoid depending on `@vercel/node` types (not installed in this repo).
+export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }

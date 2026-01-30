@@ -11,10 +11,10 @@
  * Example: VITE_PRODUCTS_SNAPSHOT_URL=https://your-app.vercel.app/api/square/products
  */
 
-import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { fetchSquareProducts, type SquareConfig } from '../../src/services/squareAdapter'
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// Avoid depending on `@vercel/node` types (not installed in this repo).
+export default async function handler(req: any, res: any) {
   // Only allow GET requests
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
