@@ -35,6 +35,7 @@ import { Product, ViewMode, Page, Order, Event, CartItem } from '../types';
 import { fetchProducts as fetchApiProducts, Product as ApiProduct } from './dataAdapter';
 import { getDefaultProductImage } from './utils/defaultProductImage';
 import { fetchEvents as fetchApiEvents } from './eventsAdapter';
+import { fetchStaffPickMeta, mergeStaffPicks, type StaffPickMetaRow } from './staffPicksAdapter';
 
 const VALID_PAGES: Page[] = [
   'home',
@@ -275,6 +276,9 @@ function App() {
   // Events State (loaded from Neon via /api/events)
   const [events, setEvents] = useState<Event[]>([]);
 
+  // Staff Picks meta rows (loaded from Neon via /api/staff-picks)
+  const [staffPickRows, setStaffPickRows] = useState<StaffPickMetaRow[]>([]);
+
   const parseEventStart = (event: Event): Date | null => {
     const raw = (event.startTime || '').trim();
     if (raw) {
@@ -304,6 +308,11 @@ function App() {
       .map(({ e }) => e)
       .slice(0, 3);
   }, [events]);
+
+  const staffPicks = useMemo(() => {
+    const merged = mergeStaffPicks(products || [], staffPickRows || []);
+    return merged.length > 0 ? merged : STAFF_PICKS;
+  }, [products, staffPickRows]);
   
   // Cart & Toast State
   const CART_STORAGE_KEY = 'sg_cart_v1';
@@ -703,6 +712,27 @@ function App() {
     };
   }, []);
 
+  // Fetch staff picks meta from API (Neon staff_picks table)
+  useEffect(() => {
+    let mounted = true;
+    const loadStaffPicks = async () => {
+      try {
+        const rows = await fetchStaffPickMeta(12);
+        if (!mounted) return;
+        setStaffPickRows(rows);
+      } catch (err) {
+        // Non-fatal: UI falls back to static constants.
+        console.warn('[App] Failed to load staff picks:', err);
+        if (!mounted) return;
+        setStaffPickRows([]);
+      }
+    };
+    loadStaffPicks();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setCurrentPage('product');
@@ -1010,7 +1040,7 @@ function App() {
                     />
                 )}
                 <StaffPicks 
-                    picks={STAFF_PICKS} 
+                    picks={staffPicks} 
                     viewMode={effectiveViewMode}
                     onProductClick={handleProductClick}
                 />
@@ -1144,6 +1174,7 @@ function App() {
         {currentPage === 'staff-picks' && (
             <StaffPicksPage 
                 viewMode={effectiveViewMode}
+                picks={staffPicks}
                 onProductClick={handleProductClick}
                 onNavigate={handleNavigate}
             />

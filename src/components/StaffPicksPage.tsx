@@ -1,17 +1,18 @@
 
 import React from 'react';
 import { ViewMode, Product } from '../../types';
-import { STAFF_PICKS } from '../../constants';
 import { Section } from './ui/Section';
 import { Quote, Star } from 'lucide-react';
+import type { StaffPick } from '../../types';
 
 interface StaffPicksPageProps {
   viewMode: ViewMode;
+  picks: StaffPick[];
   onProductClick: (product: Product) => void;
   onNavigate: (page: any, filter?: string) => void;
 }
 
-export const StaffPicksPage: React.FC<StaffPicksPageProps> = ({ viewMode, onProductClick, onNavigate }) => {
+export const StaffPicksPage: React.FC<StaffPicksPageProps> = ({ viewMode, picks, onProductClick, onNavigate }) => {
   const isRetro = viewMode === 'retro';
 
   return (
@@ -32,7 +33,7 @@ export const StaffPicksPage: React.FC<StaffPicksPageProps> = ({ viewMode, onProd
 
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-                {STAFF_PICKS.map((pick, index) => (
+                {picks.map((pick, index) => (
                     <div 
                         key={`${pick.id}-${index}`} 
                         className="group cursor-pointer h-full"
