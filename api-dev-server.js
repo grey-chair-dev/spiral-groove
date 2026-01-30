@@ -86,6 +86,9 @@ const server = createServer(async (req, res) => {
           } else if (route === 'staff-picks') {
             const module = await import('./api/staff-picks.js')
             handler = module.webHandler ?? module.default
+          } else if (route === 'square/sync') {
+            const module = await import('./api/square/sync.js')
+            handler = module.webHandler ?? module.default
           } else if (route === 'inventory/log') {
             const module = await import('./api/inventory/log.js')
             handler = module.webHandler ?? module.default

@@ -7,6 +7,7 @@
     "build:css": "tailwindcss -i ./src/globals.css -o ./public/tailwind.css --minify",
     "dev": "npm run build:css && vite",
     "dev:api": "node api-dev-server.js",
+    "sync:square": "node scripts/sync-square.mjs",
     "build": "npm run build:css && vite build",
     "preview": "vite preview"
   },
