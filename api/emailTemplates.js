@@ -33,6 +33,16 @@ function getEmailLogoUrl(baseUrl) {
   return `${baseUrl}/full-logo.png`
 }
 
+function getReviewUrl() {
+  // Configurable review link for post-pickup follow-up.
+  // Prefer SGR_* naming, but support a generic REVIEW_URL too.
+  return (
+    process.env.SGR_REVIEW_URL ||
+    process.env.REVIEW_URL ||
+    'https://www.google.com/search?q=Spiral+Groove+Records+review'
+  )
+}
+
 function getContactEmail() {
   return process.env.CONTACT_EMAIL || 'adam@spiralgrooverecords.com'
 }
@@ -499,6 +509,7 @@ export function generateOrderStatusUpdateEmail(data) {
   }).join('') : ''
 
   const baseUrl = getBaseUrl()
+  const reviewUrl = getReviewUrl()
   const safeOrderNumber = escapeHtml(orderNumber || '')
   const safeStatusTitle = escapeHtml(statusInfo.title)
   const safeMessage = escapeHtml(statusMessage || statusInfo.message || '')
@@ -507,6 +518,9 @@ export function generateOrderStatusUpdateEmail(data) {
 
   const cardAccent = statusInfo.color || BRAND.teal
   const actionTone = cardAccent === '#00C2CB' ? 'teal' : 'orange'
+  const statusUpper = (status || '').toUpperCase().trim()
+  const shouldAskForReview =
+    statusUpper === 'COMPLETED' || statusUpper === 'PICKED_UP' || statusUpper === 'DELIVERED'
 
   const bodyHtml = `
     <div style="text-align:center; margin-bottom: 18px;">
@@ -589,6 +603,15 @@ export function generateOrderStatusUpdateEmail(data) {
       label: 'View order details',
       tone: actionTone,
     })}
+
+    ${shouldAskForReview ? `
+      <div style="margin-top: 18px; padding: 16px 18px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+        <p style="margin: 0 0 10px 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 800;">
+          Loved your pickup? A quick review helps a ton.
+        </p>
+        ${renderButton({ href: reviewUrl, label: 'Leave a review', tone: 'teal' })}
+      </div>
+    ` : ''}
   `.trim()
 
   return renderLayout({
