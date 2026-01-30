@@ -79,7 +79,15 @@ async function fetchCatalogObjectsByIds(client, ids) {
       objectIds: batch,
       includeRelatedObjects: false,
     })
-    const objects = resp?.response?.objects || []
+    // Square SDK response shapes vary across endpoints/versions:
+    // - Some return { objects, relatedObjects } directly
+    // - Some return Page-like wrappers with `.response`
+    const objects =
+      resp?.objects ||
+      resp?.response?.objects ||
+      resp?.result?.objects ||
+      resp?.data?.objects ||
+      []
     for (const obj of objects) {
       if (obj?.id) out.set(obj.id, obj)
     }
