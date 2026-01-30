@@ -44,6 +44,8 @@ function mapRowToProduct(row) {
     imageUrl: String(row.image_url || ''),
     rating: row.rating != null ? Number(row.rating) : 0,
     reviewCount: row.review_count != null ? Number(row.review_count) : 0,
+    soldCount: row.sold_count != null ? Number(row.sold_count) : 0,
+    lastSoldAt: row.last_sold_at ? String(row.last_sold_at) : null,
   }
 }
 
@@ -102,7 +104,9 @@ export async function webHandler(request) {
         stock_count,
         image_url,
         rating,
-        review_count
+        review_count,
+        sold_count,
+        last_sold_at
       FROM products_cache
       ORDER BY created_at DESC, id ASC`
     )

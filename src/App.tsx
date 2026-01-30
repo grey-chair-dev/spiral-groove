@@ -523,6 +523,8 @@ function App() {
       categories: apiProduct.categories, // Pass through original categories array
       isNewArrival: isNewArrival, // True if category contains "New Vinyl"
       inStock: apiProduct.stockCount > 0,
+      soldCount: apiProduct.soldCount ?? 0,
+      lastSoldAt: apiProduct.lastSoldAt ?? null,
       releaseDate: undefined
     };
   };

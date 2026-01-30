@@ -23,7 +23,7 @@ interface ProductGridProps {
   limit?: number;
 }
 
-const QUICK_FILTERS = ["All", "New Arrivals", "Bargain Bin"] as const;
+const QUICK_FILTERS = ["All", "New Arrivals", "Bargain Bin", "Recently Sold"] as const;
 
 // Category filter should be record format only (per productEnums.ts)
 const FORMAT_FILTERS: RecordFormat[] = [
@@ -224,6 +224,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     // 1) Browse
     if (activeBrowse === "New Arrivals") result = result.filter(p => p.isNewArrival);
     if (activeBrowse === "Bargain Bin") result = result.filter(p => (p.tags || []).some(t => t.toLowerCase().includes('bargain')));
+    if (activeBrowse === "Recently Sold") {
+      result = result.filter(p => p.inStock === false && (p.soldCount ?? 0) > 0);
+    }
 
     // 2) Legacy single token (Equipment/Merch/Apparel/etc). Kept for existing deep-links.
     if (legacyFilter) {
@@ -338,12 +341,21 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       case 'featured':
       default:
         return sorted.sort((a, b) => {
+           // Special-case: when browsing Recently Sold, default sort should be "most recently sold".
+           if (activeBrowse === 'Recently Sold') {
+             const aT = a.lastSoldAt ? new Date(a.lastSoldAt).getTime() : 0;
+             const bT = b.lastSoldAt ? new Date(b.lastSoldAt).getTime() : 0;
+             if (aT !== bT) return bT - aT;
+             const aC = a.soldCount ?? 0;
+             const bC = b.soldCount ?? 0;
+             if (aC !== bC) return bC - aC;
+           }
            if (a.isNewArrival && !b.isNewArrival) return -1;
            if (!a.isNewArrival && b.isNewArrival) return 1;
            return 0;
         });
     }
-  }, [filteredProducts, sortBy]);
+  }, [filteredProducts, sortBy, activeBrowse]);
 
   // 3. Paginate
   const totalPages = limit ? 1 : Math.ceil(sortedProducts.length / itemsPerPage);
@@ -416,7 +428,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   // Determine if we should use product-style layout (square boxes) or non-product-style layout
   const shouldUseProductStyleLayout = useMemo(() => {
     // If "All" or special filters, check the actual products' categories
-    if (activeBrowse === "All" || activeBrowse === "New Arrivals" || activeBrowse === "Bargain Bin") {
+    if (activeBrowse === "All" || activeBrowse === "New Arrivals" || activeBrowse === "Bargain Bin" || activeBrowse === "Recently Sold") {
       if (filteredProducts.length === 0) return true; // Default to product style
       
       // Check if most products are from product-style categories

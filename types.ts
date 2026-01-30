@@ -16,6 +16,8 @@ export interface Product {
   isNewArrival?: boolean;
   inStock?: boolean;
   releaseDate?: string;
+  soldCount?: number;
+  lastSoldAt?: string | null;
 }
 
 export interface StaffPick extends Product {

@@ -22,6 +22,8 @@ export type Product = {
   imageUrl: string
   rating: number
   reviewCount: number
+  soldCount?: number
+  lastSoldAt?: string | null
 }
 
 const PLACEHOLDER_IMAGE =
@@ -187,6 +189,8 @@ function sanitizeProduct(product: Product): Product {
     stockCount: Math.max(0, Math.round(coerceNumber(product.stockCount, 0, 0))),
     rating: clamp(coerceNumber(product.rating, 4.5, 1), 0, 5),
     reviewCount: Math.max(0, Math.round(coerceNumber(product.reviewCount, 0, 0))),
+    soldCount: Math.max(0, Math.round(coerceNumber(product.soldCount, 0, 0))),
+    lastSoldAt: product.lastSoldAt ? sanitizeText(product.lastSoldAt, { maxLength: 80 }) : null,
   }
 }
 
