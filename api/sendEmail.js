@@ -14,6 +14,7 @@ import {
   generateOrderConfirmationEmail,
   generateForgotPasswordEmail,
   generateOrderStatusUpdateEmail,
+  generateReviewRequestEmail,
 } from './emailTemplates.js'
 
 const DEFAULT_DEDUPE_TTL_MS = 5 * 60 * 1000
@@ -76,6 +77,9 @@ export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedup
           break
         case 'order_status_update':
           html = generateOrderStatusUpdateEmail({ ...data, customerEmail: to })
+          break
+        case 'review_request':
+          html = generateReviewRequestEmail({ ...data, customerEmail: to })
           break
         default:
           console.warn(`[Email Webhook] Unknown email type: ${type}, generating basic HTML`)
@@ -143,6 +147,7 @@ function getDefaultSubject(type) {
     signup: 'Welcome to Spiral Groove Records',
     forgot_password: 'Reset Your Password - Spiral Groove Records',
     order_status_update: 'Order Status Update - Spiral Groove Records',
+    review_request: 'How was your visit? Leave a quick review',
   }
   return subjects[type] || 'Message from Spiral Groove Records'
 }

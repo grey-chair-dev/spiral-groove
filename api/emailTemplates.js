@@ -509,7 +509,6 @@ export function generateOrderStatusUpdateEmail(data) {
   }).join('') : ''
 
   const baseUrl = getBaseUrl()
-  const reviewUrl = getReviewUrl()
   const safeOrderNumber = escapeHtml(orderNumber || '')
   const safeStatusTitle = escapeHtml(statusInfo.title)
   const safeMessage = escapeHtml(statusMessage || statusInfo.message || '')
@@ -518,9 +517,6 @@ export function generateOrderStatusUpdateEmail(data) {
 
   const cardAccent = statusInfo.color || BRAND.teal
   const actionTone = cardAccent === '#00C2CB' ? 'teal' : 'orange'
-  const statusUpper = (status || '').toUpperCase().trim()
-  const shouldAskForReview =
-    statusUpper === 'COMPLETED' || statusUpper === 'PICKED_UP' || statusUpper === 'DELIVERED'
 
   const bodyHtml = `
     <div style="text-align:center; margin-bottom: 18px;">
@@ -603,20 +599,54 @@ export function generateOrderStatusUpdateEmail(data) {
       label: 'View order details',
       tone: actionTone,
     })}
-
-    ${shouldAskForReview ? `
-      <div style="margin-top: 18px; padding: 16px 18px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
-        <p style="margin: 0 0 10px 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 800;">
-          Loved your pickup? A quick review helps a ton.
-        </p>
-        ${renderButton({ href: reviewUrl, label: 'Leave a review', tone: 'teal' })}
-      </div>
-    ` : ''}
   `.trim()
 
   return renderLayout({
     title: `Order Status Update ${orderNumber || ''}`.trim(),
     preheader: `Update for order ${orderNumber || ''}.`,
+    bodyHtml,
+  })
+}
+
+/**
+ * Separate review request email (sent after pickup / completion).
+ */
+export function generateReviewRequestEmail(data) {
+  const { orderNumber, customerName } = data || {}
+  const baseUrl = getBaseUrl()
+  const reviewUrl = getReviewUrl()
+
+  const safeName = escapeHtml(customerName || 'friend')
+  const safeOrderNumber = escapeHtml(orderNumber || '')
+
+  const bodyHtml = `
+    <h2 style="margin: 0 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.1; text-align:center; letter-spacing: 0.02em;">
+      How’d we do?
+    </h2>
+    <p style="margin: 0 0 16px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600; text-align:center;">
+      Thanks for stopping by, ${safeName}. If you’ve got 30 seconds, a quick review helps more people find Spiral Groove.
+    </p>
+
+    <div style="margin: 18px 0 16px 0; padding: 16px 18px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 13px; line-height: 1.6; font-weight: 800;">
+        Order: <span style="letter-spacing: 0.04em;">${safeOrderNumber}</span>
+      </p>
+    </div>
+
+    ${renderButton({ href: reviewUrl, label: 'Leave a review', tone: 'teal' })}
+
+    <div style="margin-top: 18px;">
+      ${renderButton({
+        href: `${baseUrl}/catalog`,
+        label: 'Browse new arrivals',
+        tone: 'orange',
+      })}
+    </div>
+  `.trim()
+
+  return renderLayout({
+    title: 'Leave a Review - Spiral Groove Records',
+    preheader: 'A quick review helps a ton.',
     bodyHtml,
   })
 }

@@ -162,6 +162,9 @@ export async function webHandler(request) {
     let emailAttempted = false
     let emailSent = false
     let emailSkipReason = null
+    let reviewEmailAttempted = false
+    let reviewEmailSent = false
+    let reviewEmailSkipReason = null
 
     if (!forceEmail && previousStatus === status) {
       emailSkipReason = 'status_unchanged'
@@ -207,6 +210,41 @@ export async function webHandler(request) {
           emailSkipReason = sendResult?.reason || 'send_failed'
         }
         console.log(`[Orders Update API] ✅ Status update email result for order ${order.order_number}`, sendResult)
+
+        // Separate review request email when picked up / completed (transition only, unless forced)
+        const prevUpper = String(previousStatus || '').toUpperCase().trim()
+        const nextUpper = String(status || '').toUpperCase().trim()
+        const wasComplete = prevUpper === 'COMPLETED' || prevUpper === 'PICKED_UP' || prevUpper === 'DELIVERED'
+        const isComplete = nextUpper === 'COMPLETED' || nextUpper === 'PICKED_UP' || nextUpper === 'DELIVERED'
+
+        if (!customerEmail) {
+          reviewEmailSkipReason = 'missing_customer_email'
+        } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
+          reviewEmailSkipReason = 'missing_MAKE_EMAIL_WEBHOOK_URL'
+        } else if (!forceEmail && (!isComplete || wasComplete)) {
+          // Only send on transition into completed state (unless forced).
+          reviewEmailSkipReason = !isComplete ? 'not_completed_status' : 'already_completed'
+        }
+
+        if (!reviewEmailSkipReason && isComplete) {
+          const reviewResult = await sendEmail({
+            type: 'review_request',
+            to: customerEmail,
+            subject: 'How was your visit? Leave a quick review',
+            data: {
+              orderNumber: order.order_number,
+              customerName,
+            },
+            dedupeKey: `review_request:${order.order_number}`,
+            force: Boolean(forceEmail),
+          })
+          reviewEmailAttempted = Boolean(reviewResult?.attempted)
+          reviewEmailSent = Boolean(reviewResult?.ok)
+          if (!reviewResult?.ok) {
+            reviewEmailSkipReason = reviewResult?.reason || 'send_failed'
+          }
+          console.log(`[Orders Update API] ✅ Review request email result for order ${order.order_number}`, reviewResult)
+        }
       } catch (emailError) {
         console.error('[Orders Update API] ❌ Failed to send status update email:', emailError)
         console.error('[Orders Update API] Error details:', emailError.stack)
@@ -232,6 +270,14 @@ export async function webHandler(request) {
           attempted: emailAttempted,
           sent: emailSent,
           skipReason: emailSkipReason,
+          to: customerEmail || null,
+          force: Boolean(forceEmail),
+        }
+        ,
+        reviewEmail: {
+          attempted: reviewEmailAttempted,
+          sent: reviewEmailSent,
+          skipReason: reviewEmailSkipReason,
           to: customerEmail || null,
           force: Boolean(forceEmail),
         }
