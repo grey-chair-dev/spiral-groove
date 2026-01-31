@@ -20,16 +20,38 @@ export const config = {
  * }
  */
 export async function webHandler(request) {
-  if (request.method !== 'POST') {
+  const method = (request.method || 'GET').toUpperCase()
+
+  // Vercel Cron jobs hit the path with GET.
+  // We only allow GET when it's clearly a Vercel cron invocation.
+  const userAgent = request.headers.get('user-agent') || ''
+  const xVercelCron = request.headers.get('x-vercel-cron')
+  const isVercelCron =
+    Boolean(xVercelCron) ||
+    /vercel[-\s]?cron/i.test(userAgent)
+
+  if (method === 'GET') {
+    if (process.env.NODE_ENV === 'production' && !isVercelCron) {
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized.' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+  } else if (method !== 'POST') {
     return new Response(JSON.stringify({ success: false, error: 'Method not allowed. Use POST.' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' },
     })
   }
 
-  // Require secret in production
+  // Require secret in production (for non-cron callers)
   const webhookSecret = request.headers.get('x-webhook-secret')
-  if (process.env.NODE_ENV === 'production' && process.env.WEBHOOK_SECRET && webhookSecret !== process.env.WEBHOOK_SECRET) {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.WEBHOOK_SECRET &&
+    !isVercelCron &&
+    webhookSecret !== process.env.WEBHOOK_SECRET
+  ) {
     return new Response(JSON.stringify({ success: false, error: 'Unauthorized. Invalid webhook secret.' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -37,8 +59,9 @@ export async function webHandler(request) {
   }
 
   try {
-    const body = await request.json()
-    const full = Boolean(body?.full)
+    const body = method === 'POST' ? await request.json() : {}
+    // Cron GET defaults to a full sync.
+    const full = method === 'GET' ? true : Boolean(body?.full)
     const squareItemIds = Array.isArray(body?.squareItemIds) ? body.squareItemIds : undefined
     const squareVariationIds = Array.isArray(body?.squareVariationIds) ? body.squareVariationIds : undefined
     const limit = body?.limit != null ? Number(body.limit) : 0
