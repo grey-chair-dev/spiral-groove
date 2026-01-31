@@ -8,6 +8,7 @@
     "dev": "npm run build:css && vite",
     "dev:api": "node api-dev-server.js",
     "sync:square": "node scripts/sync-square.mjs",
+    "sync:sales": "node scripts/sync-square-sales.mjs",
     "build": "npm run build:css && vite build",
     "preview": "vite preview"
   },
