@@ -82,42 +82,31 @@ const platformAppId =
     : (window as Window & { __app_id?: string }).__app_id
 
 export const siteConfig: SiteConfig = {
-  appId: import.meta.env.VITE_APP_ID ?? platformAppId ?? 'demo-local-commerce',
-  brandName: 'Harbor Market Collective',
-  tagline: 'Local goods. Local stories. Seamless shopping.',
+  appId: import.meta.env.VITE_APP_ID ?? platformAppId ?? 'spiral-groove',
+  brandName: 'Spiral Groove Records',
+  tagline: 'Records, gear, and good hangs in Milford.',
   hero: {
-    headline: 'Local commerce that feels alive.',
+    headline: 'Spiral Groove Records',
     subheading:
-      'Square catalog syncs to Neon database, payments process securely, and orders are tracked end-to-end.',
-    primaryCta: 'Browse Live Catalog',
-    secondaryCta: 'Talk to the team',
+      'New & used vinyl, turntables, and a community space for listening parties and local showcases.',
+    primaryCta: 'Browse the stacks',
+    secondaryCta: 'Get in touch',
   },
   about: {
-    heading: 'Neighborhood-first retail',
-    body: 'The Local Commerce Template is tuned for makers and merchants that need premium digital shelves without the enterprise lift. It pulls product truth from Neon, caches responsibly with Upstash, and keeps the UI feather-light.',
+    heading: 'Independent shop. Community vibes.',
+    body: 'We’re a record shop built for crate diggers—new arrivals, staff picks, and gear you can trust. Stop in, say hi, and stay in the groove.',
     highlights: [
-      'Branding swap in minutes via CSS vars',
-      'Square catalog sync with Neon PostgreSQL database',
-      'Full checkout flow with Square Payments integration',
+      'New & used vinyl + curated staff picks',
+      'Turntables, accessories, and essentials',
+      'Events, listening parties, and more',
     ],
   },
-  events: [
-    {
-      title: 'First Friday Pop-up',
-      date: 'Dec 5 · 5–9 PM',
-      description: 'Live screen-printing, seasonal coffee flight, and vendor collabs.',
-    },
-    {
-      title: 'Makers Studio Hours',
-      date: 'Dec 12 · 2–6 PM',
-      description: 'Drop-in coaching with resident makers + Square POS onboarding clinic.',
-    },
-  ],
+  events: [],
   contact: {
     phone: '(513) 600-8018',
     email: 'adam@spiralgrooverecords.com',
     location: '215B Main Street, Milford, OH 45150',
-    hours: 'Open daily · 10a – 8p',
+    hours: 'See in-store signage for current hours',
   },
   legal: {
     privacyUrl: 'https://spiralgrooverecords.com/privacy',

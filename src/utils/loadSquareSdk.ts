@@ -13,7 +13,9 @@ export function loadSquareSdk(): Promise<void> {
 
     // Determine which SDK to load based on environment
     // Vite only exposes variables with VITE_ prefix to frontend
-    const squareEnv = import.meta.env.VITE_SQUARE_ENVIRONMENT || 'sandbox'
+    const squareEnv =
+      import.meta.env.VITE_SQUARE_ENVIRONMENT ||
+      (import.meta.env.PROD ? 'production' : 'sandbox')
     const sdkUrl =
       squareEnv === 'production'
         ? 'https://web.squarecdn.com/v1/square.js'

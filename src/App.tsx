@@ -30,7 +30,6 @@ import { ClientLoginPage } from './components/ClientLoginPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { TermsPage } from './components/TermsPage';
 import { AccessibilityPage } from './components/AccessibilityPage';
-import { PRODUCTS, STAFF_PICKS } from '../constants';
 import { Product, ViewMode, Page, Order, Event, CartItem } from '../types';
 import { fetchProducts as fetchApiProducts, Product as ApiProduct } from './dataAdapter';
 import { getDefaultProductImage } from './utils/defaultProductImage';
@@ -311,7 +310,7 @@ function App() {
 
   const staffPicks = useMemo(() => {
     const merged = mergeStaffPicks(products || [], staffPickRows || []);
-    return merged.length > 0 ? merged : STAFF_PICKS;
+    return merged;
   }, [products, staffPickRows]);
   
   // Cart & Toast State
@@ -613,8 +612,7 @@ function App() {
       if (route.page === 'product') {
         const id = route.productId ?? null;
         setPendingProductId(id);
-        const product =
-          id ? products.find(p => p.id === id) || PRODUCTS.find(p => p.id === id) : undefined;
+        const product = id ? products.find(p => p.id === id) : undefined;
         setSelectedProduct(product ?? null);
       } else {
         setPendingProductId(null);
@@ -651,7 +649,7 @@ function App() {
   // If we navigated directly to a product URL before products loaded, resolve once products arrive.
   useEffect(() => {
     if (currentPage !== 'product' || !pendingProductId || selectedProduct) return;
-    const product = products.find(p => p.id === pendingProductId) || PRODUCTS.find(p => p.id === pendingProductId);
+    const product = products.find(p => p.id === pendingProductId);
     if (product) setSelectedProduct(product);
   }, [currentPage, pendingProductId, selectedProduct, products]);
 
@@ -664,9 +662,10 @@ function App() {
         const apiProducts = await fetchApiProducts();
         
         if (apiProducts.length === 0) {
-          // Fallback to mock data if API returns empty
-          console.warn('[App] No products from API, using mock data');
-          setProducts(PRODUCTS);
+          // Launch safety: never fall back to demo/mock inventory in production.
+          console.warn('[App] No products from API. Inventory will be empty.');
+          setProducts([]);
+          setProductsError('Inventory is temporarily unavailable. Please check back soon.');
         } else {
           // Map API products to app Product type
           const mappedProducts = apiProducts
@@ -684,8 +683,8 @@ function App() {
       } catch (err: any) {
         console.error('[App] Failed to load products:', err);
         setProductsError(err.message || 'Failed to load products');
-        // Fallback to mock data on error
-        setProducts(PRODUCTS);
+        // Launch safety: never fall back to demo/mock inventory.
+        setProducts([]);
       } finally {
         setProductsLoading(false);
       }
@@ -1026,7 +1025,7 @@ function App() {
                 ) : productsError ? (
                     <div className="py-20 text-center">
                         <p className="text-red-500">Error: {productsError}</p>
-                        <p className="text-gray-500 text-sm mt-2">Using fallback data</p>
+                        <p className="text-gray-500 text-sm mt-2">Please try again in a moment.</p>
                     </div>
                 ) : (
                     <ProductGrid 
@@ -1041,11 +1040,13 @@ function App() {
                         onViewMore={() => handleNavigate('catalog', 'New Arrivals')}
                     />
                 )}
-                <StaffPicks 
-                    picks={staffPicks} 
-                    viewMode={effectiveViewMode}
-                    onProductClick={handleProductClick}
-                />
+                {staffPicks.length > 0 && (
+                  <StaffPicks 
+                      picks={staffPicks} 
+                      viewMode={effectiveViewMode}
+                      onProductClick={handleProductClick}
+                  />
+                )}
                 <StorySection 
                     viewMode={effectiveViewMode} 
                     onNavigate={handleNavigate}
@@ -1078,7 +1079,7 @@ function App() {
                 ) : productsError ? (
                     <div className="py-20 text-center min-h-screen">
                         <p className="text-red-500">Error: {productsError}</p>
-                        <p className="text-gray-500 text-sm mt-2">Using fallback data</p>
+                        <p className="text-gray-500 text-sm mt-2">Please try again in a moment.</p>
                     </div>
                 ) : (
                     <CatalogPage 

@@ -5,7 +5,7 @@ const require = createRequire(import.meta.url)
 const { SquareClient, SquareEnvironment } = require('square')
 
 function getSquareEnv() {
-  const env = (process.env.SQUARE_ENVIRONMENT || 'sandbox').toLowerCase()
+  const env = (process.env.SQUARE_ENVIRONMENT || (process.env.NODE_ENV === 'production' ? 'production' : 'sandbox')).toLowerCase()
   return env === 'production' ? SquareEnvironment.Production : SquareEnvironment.Sandbox
 }
 

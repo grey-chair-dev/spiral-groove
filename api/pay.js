@@ -141,7 +141,7 @@ export async function webHandler(request) {
     }
 
     // Determine environment (sandbox or production)
-    const squareEnv = (process.env.SQUARE_ENVIRONMENT || 'sandbox').toLowerCase()
+    const squareEnv = (process.env.SQUARE_ENVIRONMENT || (process.env.NODE_ENV === 'production' ? 'production' : 'sandbox')).toLowerCase()
     const environment = squareEnv === 'production' ? Environment.Production : Environment.Sandbox
 
     // Initialize Square client

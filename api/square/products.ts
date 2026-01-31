@@ -25,7 +25,7 @@ export default async function handler(req: any, res: any) {
 
   // Get Square credentials from environment variables
   const accessToken = process.env.SQUARE_ACCESS_TOKEN
-  const environment = (process.env.SQUARE_ENVIRONMENT || 'sandbox') as 'sandbox' | 'production'
+  const environment = (process.env.SQUARE_ENVIRONMENT || (process.env.NODE_ENV === 'production' ? 'production' : 'sandbox')) as 'sandbox' | 'production'
   const locationId = process.env.SQUARE_LOCATION_ID
 
   if (!accessToken) {
