@@ -33,6 +33,30 @@ const jsonReplacer = (key, value) => {
 
 let didEnsureProductsCacheSalesColumns = false
 
+// Basic in-memory rate limiter (best-effort). Vercel serverless may not preserve state across invocations,
+// but it still reduces bursts within a warm instance.
+const rateStore = new Map()
+function getClientIp(request) {
+  const fwd = request?.headers?.get?.('x-forwarded-for') || ''
+  if (fwd) return String(fwd).split(',')[0].trim()
+  const realIp = request?.headers?.get?.('x-real-ip') || ''
+  if (realIp) return String(realIp).trim()
+  const cfIp = request?.headers?.get?.('cf-connecting-ip') || ''
+  if (cfIp) return String(cfIp).trim()
+  return 'unknown'
+}
+function checkRateLimit(key, { windowMs, max }) {
+  const now = Date.now()
+  const prev = rateStore.get(key)
+  if (!prev || prev.resetAt <= now) {
+    rateStore.set(key, { count: 1, resetAt: now + windowMs })
+    return { ok: true, remaining: max - 1, resetAt: now + windowMs }
+  }
+  if (prev.count >= max) return { ok: false, remaining: 0, resetAt: prev.resetAt }
+  prev.count += 1
+  return { ok: true, remaining: max - prev.count, resetAt: prev.resetAt }
+}
+
 async function ensureProductsCacheSalesColumns() {
   if (didEnsureProductsCacheSalesColumns) return
   try {
@@ -106,6 +130,19 @@ export async function webHandler(request) {
   }
 
   try {
+    // Rate limit payment attempts per IP
+    const ip = getClientIp(request)
+    const rl = checkRateLimit(`pay:${ip}`, { windowMs: 60_000, max: 30 })
+    if (!rl.ok) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Too many requests. Please wait and try again.',
+        }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
     // Get Square Access Token from environment (server-side only)
     const accessToken = process.env.SQUARE_ACCESS_TOKEN
     
@@ -202,6 +239,56 @@ export async function webHandler(request) {
       locationId: locationId,
       environment: squareEnv,
       hasSourceId: !!sourceId,
+    })
+
+    // Canonicalize cart items server-side (never trust client prices).
+    if (!Array.isArray(cartItems) || cartItems.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Your cart is empty.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const requested = cartItems
+      .map((it) => ({
+        id: typeof it?.id === 'string' ? it.id : '',
+        quantity: Number(it?.quantity || 0),
+      }))
+      .filter((it) => it.id && Number.isFinite(it.quantity) && it.quantity > 0)
+
+    if (requested.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid cart items.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const ids = Array.from(new Set(requested.map((x) => x.id)))
+    const dbRes = await query(
+      `SELECT id, name, price_cents, square_variation_id
+       FROM products_cache
+       WHERE id = ANY($1::text[])`,
+      [ids],
+    )
+    const byId = new Map(dbRes.rows.map((r) => [String(r.id), r]))
+    const missing = ids.filter((id) => !byId.has(id))
+    if (missing.length > 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'One or more items are no longer available.', missing }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const canonicalCartItems = requested.map((it) => {
+      const row = byId.get(it.id)
+      const priceCents = Number(row.price_cents || 0)
+      return {
+        id: it.id,
+        name: String(row.name || ''),
+        quantity: Math.min(99, Math.max(1, Math.round(it.quantity))),
+        priceCents: Math.max(0, Math.round(priceCents)),
+        squareVariationId: row.square_variation_id ? String(row.square_variation_id) : null,
+      }
     })
 
     // 0. Handle Customer FIRST (before creating order, so we can link it)
@@ -360,82 +447,66 @@ export async function webHandler(request) {
     let amountMoney = null
     
     try {
-      // Construct line items
-      const lineItems = (cartItems || []).map(item => {
-        // Use provided price to match frontend cart total exactly
-        const amountCents = Math.round(item.price * 100)
-        
+      // Construct canonical Square line items using server-side prices + variation IDs
+      const lineItems = canonicalCartItems.map((item) => {
         const lineItem = {
           quantity: String(item.quantity),
           basePriceMoney: {
-            amount: BigInt(amountCents),
-            currency: 'USD'
-          }
+            amount: BigInt(item.priceCents),
+            currency: 'USD',
+          },
         }
 
-        // Use catalog object ID if available (tracks inventory)
-        if (item.id && item.id.startsWith('variation-')) {
-          lineItem.catalogObjectId = item.id.replace('variation-', '')
+        if (item.squareVariationId) {
+          lineItem.catalogObjectId = item.squareVariationId
         } else {
-          // Ad-hoc item
+          // Fallback (should be rare): ad-hoc item, still priced server-side.
           lineItem.name = item.name
         }
-
         return lineItem
       })
 
-      // If no items, this might be a test or simple charge. 
-      // Fallback to requestBody.amountMoney if present, or error.
-      if (lineItems.length === 0 && requestBody.amountMoney) {
-        amountMoney = {
-          amount: BigInt(requestBody.amountMoney.amount),
-          currency: requestBody.amountMoney.currency || 'USD'
-        }
+      const orderRequest = {
+        idempotencyKey: crypto.randomUUID(),
+        order: {
+          locationId: locationId,
+          lineItems: lineItems,
+        },
       }
 
-      if (lineItems.length > 0) {
-        const orderRequest = {
-          idempotencyKey: crypto.randomUUID(),
-          order: {
-            locationId: locationId,
-            lineItems: lineItems,
-          }
-        }
+      // Link order to Square customer if we have one
+      if (squareCustomerId) {
+        orderRequest.order.customerId = squareCustomerId
+        console.log('[Payment API] Linking order to Square customer:', squareCustomerId)
+      }
 
-        // Link order to Square customer if we have one
-        if (squareCustomerId) {
-          orderRequest.order.customerId = squareCustomerId
-          console.log('[Payment API] Linking order to Square customer:', squareCustomerId)
-        }
+      // Add fulfillment info if pickup
+      if (pickupForm) {
+        orderRequest.order.fulfillments = [{
+          type: 'PICKUP',
+          state: 'PROPOSED',
+          pickupDetails: {
+            recipient: {
+              displayName: `${pickupForm.firstName} ${pickupForm.lastName}`,
+              emailAddress: pickupForm.email,
+              phoneNumber: pickupForm.phone,
+            },
+            scheduleType: 'ASAP',
+          },
+        }]
+      }
 
-        // Add fulfillment info if pickup
-        if (pickupForm) {
-          orderRequest.order.fulfillments = [{
-            type: 'PICKUP',
-            state: 'PROPOSED',
-            pickupDetails: {
-              recipient: {
-                displayName: `${pickupForm.firstName} ${pickupForm.lastName}`,
-                emailAddress: pickupForm.email,
-                phoneNumber: pickupForm.phone
-              },
-              scheduleType: 'ASAP'
-            }
-          }]
-        }
+      console.log('[Payment API] Creating Square Order...')
+      const response = await client.orders.create(orderRequest)
+      const orderResult = response.result || response.data || response.body || response
 
-        console.log('[Payment API] Creating Square Order...')
-        const response = await client.orders.create(orderRequest)
-        const orderResult = response.result || response.data || response.body || response
-        
-        if (orderResult.order) {
-          orderId = orderResult.order.id
-          amountMoney = orderResult.order.totalMoney
-          console.log('[Payment API] Order created:', { 
-            orderId, 
-            total: amountMoney.amount 
-          })
-        }
+      if (orderResult.order) {
+        orderId = orderResult.order.id
+        amountMoney = orderResult.order.totalMoney
+        console.log('[Payment API] Order created:', {
+          orderId,
+          total: amountMoney.amount
+        })
       }
 
     } catch (orderError) {
@@ -505,12 +576,12 @@ export async function webHandler(request) {
         // can render without depending on other tables/joins.
         const pickupDetailsPayload = {
           ...(pickupForm || {}),
-          items: Array.isArray(cartItems)
-            ? cartItems.map((it) => ({
+          items: Array.isArray(canonicalCartItems)
+            ? canonicalCartItems.map((it) => ({
                 id: it?.id ?? null,
                 name: it?.name ?? '',
                 quantity: Number(it?.quantity) || 0,
-                price: Number(it?.price) || 0,
+                price: Number((it?.priceCents || 0) / 100) || 0,
               }))
             : [],
         }
@@ -540,7 +611,7 @@ export async function webHandler(request) {
 
         // C. Create Order Items
         if (cartItems && cartItems.length > 0) {
-          for (const item of cartItems) {
+          for (const item of canonicalCartItems) {
              const itemId = crypto.randomUUID()
              // Try to link to product if exists
              // Note: cartItems.id should match products_cache.id (e.g. variation-XXX)
@@ -559,7 +630,7 @@ export async function webHandler(request) {
                    dbOrderId,
                    item.id, 
                    item.quantity,
-                   Math.round(item.price * 100),
+                   Math.round(item.priceCents),
                    item.name
                  ]
                )
@@ -578,7 +649,7 @@ export async function webHandler(request) {
                      itemId,
                      dbOrderId,
                      item.quantity,
-                     Math.round(item.price * 100),
+                     Math.round(item.priceCents),
                      item.name
                    ]
                  )
@@ -588,7 +659,7 @@ export async function webHandler(request) {
         }
 
         // D. Update product sold counts for best/worst-seller analytics (best-effort)
-        await incrementSoldCounts(cartItems)
+        await incrementSoldCounts(canonicalCartItems.map((it) => ({ id: it.id, quantity: it.quantity })))
 
         console.log('[Payment API] Order saved to Neon successfully')
 
@@ -614,7 +685,7 @@ export async function webHandler(request) {
                 items: cartItems?.map(item => ({
                   name: item.name,
                   quantity: item.quantity,
-                  price: item.price,
+                  price: Number((item.priceCents || 0) / 100) || 0,
                 })) || [],
                 deliveryMethod: 'pickup',
                 pickupLocation: '215B Main Street, Milford, OH 45150',
