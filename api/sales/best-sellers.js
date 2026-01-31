@@ -19,6 +19,16 @@ export async function webHandler(request) {
     })
   }
 
+  // Sales analytics shouldn’t be public by default.
+  // Protect with WEBHOOK_SECRET in production (optional).
+  const webhookSecret = request.headers.get('x-webhook-secret')
+  if (process.env.NODE_ENV === 'production' && process.env.WEBHOOK_SECRET && webhookSecret !== process.env.WEBHOOK_SECRET) {
+    return new Response(JSON.stringify({ success: false, error: 'Unauthorized.' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const url = new URL(request.url)
     const daysRaw = url.searchParams.get('days')
