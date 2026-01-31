@@ -40,6 +40,7 @@ export async function webHandler(request) {
       JOIN products_cache pc
         ON pc.id = ('variation-' || sli.square_catalog_object_id)
       WHERE sli.order_created_at >= (NOW() - ($1::int * INTERVAL '1 day'))
+        AND COALESCE(pc.name, '') !~ '^\\s*1\\s*-\\s*' -- filter Square POS generic items
       GROUP BY pc.id, pc.name, pc.category, pc.image_url
       ORDER BY qty_sold DESC, last_sold_at DESC
       LIMIT $2::int
@@ -52,8 +53,15 @@ export async function webHandler(request) {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   } catch (e) {
-    return new Response(JSON.stringify({ success: false, error: e?.message || 'Failed to query best sellers' }), {
-      status: 500,
+    const msg = e?.message || 'Failed to query best sellers'
+    const notSynced =
+      /sales_line_items/i.test(msg) && /does not exist/i.test(msg)
+    return new Response(JSON.stringify({
+      success: false,
+      error: notSynced ? 'Sales have not been synced yet.' : msg,
+      message: notSynced ? 'Run /api/square/sales-sync (or npm run sync:sales) to backfill sales history.' : undefined,
+    }), {
+      status: notSynced ? 409 : 500,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
