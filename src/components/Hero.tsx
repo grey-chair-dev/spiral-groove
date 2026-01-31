@@ -51,8 +51,16 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate, products, onPr
       )
     }
     const hasTag = (p: Product, re: RegExp) => (p.tags || []).some((t) => re.test(String(t)))
-    const isBestSeller = (p: Product) =>
+    const isBestSellerTag = (p: Product) =>
       hasTag(p, /best\s*seller|bestseller|top\s*seller|popular|trending|hot/i)
+
+    const soldCount = (p: Product) => Number(p.soldCount ?? 0) || 0
+    const soldAtMs = (p: Product) => {
+      const raw = p.lastSoldAt
+      if (!raw) return 0
+      const t = new Date(raw).getTime()
+      return Number.isFinite(t) ? t : 0
+    }
 
     // "Newest album" should reflect the most recently added album from Neon.
     // /api/products returns products_cache ordered by created_at DESC, so `products[0]` is newest.
@@ -64,9 +72,30 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate, products, onPr
       products.filter(inStock)[0] ||
       products[0]
 
-    const bestSellerPoolRaw = products.filter(inStock).filter(isBestSeller)
-    const bestSellerFallback = products.filter(inStock)
-    const bestSellerPool = [...bestSellerPoolRaw, ...bestSellerFallback]
+    // Best sellers should come from actual sales data first (soldCount / lastSoldAt).
+    // Fallback: "best seller" tags, then newest-ish in-stock items.
+    const bestSellerBySales = products
+      .filter(inStock)
+      .filter((p) => !isNonMusic(p))
+      .filter(isAlbum)
+      .filter((p) => soldCount(p) > 0)
+      .sort((a, b) => {
+        const sc = soldCount(b) - soldCount(a)
+        if (sc !== 0) return sc
+        const tm = soldAtMs(b) - soldAtMs(a)
+        if (tm !== 0) return tm
+        return `${a.artist} ${a.title}`.localeCompare(`${b.artist} ${b.title}`)
+      })
+
+    const bestSellerByTag = products
+      .filter(inStock)
+      .filter((p) => !isNonMusic(p))
+      .filter(isAlbum)
+      .filter(isBestSellerTag)
+
+    const bestSellerFallback = products.filter(inStock).filter((p) => !isNonMusic(p)).filter(isAlbum)
+
+    const bestSellerPool = [...bestSellerBySales, ...bestSellerByTag, ...bestSellerFallback]
       .filter((p, idx, arr) => arr.findIndex((x) => x.id === p.id) === idx)
       .filter((p) => (newest ? p.id !== newest.id : true))
       .slice(0, 3)
@@ -119,7 +148,7 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate, products, onPr
     const deepCutPool = products
       .filter(inStock)
       .filter((p) => !usedIds.has(p.id))
-      .filter((p) => !isBestSeller(p))
+      .filter((p) => !isBestSellerTag(p))
       .filter((p) => !p.isNewArrival)
       .sort((a, b) => {
         const aTags = (a.tags?.length ?? 0) + (a.onSale ? 1 : 0)
