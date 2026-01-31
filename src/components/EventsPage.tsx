@@ -309,10 +309,6 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
           {/* Inquiry Form */}
           <div>
              <h2 className={`font-display text-4xl mb-6 ${isRetro ? 'text-brand-black' : 'text-black'}`}>Book The Space</h2>
-             <p className="mb-8 text-lg text-gray-600">
-                Want to host a release party, community workshop, or intimate gig? 
-                Our space is equipped with a vintage Klipschorn sound system and modular staging.
-             </p>
              
              {submitted ? (
                  <div className="p-8 bg-brand-teal/10 border-2 border-brand-teal text-center rounded-xl">
