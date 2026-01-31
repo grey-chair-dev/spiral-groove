@@ -110,6 +110,22 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
     return { upcomingEvents: upcoming, pastEvents: past }
   }, [events])
 
+  const heroSubtitle = useMemo(() => {
+    const next = upcomingEvents[0]
+    if (!next) return 'No upcoming events posted yet — check back soon.'
+
+    const date = (next.date || '').trim()
+    const time = (next.time || '').trim()
+    const title = (next.title || '').trim()
+    const when = [date, time].filter(Boolean).join(' · ')
+
+    // Keep it short on mobile; prioritize the facts.
+    if (title && when) return `Next up: ${title} · ${when}`
+    if (title) return `Next up: ${title}`
+    if (when) return `Next up · ${when}`
+    return 'Upcoming events are live — check back for the latest.'
+  }, [upcomingEvents])
+
   const preferredDateOptions = useMemo(() => {
     const out: Array<{ value: string; label: string }> = []
     out.push({ value: '', label: 'Select a preferred date (optional)' })
@@ -170,7 +186,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
          <div className="relative z-10 text-center px-4 max-w-4xl">
              <span className="inline-block px-3 py-1 mb-4 text-xs font-bold uppercase tracking-widest bg-brand-orange text-brand-black rounded-sm transform -rotate-2">The Spiral Stage</span>
              <h1 className="font-display text-5xl md:text-7xl text-white mb-6">Live at the Shop</h1>
-             <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto font-medium">An intimate venue for listening parties, signings, and local showcases.</p>
+             <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto font-medium">{heroSubtitle}</p>
          </div>
       </div>
 
