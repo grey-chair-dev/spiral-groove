@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "send:weekly-newsletter": "node scripts/send-weekly-newsletter.mjs",
+    "db:index-events": "node scripts/add-events-indexes.mjs",
     "build:css": "tailwindcss -i ./src/globals.css -o ./public/tailwind.css --minify",
     "dev": "npm run build:css && vite",
     "dev:api": "node api-dev-server.js",

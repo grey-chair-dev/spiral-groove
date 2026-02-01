@@ -10,8 +10,8 @@ const BRAND = {
   black: '#231F20',
   cream: '#FFF9F0',
   white: '#FFFFFF',
-  orange: '#F35B04',
-  teal: '#00C2CB',
+  orange: '#00C2CB',  // Matches tailwind.config.js (actually cyan, but used as "orange" in the site)
+  teal: '#3AB795',    // Matches tailwind.config.js
   red: '#FF2E63',
   mustard: '#F9D776',
   gray600: '#666666',
@@ -661,6 +661,242 @@ export function generateReviewRequestEmail(data) {
   return renderLayout({
     title: 'Leave a Review - Spiral Groove Records',
     preheader: 'A quick review helps a ton.',
+    bodyHtml,
+  })
+}
+
+/**
+ * Generate weekly newsletter email HTML
+ * Includes: upcoming events, new records, and personalized recommendations
+ */
+export function generateWeeklyNewsletterEmail(data) {
+  const {
+    firstName,
+    lastName,
+    email,
+    upcomingEvents = [],
+    newRecords = [],
+    recommendations = [],
+  } = data
+  
+  const name = firstName ? `${firstName} ${lastName || ''}`.trim() : email.split('@')[0]
+  const baseUrl = getBaseUrl()
+  const token = createNewsletterUnsubscribeToken(email)
+  const unsubscribeUrl = token
+    ? `${baseUrl}/api/newsletter/unsubscribe?email=${encodeQuery(email)}&token=${encodeQuery(token)}`
+    : null
+
+  // Render upcoming events section
+  const eventsHtml = upcomingEvents.length > 0 ? `
+    <h3 style="margin: 28px 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 24px; letter-spacing: 0.02em;">
+      🎵 This Week's Events
+    </h3>
+    ${upcomingEvents.map(event => {
+      const eventDate = event.date_label || event.date_iso || ''
+      const eventTime = event.start_time_label || event.start_time || ''
+      const eventName = escapeHtml(event.event_name || event.artist || 'Event')
+      const venue = escapeHtml(event.venue || '')
+      const eventUrl = event.id ? `${baseUrl}/events#event-${event.id}` : `${baseUrl}/events`
+      
+      return `
+        <div style="margin: 0 0 16px 0; padding: 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+          <p style="margin: 0 0 6px 0; color: ${BRAND.orange}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
+            ${eventDate}${eventTime ? ` • ${eventTime}` : ''}
+          </p>
+          <p style="margin: 0 0 4px 0; color: ${BRAND.black}; font-size: 18px; font-weight: 800; line-height: 1.3;">
+            ${eventName}
+          </p>
+          ${venue ? `<p style="margin: 0; color: ${BRAND.gray600}; font-size: 14px; font-weight: 600;">${venue}</p>` : ''}
+        </div>
+      `
+    }).join('')}
+    ${renderButton({ href: `${baseUrl}/events`, label: 'View all events', tone: 'teal' })}
+  ` : ''
+
+  // Helper to ensure absolute image URLs
+  function getAbsoluteImageUrl(imageUrl) {
+    if (!imageUrl) return `${baseUrl}/images/placeholder.png`
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) return imageUrl
+    if (imageUrl.startsWith('/')) return `${baseUrl}${imageUrl}`
+    return `${baseUrl}/${imageUrl}`
+  }
+
+  // Render new records section (exact match to website ProductGrid styling)
+  const newRecordsHtml = newRecords.length > 0 ? `
+    <h3 style="margin: 28px 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 24px; letter-spacing: 0.02em;">
+      🆕 New Arrivals
+    </h3>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 18px;">
+      <tr>
+        ${newRecords.slice(0, 6).map(record => {
+          const recordName = escapeHtml(record.name || 'Record')
+          // Extract artist from name if possible (format: "Artist - Album" or just "Album")
+          const nameParts = recordName.split(' - ')
+          const artist = nameParts.length > 1 ? escapeHtml(nameParts[0]) : ''
+          const title = nameParts.length > 1 ? escapeHtml(nameParts.slice(1).join(' - ')) : recordName
+          const recordPrice = record.price ? `$${Number(record.price).toFixed(2)}` : ''
+          const recordImage = getAbsoluteImageUrl(record.image_url)
+          const recordUrl = `${baseUrl}/catalog${record.id ? `?product=${record.id}` : ''}`
+          const recordCategory = escapeHtml(record.category || '')
+          const isNewCategory = recordCategory.toLowerCase().includes('new')
+          
+          return `
+            <td style="width: 16.66%; padding: 0 6px; vertical-align: top;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+                <tr>
+                  <td style="background-color: ${BRAND.cream};">
+                    <a href="${recordUrl}" style="text-decoration: none; display: block;">
+                      <!-- Image Container (square, matches website retro mode: no border-radius, 2px black border) -->
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 16px;">
+                        <tr>
+                          <td style="position: relative; padding: 0; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black};">
+                            <img src="${recordImage}" alt="${title}" width="100%" style="display: block; width: 100%; height: auto; border: 0; outline: none; text-decoration: none;" />
+                            ${recordCategory ? `
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="position: absolute; top: 8px; ${isNewCategory ? 'left: 8px;' : 'right: 8px;'}">
+                                <tr>
+                                  <td style="background-color: ${isNewCategory ? BRAND.orange : BRAND.cream}; color: ${BRAND.black}; padding: 4px 8px; border: 2px solid ${BRAND.black}; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.2; font-family: 'Inter', system-ui, sans-serif;">
+                                    ${recordCategory}
+                                  </td>
+                                </tr>
+                              </table>
+                            ` : ''}
+                          </td>
+                        </tr>
+                      </table>
+                      <!-- Product Info (matches website structure) -->
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+                        <tr>
+                          <td style="padding: 0 0 8px 0;">
+                            <h3 style="margin: 0 0 4px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700; line-height: 1.3; font-family: 'Inter', system-ui, sans-serif;">
+                              ${title}
+                            </h3>
+                            ${artist ? `<p style="margin: 0 0 8px 0; color: ${BRAND.black}; opacity: 0.6; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'Inter', system-ui, sans-serif;">${artist}</p>` : ''}
+                            <!-- Footer with Price (matches website) -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-top: 8px; padding-top: 12px; border-top: 1px solid rgba(35, 31, 32, 0.1);">
+                              <tr>
+                                <td style="padding-top: 12px; border-top: 1px solid rgba(35, 31, 32, 0.1);">
+                                  ${recordPrice ? `<span style="color: ${BRAND.black}; font-size: 18px; font-weight: 900; font-family: 'Inter', system-ui, sans-serif; letter-spacing: 0.02em;">${recordPrice}</span>` : ''}
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          `
+        }).join('')}
+      </tr>
+    </table>
+    ${renderButton({ href: `${baseUrl}/catalog`, label: 'Browse all new arrivals', tone: 'orange' })}
+  ` : ''
+
+  // Render personalized recommendations section (exact match to website ProductGrid styling)
+  const recommendationsHtml = recommendations.length > 0 ? `
+    <h3 style="margin: 28px 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 24px; letter-spacing: 0.02em;">
+      💿 Picked for You
+    </h3>
+    <p style="margin: 0 0 16px 0; color: ${BRAND.gray600}; font-size: 14px; line-height: 1.6; font-weight: 600;">
+      Based on your past purchases, we think you'll dig these:
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 18px;">
+      <tr>
+        ${recommendations.slice(0, 6).map(record => {
+          const recordName = escapeHtml(record.name || 'Record')
+          // Extract artist from name if possible (format: "Artist - Album" or just "Album")
+          const nameParts = recordName.split(' - ')
+          const artist = nameParts.length > 1 ? escapeHtml(nameParts[0]) : ''
+          const title = nameParts.length > 1 ? escapeHtml(nameParts.slice(1).join(' - ')) : recordName
+          const recordPrice = record.price ? `$${Number(record.price).toFixed(2)}` : ''
+          const recordImage = getAbsoluteImageUrl(record.image_url)
+          const recordUrl = `${baseUrl}/catalog${record.id ? `?product=${record.id}` : ''}`
+          const recordCategory = escapeHtml(record.category || '')
+          const isNewCategory = recordCategory.toLowerCase().includes('new')
+          
+          return `
+            <td style="width: 16.66%; padding: 0 6px; vertical-align: top;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+                <tr>
+                  <td style="background-color: ${BRAND.cream};">
+                    <a href="${recordUrl}" style="text-decoration: none; display: block;">
+                      <!-- Image Container (square, matches website retro mode: no border-radius, 2px black border) -->
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 16px;">
+                        <tr>
+                          <td style="position: relative; padding: 0; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black};">
+                            <img src="${recordImage}" alt="${title}" width="100%" style="display: block; width: 100%; height: auto; border: 0; outline: none; text-decoration: none;" />
+                            ${recordCategory ? `
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="position: absolute; top: 8px; ${isNewCategory ? 'left: 8px;' : 'right: 8px;'}">
+                                <tr>
+                                  <td style="background-color: ${isNewCategory ? BRAND.orange : BRAND.cream}; color: ${BRAND.black}; padding: 4px 8px; border: 2px solid ${BRAND.black}; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.2; font-family: 'Inter', system-ui, sans-serif;">
+                                    ${recordCategory}
+                                  </td>
+                                </tr>
+                              </table>
+                            ` : ''}
+                          </td>
+                        </tr>
+                      </table>
+                      <!-- Product Info (matches website structure) -->
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+                        <tr>
+                          <td style="padding: 0 0 8px 0;">
+                            <h3 style="margin: 0 0 4px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700; line-height: 1.3; font-family: 'Inter', system-ui, sans-serif;">
+                              ${title}
+                            </h3>
+                            ${artist ? `<p style="margin: 0 0 8px 0; color: ${BRAND.black}; opacity: 0.6; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'Inter', system-ui, sans-serif;">${artist}</p>` : ''}
+                            <!-- Footer with Price (matches website) -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-top: 8px; padding-top: 12px; border-top: 1px solid rgba(35, 31, 32, 0.1);">
+                              <tr>
+                                <td style="padding-top: 12px; border-top: 1px solid rgba(35, 31, 32, 0.1);">
+                                  ${recordPrice ? `<span style="color: ${BRAND.black}; font-size: 18px; font-weight: 900; font-family: 'Inter', system-ui, sans-serif; letter-spacing: 0.02em;">${recordPrice}</span>` : ''}
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          `
+        }).join('')}
+      </tr>
+    </table>
+    ${renderButton({ href: `${baseUrl}/catalog`, label: 'Shop your recommendations', tone: 'orange' })}
+  ` : ''
+
+  const bodyHtml = `
+    <h2 style="margin: 0 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.15; letter-spacing: 0.02em;">
+      Hey <span style="color:${BRAND.orange};">${escapeHtml(name)}</span> 👋
+    </h2>
+    <p style="margin: 0 0 18px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600;">
+      Here's what's happening this week at Spiral Groove Records.
+    </p>
+
+    ${eventsHtml}
+    ${newRecordsHtml}
+    ${recommendationsHtml}
+
+    <div style="margin-top: 28px; padding: 18px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
+        <strong>Store Hours:</strong> Monday-Saturday 10am-8pm, Sunday 12pm-6pm<br>
+        <strong>Location:</strong> 215B Main Street, Milford, OH 45150
+      </p>
+    </div>
+
+    <p style="margin: 24px 0 0 0; color: ${BRAND.gray600}; font-size: 12px; line-height: 1.6; font-weight: 600; text-align:center;">
+      ${unsubscribeUrl ? `Want fewer emails? <a href="${unsubscribeUrl}" style="color:${BRAND.teal}; font-weight: 800; text-decoration:none;">Unsubscribe</a>.` : 'Want fewer emails? Reply to this email and ask to unsubscribe.'}
+    </p>
+  `.trim()
+
+  return renderLayout({
+    title: 'This Week at Spiral Groove Records',
+    preheader: 'Upcoming events, new arrivals, and picks just for you.',
     bodyHtml,
   })
 }

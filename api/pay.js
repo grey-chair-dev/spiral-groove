@@ -115,8 +115,23 @@ async function incrementSoldCounts(cartItems) {
  * @returns {Promise<Response>}
  */
 export async function webHandler(request) {
+  const requestId = crypto.randomUUID()
+  const userAgent = request.headers.get('user-agent') || ''
+  const ip = getClientIp(request)
+
   // Only allow POST requests
   if (request.method !== 'POST') {
+    const { sendSlackAlert } = await import('./slackAlerts.js')
+    void sendSlackAlert({
+      statusCode: 405,
+      error: 'Method not allowed. Use POST.',
+      endpoint: '/api/pay',
+      method: request.method,
+      requestId,
+      userAgent,
+      ip,
+      dedupeKey: `pay:405:${request.method}`,
+    })
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -130,10 +145,34 @@ export async function webHandler(request) {
   }
 
   try {
+    const startTime = Date.now()
     // Rate limit payment attempts per IP
     const ip = getClientIp(request)
     const rl = checkRateLimit(`pay:${ip}`, { windowMs: 60_000, max: 30 })
     if (!rl.ok) {
+      const { sendSlackAlert } = await import('./slackAlerts.js')
+      void sendSlackAlert({
+        statusCode: 429,
+        error: 'Too many requests. Please wait and try again.',
+        endpoint: '/api/pay',
+        method: 'POST',
+        requestId,
+        userAgent,
+        ip,
+        rateLimit: {
+          ip,
+          limit: 30,
+          windowMs: 60000,
+          remaining: 0,
+          resetTime: rl.resetTime || Date.now() + 60000,
+        },
+        context: {
+          rateLimitExceeded: true,
+          endpoint: '/api/pay',
+        },
+        dedupeKey: `pay:429:${ip}`,
+        dedupeTtlMs: 60 * 1000, // 1 minute for rate limit alerts
+      })
       return new Response(
         JSON.stringify({
           success: false,
@@ -193,6 +232,18 @@ export async function webHandler(request) {
       requestBody = await request.json()
     } catch (parseError) {
       console.error('[Payment API] Invalid JSON in request body:', parseError)
+      const { sendSlackAlert } = await import('./slackAlerts.js')
+      void sendSlackAlert({
+        statusCode: 400,
+        error: 'Invalid request format.',
+        endpoint: '/api/pay',
+        method: 'POST',
+        requestId,
+        userAgent,
+        ip,
+        context: { parseError: parseError?.message },
+        dedupeKey: `pay:400:invalid-json`,
+      })
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -209,6 +260,20 @@ export async function webHandler(request) {
     const { sourceId, idempotencyKey, cartItems, pickupForm } = requestBody
 
     if (!sourceId) {
+      const { sendSlackAlert } = await import('./slackAlerts.js')
+      const responseTime = Date.now() - startTime
+      void sendSlackAlert({
+        statusCode: 400,
+        error: 'Missing payment token (sourceId).',
+        endpoint: '/api/pay',
+        method: 'POST',
+        requestId,
+        userAgent,
+        ip,
+        responseTime,
+        requestBody: requestBody ? { ...requestBody, sourceId: '[REDACTED]' } : undefined,
+        dedupeKey: `pay:400:missing-sourceId`,
+      })
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -222,6 +287,20 @@ export async function webHandler(request) {
     }
 
     if (!idempotencyKey) {
+      const { sendSlackAlert } = await import('./slackAlerts.js')
+      const responseTime = Date.now() - startTime
+      void sendSlackAlert({
+        statusCode: 400,
+        error: 'Missing idempotency key.',
+        endpoint: '/api/pay',
+        method: 'POST',
+        requestId,
+        userAgent,
+        ip,
+        responseTime,
+        requestBody: requestBody ? { ...requestBody, idempotencyKey: '[REDACTED]' } : undefined,
+        dedupeKey: `pay:400:missing-idempotency`,
+      })
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -762,6 +841,21 @@ export async function webHandler(request) {
         errors: error.errors
       })
     }
+
+    // Send Slack alert for payment errors (always critical)
+    const { sendSlackAlert } = await import('./slackAlerts.js')
+    void sendSlackAlert({
+      statusCode,
+      error: errorMessage,
+      endpoint: '/api/pay',
+      method: 'POST',
+      context: {
+        squareErrorCode: error instanceof ApiError ? error.errors?.[0]?.code : undefined,
+        squareErrorDetail: error instanceof ApiError ? error.errors?.[0]?.detail : undefined,
+      },
+      stack: error?.stack,
+      dedupeKey: `pay:${statusCode}:${errorMessage}`,
+    })
 
     return new Response(
       JSON.stringify({ 

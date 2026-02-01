@@ -71,12 +71,52 @@ export async function query(text, params) {
     const result = await pool.query(text, params)
     const duration = Date.now() - start
     console.log('[DB] Query executed', { text: text.substring(0, 50), duration, rows: result.rowCount })
+    
+    // Alert on slow queries (even if successful)
+    const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_QUERY_THRESHOLD_MS || '500', 10)
+    if (duration > SLOW_QUERY_THRESHOLD_MS) {
+      const { sendSlackAlert } = await import('./slackAlerts.js')
+      void sendSlackAlert({
+        statusCode: 200, // Not an error, but performance issue
+        error: `Slow database query detected: ${duration}ms`,
+        endpoint: 'database',
+        method: 'QUERY',
+        context: {
+          queryType: 'slow_query',
+          durationMs: duration,
+          sql: String(text || '').substring(0, 200),
+          rowCount: result.rowCount,
+        },
+        queryDuration: duration,
+        dedupeKey: `db:slow:${text.substring(0, 50)}`,
+        dedupeTtlMs: 60 * 1000, // 1 minute for slow query alerts
+      })
+    }
+    
     return result
   } catch (error) {
     const duration = Date.now() - start
     console.error('[DB] Query error', { text: text.substring(0, 50), duration, error: error.message })
 
-    // Make.com webhook alert (best-effort, deduped)
+    // Enhanced alert with performance and context
+    const { sendSlackAlert } = await import('./slackAlerts.js')
+    void sendSlackAlert({
+      statusCode: 500,
+      error: error?.message || 'Database query failed',
+      endpoint: 'database',
+      method: 'QUERY',
+      context: {
+        errorName: error?.name,
+        errorCode: error?.code,
+        sql: String(text || '').substring(0, 200),
+        paramCount: params?.length || 0,
+      },
+      queryDuration: duration,
+      stack: error?.stack,
+      dedupeKey: `db:${error?.code || ''}:${error?.message || 'unknown'}`,
+    })
+
+    // Make.com webhook alert (best-effort, deduped) - legacy support
     void notifyWebhook({
       event: 'db.query_error',
       title: '❌ Neon query failed',

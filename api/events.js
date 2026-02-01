@@ -9,6 +9,7 @@
 
 import { query } from './db.js'
 import { notifyWebhook } from './notifyWebhook.js'
+import { sendSlackAlert } from './slackAlerts.js'
 import { withWebHandler } from './_vercelNodeAdapter.js'
 
 // Simple in-memory cache (same rationale as /api/products)
@@ -22,7 +23,21 @@ const STALE_TTL_MS = 10 * 60 * 1000
  * @returns {Promise<Response>}
  */
 export async function webHandler(request) {
+  const startTime = Date.now()
+  const requestId = crypto.randomUUID()
+  
   if (request.method !== 'GET') {
+    const { sendSlackAlert } = await import('./slackAlerts.js')
+    void sendSlackAlert({
+      statusCode: 405,
+      error: 'Method not allowed. Use GET.',
+      endpoint: '/api/events',
+      method: request.method,
+      requestId,
+      userAgent: request.headers.get('user-agent') || '',
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+      dedupeKey: `events:405:${request.method}`,
+    })
     return new Response(JSON.stringify({ success: false, error: 'Method not allowed. Use GET.' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' },
@@ -139,6 +154,43 @@ export async function webHandler(request) {
         hasDatabaseUrl: !!process.env.DATABASE_URL,
       },
       dedupeKey: `events:${error?.message || 'unknown'}`,
+    })
+
+    // Enhanced Slack alert for critical database errors
+    const responseTime = Date.now() - startTime
+    const url = new URL(request.url)
+    const queryParams = {}
+    for (const [key, value] of url.searchParams.entries()) {
+      queryParams[key] = value
+    }
+    
+    const requestHeaders = {}
+    const relevantHeaders = ['user-agent', 'referer', 'origin', 'accept']
+    for (const header of relevantHeaders) {
+      const value = request.headers.get(header)
+      if (value) requestHeaders[header] = value
+    }
+    
+    void sendSlackAlert({
+      statusCode: 500,
+      error: error?.message || 'Unknown error',
+      endpoint: '/api/events',
+      method: 'GET',
+      requestId,
+      userAgent: request.headers.get('user-agent') || '',
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+      responseTime,
+      requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
+      queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      context: {
+        errorName: error?.name,
+        hasSgrDatabaseUrl: !!process.env.SGR_DATABASE_URL,
+        hasSprDatabaseUrl: !!process.env.SPR_DATABASE_URL,
+        hasDatabaseUrl: !!process.env.DATABASE_URL,
+        databaseError: true,
+      },
+      stack: error?.stack || new Error().stack, // Always include stack trace
+      dedupeKey: `events:500:${error?.message || 'unknown'}`,
     })
 
     return new Response(

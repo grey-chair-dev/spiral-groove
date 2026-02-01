@@ -88,6 +88,15 @@ export function ContactUsPage({
 
     setIsSubmitting(true)
     try {
+      // Capture screenshot before request (in case of error)
+      let screenshot: string | null = null
+      try {
+        const { captureScreenshotSafe } = await import('../utils/captureScreenshot')
+        screenshot = await captureScreenshotSafe()
+      } catch (err) {
+        console.warn('[ContactUsPage] Screenshot capture failed:', err)
+      }
+      
       const res = await fetch('/api/contact-inquiry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,6 +105,7 @@ export function ContactUsPage({
           topic: formData.subject,
           pageUrl: typeof window !== 'undefined' ? window.location.href : '',
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+          screenshot: screenshot || undefined, // Include screenshot in request
         }),
       })
       if (!res.ok) {

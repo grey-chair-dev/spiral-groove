@@ -75,6 +75,9 @@ const server = createServer(async (req, res) => {
           } else if (route === 'newsletter/unsubscribe') {
             const module = await importFresh('./api/newsletter/unsubscribe.js')
             handler = module.webHandler ?? module.default
+          } else if (route === 'weekly-newsletter') {
+            const module = await importFresh('./api/weekly-newsletter.js')
+            handler = module.webHandler ?? module.default
           } else if (route === 'webhook/test') {
             const module = await importFresh('./api/webhook/test.js')
             handler = module.webHandler ?? module.default

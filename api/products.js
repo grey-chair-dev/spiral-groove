@@ -14,6 +14,7 @@
 
 import { query } from './db.js'
 import { notifyWebhook } from './notifyWebhook.js'
+import { sendSlackAlert } from './slackAlerts.js'
 import { withWebHandler } from './_vercelNodeAdapter.js'
 
 // Simple in-memory cache to avoid transient Neon outages causing empty inventory.
@@ -54,8 +55,22 @@ function mapRowToProduct(row) {
  * @returns {Promise<Response>}
  */
 export async function webHandler(request) {
+  const startTime = Date.now()
+  const requestId = crypto.randomUUID()
+  
   // Only allow GET requests
   if (request.method !== 'GET') {
+    const { sendSlackAlert } = await import('./slackAlerts.js')
+    void sendSlackAlert({
+      statusCode: 405,
+      error: 'Method not allowed. Use GET.',
+      endpoint: '/api/products',
+      method: request.method,
+      requestId,
+      userAgent: request.headers.get('user-agent') || '',
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+      dedupeKey: `products:405:${request.method}`,
+    })
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -174,6 +189,45 @@ export async function webHandler(request) {
         hasDatabaseUrl: !!process.env.DATABASE_URL,
       },
       dedupeKey: `products:${error?.message || 'unknown'}`,
+    })
+
+    // Enhanced Slack alert for critical database errors
+    const responseTime = Date.now() - startTime
+    const url = new URL(request.url)
+    const queryParams = {}
+    for (const [key, value] of url.searchParams.entries()) {
+      queryParams[key] = value
+    }
+    
+    const requestHeaders = {}
+    const relevantHeaders = ['user-agent', 'referer', 'origin', 'accept']
+    for (const header of relevantHeaders) {
+      const value = request.headers.get(header)
+      if (value) requestHeaders[header] = value
+    }
+    
+    void sendSlackAlert({
+      statusCode: 500,
+      error: error?.message || 'Unknown error',
+      endpoint: '/api/products',
+      method: 'GET',
+      requestId,
+      userAgent: request.headers.get('user-agent') || '',
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+      responseTime,
+      requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
+      queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      context: {
+        errorName: error?.name,
+        hasSgrDatabaseUrl: !!process.env.SGR_DATABASE_URL,
+        hasSprDatabaseUrl: !!process.env.SPR_DATABASE_URL,
+        hasDatabaseUrl: !!process.env.DATABASE_URL,
+        isConnectionError: error?.message?.includes('connection') || false,
+        isTableMissing: error?.message?.includes('does not exist') || false,
+        databaseError: true,
+      },
+      stack: error?.stack,
+      dedupeKey: `products:500:${error?.message || 'unknown'}`,
     })
     
     // Determine error type and message

@@ -7,6 +7,7 @@
 
 import crypto from 'crypto'
 import { withWebHandler } from './_vercelNodeAdapter.js'
+import { sendSlackAlert } from './slackAlerts.js'
 
 function escapeHtml(input) {
   return String(input || '')
@@ -178,7 +179,38 @@ function renderCustomerHtml(payload) {
 }
 
 export async function webHandler(request) {
+  const startTime = Date.now()
+  const requestId = crypto.randomUUID()
+  const userAgent = request.headers.get('user-agent') || ''
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+  const url = new URL(request.url)
+  
+  // Extract request context
+  const requestHeaders = {}
+  const relevantHeaders = ['user-agent', 'referer', 'origin', 'content-type', 'accept']
+  for (const header of relevantHeaders) {
+    const value = request.headers.get(header)
+    if (value) requestHeaders[header] = value
+  }
+  
+  const queryParams = {}
+  for (const [key, value] of url.searchParams.entries()) {
+    queryParams[key] = value
+  }
+
   if (request.method !== 'POST') {
+    void sendSlackAlert({
+      statusCode: 405,
+      error: 'Method not allowed. Use POST.',
+      endpoint: '/api/contact-inquiry',
+      method: request.method,
+      requestId,
+      userAgent,
+      ip,
+      requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
+      queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      dedupeKey: `contact-inquiry:405:${request.method}`,
+    })
     return new Response(JSON.stringify({ success: false, error: 'Method not allowed. Use POST.' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' },
@@ -186,9 +218,26 @@ export async function webHandler(request) {
   }
 
   let body
+  let requestBody = null
   try {
     body = await request.json()
+    // Sanitize sensitive fields for alerting
+    requestBody = { ...body }
+    if (requestBody.email) requestBody.email = '[REDACTED]'
+    if (requestBody.phone) requestBody.phone = '[REDACTED]'
   } catch {
+    void sendSlackAlert({
+      statusCode: 400,
+      error: 'Invalid JSON body.',
+      endpoint: '/api/contact-inquiry',
+      method: 'POST',
+      requestId,
+      userAgent,
+      ip,
+      requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
+      queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      dedupeKey: `contact-inquiry:400:invalid-json`,
+    })
     return new Response(JSON.stringify({ success: false, error: 'Invalid JSON body.' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
@@ -207,6 +256,7 @@ export async function webHandler(request) {
     pageUrl: String(body?.pageUrl || '').trim(),
     userAgent: String(body?.userAgent || '').trim(),
     sendCopy: Boolean(body?.sendCopy),
+    screenshot: body?.screenshot || undefined, // Screenshot from frontend (base64)
   }
 
   if (payload.topic.toLowerCase() === 'personal') {
@@ -224,12 +274,45 @@ export async function webHandler(request) {
   }
 
   if (!payload.name || !payload.message || (!payload.email && !payload.phone)) {
+    const responseTime = Date.now() - startTime
+    void sendSlackAlert({
+      statusCode: 400,
+      error: 'Missing required fields.',
+      endpoint: '/api/contact-inquiry',
+      method: 'POST',
+      requestId,
+      userAgent,
+      ip,
+      responseTime,
+      requestBody,
+      requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
+      queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      context: { name: payload.name, hasEmail: !!payload.email, hasPhone: !!payload.phone },
+      screenshot: payload.screenshot, // Include screenshot if available
+      dedupeKey: `contact-inquiry:400:missing-fields`,
+    })
     return new Response(JSON.stringify({ success: false, error: 'Missing required fields.' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     })
   }
   if (payload.phone && !isValidUsPhone(payload.phone)) {
+    const responseTime = Date.now() - startTime
+    void sendSlackAlert({
+      statusCode: 400,
+      error: 'Invalid phone number.',
+      endpoint: '/api/contact-inquiry',
+      method: 'POST',
+      requestId,
+      userAgent,
+      ip,
+      responseTime,
+      requestBody,
+      requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
+      queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      context: { phone: '[REDACTED]' }, // Don't log actual phone number
+      dedupeKey: `contact-inquiry:400:invalid-phone`,
+    })
     return new Response(JSON.stringify({ success: false, error: 'Invalid phone number.' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
@@ -247,6 +330,22 @@ export async function webHandler(request) {
   const webhookUrl = process.env.MAKE_CONTACT_US_WEBHOOK_URL || process.env.MAKE_CONTACT_INQUIRY_WEBHOOK_URL
   if (!webhookUrl) {
     console.error('[Contact Inquiry] Missing MAKE_CONTACT_US_WEBHOOK_URL (or MAKE_CONTACT_INQUIRY_WEBHOOK_URL)')
+    const responseTime = Date.now() - startTime
+    void sendSlackAlert({
+      statusCode: 500,
+      error: 'Server not configured for contact inquiries.',
+      endpoint: '/api/contact-inquiry',
+      method: 'POST',
+      requestId,
+      userAgent,
+      ip,
+      responseTime,
+      requestBody,
+      requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
+      queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      context: { missingWebhook: true },
+      dedupeKey: `contact-inquiry:500:missing-webhook`,
+    })
     return new Response(JSON.stringify({ success: false, error: 'Server not configured for contact inquiries.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -263,6 +362,22 @@ export async function webHandler(request) {
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       console.error('[Contact Inquiry] Webhook error', { status: res.status, text: text?.slice?.(0, 200) })
+      const responseTime = Date.now() - startTime
+      void sendSlackAlert({
+        statusCode: 502,
+        error: 'Failed to submit inquiry - webhook error',
+        endpoint: '/api/contact-inquiry',
+        method: 'POST',
+        requestId,
+        userAgent,
+        ip,
+        responseTime,
+        requestBody,
+        requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
+        queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+        context: { webhookStatus: res.status, webhookError: text?.slice?.(0, 200) },
+        dedupeKey: `contact-inquiry:502:webhook-${res.status}`,
+      })
       const details =
         process.env.NODE_ENV === 'production'
           ? undefined
@@ -279,6 +394,23 @@ export async function webHandler(request) {
     })
   } catch (e) {
     console.error('[Contact Inquiry] Webhook request failed:', e)
+    const responseTime = Date.now() - startTime
+    void sendSlackAlert({
+      statusCode: 502,
+      error: 'Failed to submit inquiry - exception',
+      endpoint: '/api/contact-inquiry',
+      method: 'POST',
+      requestId,
+      userAgent,
+      ip,
+      responseTime,
+      requestBody,
+      requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
+      queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      context: { exception: e?.message || String(e) },
+      stack: e?.stack,
+      dedupeKey: `contact-inquiry:502:exception`,
+    })
     const details =
       process.env.NODE_ENV === 'production'
         ? undefined
