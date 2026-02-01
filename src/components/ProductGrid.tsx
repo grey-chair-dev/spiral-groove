@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Product } from '../../types';
-import { Plus, Sparkles, Filter, Disc, ChevronLeft, ChevronRight, ChevronDown, Check, DollarSign, Mic2, X, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { Plus, Sparkles, Filter, Disc, ChevronLeft, ChevronRight, ChevronDown, Check, DollarSign, Mic2, X, SlidersHorizontal, ArrowUpDown, Tag } from 'lucide-react';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { ViewMode } from '../../types';
@@ -15,6 +15,7 @@ interface ProductGridProps {
   viewMode: ViewMode;
   initialFilter?: string;
   initialArtist?: string;
+  defaultSort?: SortOption;
   onViewCatalog?: () => void;
   onViewMore?: () => void;
   onFilterChange?: (filter: string) => void;
@@ -59,6 +60,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   viewMode, 
   initialFilter, 
   initialArtist,
+  defaultSort = 'featured',
   onViewCatalog,
   onViewMore,
   onFilterChange,
@@ -79,13 +81,15 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const [legacyFilter, setLegacyFilter] = useState<string | null>(null);
   const [activeArtist, setActiveArtist] = useState(initialArtist || "All");
   const [activePriceRange, setActivePriceRange] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<SortOption>('featured');
+  const [sortBy, setSortBy] = useState<SortOption>(() => defaultSort);
   const [itemsPerPage, setItemsPerPage] = useState(compact ? 99 : 12);
   const [currentPage, setCurrentPage] = useState(1);
   
   // Unified Dropdown States
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement | null>(null);
+  const filterMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -93,6 +97,36 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  // Close sort dropdown on outside click (more reliable than onBlur, which can race with menu clicks)
+  useEffect(() => {
+    if (!isSortOpen) return;
+    if (typeof document === 'undefined') return;
+
+    const onMouseDown = (e: MouseEvent) => {
+      const root = sortMenuRef.current;
+      if (!root) return;
+      if (!root.contains(e.target as Node)) setIsSortOpen(false);
+    };
+
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [isSortOpen]);
+
+  // Close filter dropdown on outside click (prevents "clicks don't register" issues)
+  useEffect(() => {
+    if (!isFilterOpen) return;
+    if (typeof document === 'undefined') return;
+
+    const onMouseDown = (e: MouseEvent) => {
+      const root = filterMenuRef.current;
+      if (!root) return;
+      if (!root.contains(e.target as Node)) setIsFilterOpen(false);
+    };
+
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [isFilterOpen]);
 
 
   const pageSizeOptions = useMemo(() => {
@@ -332,7 +366,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       case 'price-asc': return sorted.sort((a, b) => getPrice(a) - getPrice(b));
       case 'price-desc': return sorted.sort((a, b) => getPrice(b) - getPrice(a));
       case 'title-asc': return sorted.sort((a, b) => a.title.localeCompare(b.title));
-      case 'artist-asc': return sorted.sort((a, b) => a.artist.localeCompare(b.artist));
+      case 'artist-asc':
+        return sorted.sort((a, b) =>
+          String(a.artist || '').localeCompare(String(b.artist || ''), undefined, { sensitivity: 'base' })
+        );
       case 'release-date':
         return sorted.sort((a, b) => {
            if (a.releaseDate && b.releaseDate) return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
@@ -511,16 +548,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
                 {/* 1. UNIFIED FILTER DROPDOWN */}
-                <div className="relative z-[80]">
+                <div className="relative z-[80]" ref={filterMenuRef}>
                     <button 
+                    type="button"
                     onClick={() => setIsFilterOpen(!isFilterOpen)}
-                    onBlur={(e) => {
-                        // Small delay to allow clicking inside dropdown
-                        if (!e.currentTarget.contains(e.relatedTarget)) {
-                            // Don't close immediately if interacting with menu
-                            // Just handled by click outside logic or specific item clicks ideally
-                        }
-                    }}
                     className={`flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full font-bold uppercase tracking-wide text-[10px] sm:text-[11px] select-none transition-all
                         ${viewMode === 'retro'
                             ? (isFilterOpen ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-none translate-y-[2px] neon-glow-orange' : 'bg-white text-brand-black border-2 border-brand-black shadow-pop-sm hover:-translate-y-0.5 hover:neon-glow-orange')
@@ -550,7 +581,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                             <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50/50">
                                 <span className="font-bold text-xs uppercase tracking-wider text-gray-500">Filter By</span>
                                 {activeFilterCount > 0 && (
-                                    <button onClick={clearAllFilters} className="text-[10px] font-bold uppercase text-red-500 hover:text-red-600 flex items-center gap-1">
+                                    <button type="button" onClick={clearAllFilters} className="text-[10px] font-bold uppercase text-red-500 hover:text-red-600 flex items-center gap-1">
                                         <X size={12} /> Clear All
                                     </button>
                                 )}
@@ -566,6 +597,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                         {QUICK_FILTERS.map((filter) => (
                                             <button
                                                 key={filter}
+                                                type="button"
                                                 onClick={() => handleBrowseUpdate(filter)}
                                                 className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border rounded-md transition-all
                                                     ${activeBrowse === filter
@@ -588,6 +620,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                         {FORMAT_FILTERS.map((format) => (
                                             <button
                                                 key={format}
+                                                type="button"
                                                 onClick={() => handleFormatUpdate(format)}
                                                 className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border rounded-md transition-all
                                                     ${activeFormat === format
@@ -610,6 +643,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                         {GENRE_FILTERS.map((genre) => (
                                             <button
                                                 key={genre}
+                                                type="button"
                                                 onClick={() => handleGenreUpdate(genre)}
                                                 className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border rounded-md transition-all
                                                     ${activeGenre === genre
@@ -660,6 +694,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                         {uniqueArtists.map(artist => (
                                             <button
                                                 key={artist}
+                                                type="button"
                                                 onClick={() => setActiveArtist(artist)}
                                                 className={`w-full text-left px-3 py-2 text-xs font-bold transition-colors rounded flex items-center justify-between
                                                     ${activeArtist === artist
@@ -686,10 +721,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 </div>
 
                 {/* 2. SORT DROPDOWN */}
-                <div className="relative z-[80]">
-                    <button 
+                <div className="relative z-[80]" ref={sortMenuRef}>
+                    <button
+                       type="button"
                        onClick={() => setIsSortOpen(!isSortOpen)}
-                       onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setTimeout(() => setIsSortOpen(false), 100)}
                        className={`flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full font-bold uppercase tracking-wide text-[10px] sm:text-[11px] select-none transition-all
                           ${viewMode === 'retro'
                             ? (isSortOpen ? 'bg-brand-mustard text-brand-black border-2 border-brand-black shadow-none translate-y-[2px] neon-glow-orange' : 'bg-white text-brand-black border-2 border-brand-black shadow-pop-sm hover:-translate-y-0.5 hover:neon-glow-orange')
@@ -710,6 +745,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                             <div className="py-1">
                                 {(['featured', 'release-date', 'price-asc', 'price-desc', 'title-asc', 'artist-asc'] as SortOption[]).map((option) => (
                                     <button 
+                                        type="button"
                                         key={option} 
                                         onClick={() => { setSortBy(option); setIsSortOpen(false); }}
                                         className={`w-full px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider transition-colors

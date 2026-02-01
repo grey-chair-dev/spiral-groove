@@ -63,6 +63,7 @@ export function ContactUsPage({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [phoneError, setPhoneError] = useState<string | null>(null)
+  const isPersonal = formData.subject === 'Personal'
 
   const isValidUsPhone = (raw: string): boolean => {
     const digits = String(raw || '').replace(/\D/g, '')
@@ -74,6 +75,11 @@ export function ContactUsPage({
     e.preventDefault()
     setSubmitError(null)
     setPhoneError(null)
+
+    if (isPersonal) {
+      setSubmitError('Personal messages are handled via Instagram DM.')
+      return
+    }
 
     if (formData.phone && !isValidUsPhone(formData.phone)) {
       setPhoneError('Please enter a valid 10-digit US phone number (or leave blank).')
@@ -174,68 +180,16 @@ export function ContactUsPage({
               ) : (
                 <form onSubmit={handleFormSubmit} className="space-y-5">
                   <div>
-                    <label htmlFor="name" className="mb-2 block text-sm font-medium text-slate-300">
-                      Name *
-                    </label>
-                    <input
-                      id="name"
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                      className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none"
-                      placeholder="Your name"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-300">
-                      Email *
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                      className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none"
-                      placeholder="your.email@example.com"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="phone" className="mb-2 block text-sm font-medium text-slate-300">
-                      Phone (optional)
-                    </label>
-                    <input
-                      id="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => {
-                        setFormData({ ...formData, phone: e.target.value })
-                        if (phoneError) setPhoneError(null)
-                      }}
-                      onBlur={() => {
-                        if (formData.phone && !isValidUsPhone(formData.phone)) {
-                          setPhoneError('Please enter a valid 10-digit US phone number (or leave blank).')
-                        }
-                      }}
-                      inputMode="tel"
-                      autoComplete="tel"
-                      aria-invalid={phoneError ? 'true' : 'false'}
-                      className={`w-full rounded-2xl border bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none
-                        ${phoneError ? 'border-red-500/60' : 'border-white/20'}
-                      `}
-                      placeholder="(513) 600-8018"
-                    />
-                    {phoneError && <div className="mt-2 text-sm text-red-400">{phoneError}</div>}
-                  </div>
-                  <div>
                     <label htmlFor="subject" className="mb-2 block text-sm font-medium text-slate-300">
                       Subject *
                     </label>
                     <select
                       id="subject"
                       value={formData.subject}
-                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                      onChange={(e) => {
+                        setSubmitError(null)
+                        setFormData({ ...formData, subject: e.target.value })
+                      }}
                       required
                       className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none"
                     >
@@ -246,10 +200,10 @@ export function ContactUsPage({
                     </select>
                   </div>
 
-                  {formData.subject === 'Personal' && (
+                  {isPersonal && (
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                       <p className="text-sm text-slate-300 mb-3">
-                        For personal messages, the fastest way is a DM.
+                        Personal messages are handled via Instagram DM.
                       </p>
                       <div className="flex flex-col sm:flex-row gap-3">
                         <a
@@ -260,48 +214,101 @@ export function ContactUsPage({
                         >
                           DM on Instagram
                         </a>
-                        <a
-                          href={instagramProfileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="w-full sm:w-auto rounded-full border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white/80 hover:border-white/40 transition text-center"
-                        >
-                          View Profile
-                        </a>
                       </div>
                     </div>
                   )}
-                  <div>
-                    <label htmlFor="message" className="mb-2 block text-sm font-medium text-slate-300">
-                      Message *
-                    </label>
-                    <textarea
-                      id="message"
-                      value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      required
-                      rows={6}
-                      className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none resize-none"
-                      placeholder="Tell us how we can help..."
-                    />
-                  </div>
-                  <label className="flex items-start gap-3 text-sm text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={!!formData.sendCopy}
-                      onChange={(e) => setFormData({ ...formData, sendCopy: e.target.checked })}
-                      className="mt-1 h-4 w-4 rounded border border-white/30 bg-white/5"
-                    />
-                    <span>Send me a copy of my responses</span>
-                  </label>
-                  {submitError && <div className="text-sm text-red-400">{submitError}</div>}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full rounded-full bg-primary px-6 py-4 text-base font-semibold text-white shadow-brand hover:bg-primary/80 transition"
-                  >
-                    {isSubmitting ? 'Sending…' : 'Send Message'}
-                  </button>
+                  {!isPersonal && (
+                    <>
+                      <div>
+                        <label htmlFor="name" className="mb-2 block text-sm font-medium text-slate-300">
+                          Name *
+                        </label>
+                        <input
+                          id="name"
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          required
+                          className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none"
+                          placeholder="Your name"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-300">
+                          Email *
+                        </label>
+                        <input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          required
+                          className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none"
+                          placeholder="your.email@example.com"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="phone" className="mb-2 block text-sm font-medium text-slate-300">
+                          Phone (optional)
+                        </label>
+                        <input
+                          id="phone"
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => {
+                            setFormData({ ...formData, phone: e.target.value })
+                            if (phoneError) setPhoneError(null)
+                          }}
+                          onBlur={() => {
+                            if (formData.phone && !isValidUsPhone(formData.phone)) {
+                              setPhoneError('Please enter a valid 10-digit US phone number (or leave blank).')
+                            }
+                          }}
+                          inputMode="tel"
+                          autoComplete="tel"
+                          aria-invalid={phoneError ? 'true' : 'false'}
+                          className={`w-full rounded-2xl border bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none
+                            ${phoneError ? 'border-red-500/60' : 'border-white/20'}
+                          `}
+                          placeholder="(513) 600-8018"
+                        />
+                        {phoneError && <div className="mt-2 text-sm text-red-400">{phoneError}</div>}
+                      </div>
+                      <div>
+                        <label htmlFor="message" className="mb-2 block text-sm font-medium text-slate-300">
+                          Message *
+                        </label>
+                        <textarea
+                          id="message"
+                          value={formData.message}
+                          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                          required
+                          rows={6}
+                          className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-primary focus:outline-none resize-none"
+                          placeholder="Tell us how we can help..."
+                        />
+                      </div>
+                      <label className="flex items-start gap-3 text-sm text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={!!formData.sendCopy}
+                          onChange={(e) => setFormData({ ...formData, sendCopy: e.target.checked })}
+                          className="mt-1 h-4 w-4 rounded border border-white/30 bg-white/5"
+                        />
+                        <span>Send me a copy of my responses</span>
+                      </label>
+                      {submitError && <div className="text-sm text-red-400">{submitError}</div>}
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full rounded-full bg-primary px-6 py-4 text-base font-semibold text-white shadow-brand hover:bg-primary/80 transition"
+                      >
+                        {isSubmitting ? 'Sending…' : 'Send Message'}
+                      </button>
+                    </>
+                  )}
+
+                  {submitError && isPersonal && <div className="text-sm text-red-400">{submitError}</div>}
                 </form>
               )}
             </div>

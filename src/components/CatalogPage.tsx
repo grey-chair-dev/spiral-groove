@@ -55,6 +55,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({
                 initialFilter={initialFilter}
                 initialArtist={initialArtist}
                 onFilterChange={onFilterChange}
+                defaultSort="artist-asc"
             />
         </div>
     )

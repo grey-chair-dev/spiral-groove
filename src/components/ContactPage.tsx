@@ -38,6 +38,11 @@ export const ContactPage: React.FC<ContactPageProps> = ({ viewMode }) => {
     setSubmitError(null);
     setPhoneError(null);
 
+    if (isPersonal) {
+      setSubmitError('Personal messages are handled via Instagram DM.');
+      return;
+    }
+
     if (formData.phone && !isValidUsPhone(formData.phone)) {
       setPhoneError('Please enter a valid 10-digit US phone number (or leave blank).');
       return;
@@ -201,71 +206,14 @@ export const ContactPage: React.FC<ContactPageProps> = ({ viewMode }) => {
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-wider opacity-70">Your Name</label>
-                                <input 
-                                    type="text" 
-                                    required
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                    className={`w-full p-4 border-2 font-medium focus:outline-none transition-all
-                                        ${isRetro 
-                                        ? 'bg-brand-cream border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' 
-                                        : 'bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
-                                    `}
-                                    placeholder="Jane Doe"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-wider opacity-70">Email Address</label>
-                                <input 
-                                    type="email" 
-                                    required
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                    className={`w-full p-4 border-2 font-medium focus:outline-none transition-all
-                                        ${isRetro 
-                                        ? 'bg-brand-cream border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' 
-                                        : 'bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
-                                    `}
-                                    placeholder="jane@example.com"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-wider opacity-70">Phone (optional)</label>
-                                <input 
-                                    type="tel" 
-                                    value={formData.phone}
-                                    onChange={(e) => {
-                                      setFormData({...formData, phone: e.target.value})
-                                      if (phoneError) setPhoneError(null)
-                                    }}
-                                    onBlur={() => {
-                                      if (formData.phone && !isValidUsPhone(formData.phone)) {
-                                        setPhoneError('Please enter a valid 10-digit US phone number (or leave blank).')
-                                      }
-                                    }}
-                                    inputMode="tel"
-                                    autoComplete="tel"
-                                    aria-invalid={phoneError ? 'true' : 'false'}
-                                    className={`w-full p-4 border-2 font-medium focus:outline-none transition-all
-                                        ${phoneError ? 'border-red-600' : ''}
-                                        ${isRetro 
-                                        ? 'bg-brand-cream border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' 
-                                        : 'bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
-                                    `}
-                                    placeholder="(513) 600-8018"
-                                />
-                                {phoneError && <div className="text-sm font-medium text-red-600">{phoneError}</div>}
-                            </div>
-
-                            <div className="space-y-2">
                                 <label className="text-xs font-bold uppercase tracking-wider opacity-70">Topic</label>
                                 <div className="relative">
                                     <select 
                                         value={formData.subject}
-                                        onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                                        onChange={(e) => {
+                                          setSubmitError(null)
+                                          setFormData({ ...formData, subject: e.target.value })
+                                        }}
                                         className={`w-full p-4 border-2 font-medium focus:outline-none transition-all appearance-none cursor-pointer
                                             ${isRetro 
                                             ? 'bg-brand-cream border-brand-black focus:shadow-pop-sm' 
@@ -289,7 +237,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ viewMode }) => {
                               <div className={`p-4 border-2 ${isRetro ? 'bg-brand-cream border-brand-black shadow-pop-sm' : 'bg-gray-50 border-gray-200 rounded-lg'}`}>
                                 <div className="text-xs font-bold uppercase tracking-wider opacity-70 mb-2">Personal?</div>
                                 <div className="text-sm text-gray-600 font-medium mb-3">
-                                  For personal messages, the fastest way is a DM.
+                                  Personal messages are handled via Instagram DM.
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-3">
                                   <a
@@ -304,65 +252,123 @@ export const ContactPage: React.FC<ContactPageProps> = ({ viewMode }) => {
                                   >
                                     DM on Instagram
                                   </a>
-                                  <a
-                                    href={instagramProfileUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className={`inline-flex items-center justify-center px-4 py-3 font-bold uppercase tracking-wider text-sm border-2 transition-all
-                                      ${isRetro
-                                        ? 'bg-brand-cream border-brand-black text-brand-black hover:bg-white'
-                                        : 'bg-white text-black border-gray-200 hover:bg-gray-50 rounded-lg'}
-                                    `}
-                                  >
-                                    View Profile
-                                  </a>
                                 </div>
                               </div>
                             )}
 
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-wider opacity-70">Message</label>
-                                <textarea 
+                            {!isPersonal && (
+                              <>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-bold uppercase tracking-wider opacity-70">Your Name</label>
+                                  <input
+                                    type="text"
+                                    required
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className={`w-full p-4 border-2 font-medium focus:outline-none transition-all
+                                        ${isRetro
+                                          ? 'bg-brand-cream border-brand-black focus:shadow-pop-sm placeholder-brand-black/30'
+                                          : 'bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
+                                    `}
+                                    placeholder="Jane Doe"
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <label className="text-xs font-bold uppercase tracking-wider opacity-70">Email Address</label>
+                                  <input
+                                    type="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    className={`w-full p-4 border-2 font-medium focus:outline-none transition-all
+                                        ${isRetro
+                                          ? 'bg-brand-cream border-brand-black focus:shadow-pop-sm placeholder-brand-black/30'
+                                          : 'bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
+                                    `}
+                                    placeholder="jane@example.com"
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <label className="text-xs font-bold uppercase tracking-wider opacity-70">Phone (optional)</label>
+                                  <input
+                                    type="tel"
+                                    value={formData.phone}
+                                    onChange={(e) => {
+                                      setFormData({ ...formData, phone: e.target.value })
+                                      if (phoneError) setPhoneError(null)
+                                    }}
+                                    onBlur={() => {
+                                      if (formData.phone && !isValidUsPhone(formData.phone)) {
+                                        setPhoneError('Please enter a valid 10-digit US phone number (or leave blank).')
+                                      }
+                                    }}
+                                    inputMode="tel"
+                                    autoComplete="tel"
+                                    aria-invalid={phoneError ? 'true' : 'false'}
+                                    className={`w-full p-4 border-2 font-medium focus:outline-none transition-all
+                                        ${phoneError ? 'border-red-600' : ''}
+                                        ${isRetro
+                                          ? 'bg-brand-cream border-brand-black focus:shadow-pop-sm placeholder-brand-black/30'
+                                          : 'bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
+                                    `}
+                                    placeholder="(513) 600-8018"
+                                  />
+                                  {phoneError && <div className="text-sm font-medium text-red-600">{phoneError}</div>}
+                                </div>
+
+                                <div className="space-y-2">
+                                  <label className="text-xs font-bold uppercase tracking-wider opacity-70">Message</label>
+                                  <textarea
                                     required
                                     rows={5}
                                     value={formData.message}
-                                    onChange={(e) => setFormData({...formData, message: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                     className={`w-full p-4 border-2 font-medium focus:outline-none transition-all resize-none
-                                        ${isRetro 
-                                        ? 'bg-brand-cream border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' 
-                                        : 'bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
+                                        ${isRetro
+                                          ? 'bg-brand-cream border-brand-black focus:shadow-pop-sm placeholder-brand-black/30'
+                                          : 'bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
                                     `}
                                     placeholder="How can we help?"
-                                ></textarea>
-                            </div>
+                                  ></textarea>
+                                </div>
 
-                            <label className={`flex items-start gap-3 text-sm ${isRetro ? 'text-gray-700' : 'text-gray-600'}`}>
-                              <input
-                                type="checkbox"
-                                checked={!!formData.sendCopy}
-                                onChange={(e) => setFormData({ ...formData, sendCopy: e.target.checked })}
-                                className="mt-1 h-4 w-4 border-2 border-brand-black"
-                              />
-                              <span className="font-medium">Send me a copy of my responses</span>
-                            </label>
+                                <label className={`flex items-start gap-3 text-sm ${isRetro ? 'text-gray-700' : 'text-gray-600'}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={!!formData.sendCopy}
+                                    onChange={(e) => setFormData({ ...formData, sendCopy: e.target.checked })}
+                                    className="mt-1 h-4 w-4 border-2 border-brand-black"
+                                  />
+                                  <span className="font-medium">Send me a copy of my responses</span>
+                                </label>
 
-                            {submitError && (
+                                {submitError && (
+                                  <div className="text-sm font-medium text-red-600">
+                                    {submitError}
+                                  </div>
+                                )}
+
+                                <Button
+                                  type="submit"
+                                  size="lg"
+                                  fullWidth
+                                  disabled={isSubmitting}
+                                  className={isRetro ? 'shadow-pop hover:shadow-pop-hover' : ''}
+                                >
+                                  {isSubmitting ? 'Sending...' : (
+                                    <span className="flex items-center gap-2">Send Message <Send size={18} /></span>
+                                  )}
+                                </Button>
+                              </>
+                            )}
+
+                            {submitError && isPersonal && (
                               <div className="text-sm font-medium text-red-600">
                                 {submitError}
                               </div>
                             )}
-
-                            <Button 
-                                type="submit" 
-                                size="lg" 
-                                fullWidth 
-                                disabled={isSubmitting}
-                                className={isRetro ? 'shadow-pop hover:shadow-pop-hover' : ''}
-                            >
-                                {isSubmitting ? 'Sending...' : (
-                                    <span className="flex items-center gap-2">Send Message <Send size={18} /></span>
-                                )}
-                            </Button>
                         </form>
                     )}
                  </div>

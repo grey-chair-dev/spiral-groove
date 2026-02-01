@@ -32,6 +32,10 @@ const __dirname = dirname(__filename)
 
 const PORT = 3001
 
+// Node ESM caches dynamic imports. In dev, cache-bust module specifiers so handler
+// changes are picked up without restarting this server.
+const importFresh = async (path) => import(`${path}?t=${Date.now()}`)
+
 const server = createServer(async (req, res) => {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -54,49 +58,49 @@ const server = createServer(async (req, res) => {
 
           // Handle simple routes
           if (route === 'products') {
-            const module = await import('./api/products.js')
+            const module = await importFresh('./api/products.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'events') {
-            const module = await import('./api/events.js')
+            const module = await importFresh('./api/events.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'event-inquiry') {
-            const module = await import('./api/event-inquiry.js')
+            const module = await importFresh('./api/event-inquiry.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'contact-inquiry') {
-            const module = await import('./api/contact-inquiry.js')
+            const module = await importFresh('./api/contact-inquiry.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'newsletter') {
-            const module = await import('./api/newsletter.js')
+            const module = await importFresh('./api/newsletter.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'newsletter/unsubscribe') {
-            const module = await import('./api/newsletter/unsubscribe.js')
+            const module = await importFresh('./api/newsletter/unsubscribe.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'webhook/test') {
-            const module = await import('./api/webhook/test.js')
+            const module = await importFresh('./api/webhook/test.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'pay') {
-            const module = await import('./api/pay.js')
+            const module = await importFresh('./api/pay.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'orders') {
-            const module = await import('./api/orders.js')
+            const module = await importFresh('./api/orders.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'orders/update') {
-            const module = await import('./api/orders/update.js')
+            const module = await importFresh('./api/orders/update.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'staff-picks') {
-            const module = await import('./api/staff-picks.js')
+            const module = await importFresh('./api/staff-picks.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'square/sync') {
-            const module = await import('./api/square/sync.js')
+            const module = await importFresh('./api/square/sync.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'square/sales-sync') {
-            const module = await import('./api/square/sales-sync.js')
+            const module = await importFresh('./api/square/sales-sync.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'sales/best-sellers') {
-            const module = await import('./api/sales/best-sellers.js')
+            const module = await importFresh('./api/sales/best-sellers.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'inventory/log') {
-            const module = await import('./api/inventory/log.js')
+            const module = await importFresh('./api/inventory/log.js')
             handler = module.webHandler ?? module.default
           } else {
             res.writeHead(404, { 'Content-Type': 'application/json' })

@@ -75,6 +75,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                         initialFilter="All" // "All" means show everything passed in 'products' prop
                         showFilters={false} // Hide filters for simple search results view
                         compact={false}
+                        defaultSort="artist-asc"
                     />
                 ) : (
                     <div className="py-20 text-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">

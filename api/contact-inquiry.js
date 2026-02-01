@@ -209,6 +209,20 @@ export async function webHandler(request) {
     sendCopy: Boolean(body?.sendCopy),
   }
 
+  if (payload.topic.toLowerCase() === 'personal') {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Personal messages are handled via Instagram DM.',
+        dmUrl: 'https://ig.me/m/spiral_groove_records_',
+      }),
+      {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
+  }
+
   if (!payload.name || !payload.message || (!payload.email && !payload.phone)) {
     return new Response(JSON.stringify({ success: false, error: 'Missing required fields.' }), {
       status: 400,
