@@ -5,7 +5,7 @@
  * request context, rate limiting details, error grouping, and more.
  * 
  * Environment Variables:
- *   MAKE_ALERTS_WEBHOOK_URL - Make.com webhook URL for error alerts (falls back to MAKE_WEBHOOK_URL)
+ *   MAKE_ALERTS_WEBHOOK_URL - Make.com webhook URL for error alerts
  *   ALERT_ENABLED - Set to "true" to enable alerts (default: false in dev)
  *   ALERT_SLOW_QUERY_THRESHOLD_MS - Alert on queries slower than this (default: 500)
  *   ALERT_SLOW_API_THRESHOLD_MS - Alert on API responses slower than this (default: 2000)
@@ -336,6 +336,219 @@ Provide actionable, production-ready solutions with code examples.`
   return prompt
 }
 
+function escapeHtml(text) {
+  if (!text) return ''
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function generateAlertHtml(payload) {
+  const {
+    statusCode,
+    error,
+    endpoint,
+    method = 'GET',
+    requestId,
+    userAgent,
+    ip,
+    timestamp,
+    context = {},
+    stack,
+    responseTime,
+    queryDuration,
+    errorSpike,
+    errorFrequency,
+    requestBody,
+    requestHeaders,
+    queryParams,
+    recoverySuggestions = [],
+    geminiPrompt,
+  } = payload
+
+  const severity = getSeverity(statusCode, { responseTime, queryDuration, errorSpike })
+  const emoji = getEmoji(severity)
+  const severityColor = severity === 'critical' ? '#dc2626' : severity === 'warning' ? '#f59e0b' : '#3b82f6'
+  const statusColor = statusCode >= 500 ? '#dc2626' : statusCode >= 400 ? '#f59e0b' : '#10b981'
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Error Alert</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f3f4f6; }
+    .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { padding: 20px 24px; border-bottom: 2px solid #e5e7eb; background: ${severityColor}; color: white; border-radius: 8px 8px 0 0; }
+    .header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+    .content { padding: 24px; }
+    .section { margin-bottom: 24px; }
+    .section-title { font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .info-item { padding: 12px; background: #f9fafb; border-radius: 6px; border-left: 3px solid ${severityColor}; }
+    .info-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .info-value { font-size: 14px; font-weight: 600; color: #111827; }
+    .error-box { padding: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; margin-bottom: 16px; }
+    .error-message { font-family: 'Monaco', 'Courier New', monospace; font-size: 13px; color: #991b1b; word-break: break-word; }
+    .code-block { position: relative; padding: 16px; background: #1f2937; border-radius: 6px; margin-bottom: 16px; overflow-x: auto; }
+    .code-block pre { margin: 0; font-family: 'Monaco', 'Courier New', monospace; font-size: 12px; color: #e5e7eb; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+    .copy-btn { position: absolute; top: 8px; right: 8px; padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; }
+    .copy-btn:hover { background: #2563eb; }
+    .copy-btn.copied { background: #10b981; }
+    .suggestions { padding: 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; }
+    .suggestions ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .suggestions li { margin-bottom: 8px; color: #92400e; font-size: 13px; line-height: 1.5; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-critical { background: #fee2e2; color: #991b1b; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-info { background: #dbeafe; color: #1e40af; }
+    .spike-alert { padding: 12px; background: #fee2e2; border: 1px solid #fecaca; border-radius: 6px; margin-bottom: 16px; color: #991b1b; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${emoji} API Error Alert</h1>
+    </div>
+    <div class="content">
+      ${errorSpike ? `
+      <div class="spike-alert">
+        ⚠️ ERROR SPIKE: ${errorSpike.count} occurrences in the last ${Math.round(errorSpike.windowMs / 1000 / 60)} minutes
+      </div>
+      ` : ''}
+      
+      <div class="section">
+        <div class="section-title">Error Details</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Status Code</div>
+            <div class="info-value" style="color: ${statusColor};">${statusCode}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Severity</div>
+            <div class="info-value">
+              <span class="badge badge-${severity}">${severity.toUpperCase()}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Endpoint</div>
+            <div class="info-value">${escapeHtml(method)} ${escapeHtml(endpoint || 'unknown')}</div>
+          </div>
+          ${requestId ? `
+          <div class="info-item">
+            <div class="info-label">Request ID</div>
+            <div class="info-value" style="font-family: monospace; font-size: 12px;">${escapeHtml(requestId)}</div>
+          </div>
+          ` : ''}
+          ${ip ? `
+          <div class="info-item">
+            <div class="info-label">IP Address</div>
+            <div class="info-value">${escapeHtml(ip)}</div>
+          </div>
+          ` : ''}
+          ${responseTime ? `
+          <div class="info-item">
+            <div class="info-label">Response Time</div>
+            <div class="info-value" style="color: ${responseTime > SLOW_API_THRESHOLD_MS ? '#dc2626' : '#6b7280'};">
+              ${responseTime}ms ${responseTime > SLOW_API_THRESHOLD_MS ? '⚠️ SLOW' : ''}
+            </div>
+          </div>
+          ` : ''}
+          ${queryDuration ? `
+          <div class="info-item">
+            <div class="info-label">Query Duration</div>
+            <div class="info-value" style="color: ${queryDuration > SLOW_QUERY_THRESHOLD_MS ? '#dc2626' : '#6b7280'};">
+              ${queryDuration}ms ${queryDuration > SLOW_QUERY_THRESHOLD_MS ? '⚠️ SLOW' : ''}
+            </div>
+          </div>
+          ` : ''}
+          ${timestamp ? `
+          <div class="info-item">
+            <div class="info-label">Timestamp</div>
+            <div class="info-value" style="font-size: 12px;">${new Date(timestamp).toLocaleString()}</div>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Error Message</div>
+        <div class="error-box">
+          <div class="error-message">${escapeHtml(error || 'Unknown error')}</div>
+        </div>
+      </div>
+
+      ${stack ? `
+      <div class="section">
+        <div class="section-title">Stack Trace</div>
+        <div class="code-block">
+          <pre>${escapeHtml(stack)}</pre>
+        </div>
+      </div>
+      ` : ''}
+
+      ${Object.keys(context).length > 0 ? `
+      <div class="section">
+        <div class="section-title">Additional Context</div>
+        <div class="code-block">
+          <pre>${escapeHtml(JSON.stringify(context, null, 2))}</pre>
+        </div>
+      </div>
+      ` : ''}
+
+      ${requestBody ? `
+      <div class="section">
+        <div class="section-title">Request Body</div>
+        <div class="code-block">
+          <pre>${escapeHtml(typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody, null, 2))}</pre>
+        </div>
+      </div>
+      ` : ''}
+
+      ${recoverySuggestions.length > 0 ? `
+      <div class="section">
+        <div class="section-title">Recovery Suggestions</div>
+        <div class="suggestions">
+          <ul>
+            ${recoverySuggestions.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+      ` : ''}
+
+      ${geminiPrompt ? `
+      <div class="section">
+        <div class="section-title">AI Fix Prompt</div>
+        <div class="code-block" id="ai-prompt-block">
+          <button class="copy-btn" onclick="copyPrompt()" id="copy-btn">Copy</button>
+          <pre id="ai-prompt-text">${escapeHtml(geminiPrompt)}</pre>
+        </div>
+      </div>
+      ` : ''}
+    </div>
+  </div>
+  <script>
+    function copyPrompt() {
+      const text = document.getElementById('ai-prompt-text').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>`
+}
+
 function formatMakeWebhookPayload(payload) {
   const {
     statusCode,
@@ -380,6 +593,16 @@ function formatMakeWebhookPayload(payload) {
   
   // Generate error fingerprint for grouping
   const errorFingerprint = generateErrorFingerprint(payload)
+  
+  // Generate recovery suggestions
+  const recoverySuggestions = generateRecoverySuggestions(payload)
+  
+  // Generate HTML version
+  const html = generateAlertHtml({
+    ...payload,
+    recoverySuggestions,
+    geminiPrompt,
+  })
   
   // Build structured payload for Make.com
   return {
@@ -426,11 +649,14 @@ function formatMakeWebhookPayload(payload) {
     performanceMetrics: perfMetrics || undefined,
     
     // Recovery suggestions
-    recoverySuggestions: generateRecoverySuggestions(payload),
+    recoverySuggestions: recoverySuggestions,
     
     // Gemini AI prompt for fixing the error
     geminiPrompt: geminiPrompt,
     aiFixPrompt: geminiPrompt,
+    
+    // HTML version for email/display
+    html: html,
     
     // Formatted fields for easy display in Make.com
     title: `${emoji} API Error: ${statusCode} ${error || 'Unknown Error'}${errorSpike ? ` (${errorSpike.count}x in ${Math.round(errorSpike.windowMs / 1000 / 60)}min)` : ''}`,
@@ -477,7 +703,7 @@ export async function sendSlackAlert(payload) {
     // Check if alerts are enabled
     const alertsEnabled = process.env.ALERT_ENABLED === 'true' || 
                          process.env.SLACK_ALERT_ENABLED === 'true' ||
-                         (process.env.NODE_ENV === 'production' && (process.env.MAKE_ALERTS_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL))
+                         (process.env.NODE_ENV === 'production' && process.env.MAKE_ALERTS_WEBHOOK_URL)
     
     if (!alertsEnabled) {
       if (process.env.NODE_ENV === 'development') {
@@ -486,10 +712,10 @@ export async function sendSlackAlert(payload) {
       return { sent: false, reason: 'alerts_disabled' }
     }
 
-    // Use MAKE_ALERTS_WEBHOOK_URL if set, otherwise fall back to MAKE_WEBHOOK_URL
-    const webhookUrl = process.env.MAKE_ALERTS_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL
+    // Get webhook URL
+    const webhookUrl = process.env.MAKE_ALERTS_WEBHOOK_URL
     if (!webhookUrl) {
-      console.warn('[Alert] MAKE_ALERTS_WEBHOOK_URL or MAKE_WEBHOOK_URL not configured')
+      console.warn('[Alert] MAKE_ALERTS_WEBHOOK_URL not configured')
       return { sent: false, reason: 'missing_webhook_url' }
     }
 
@@ -522,8 +748,8 @@ export async function sendSlackAlert(payload) {
       return { sent: false, reason: 'duplicate' }
     }
 
-    // Format payload for Make.com webhook
-    const makePayload = formatMakeWebhookPayload({
+    // Format payload for webhook (unbranded, internal use)
+    const webhookPayload = formatMakeWebhookPayload({
       ...payload,
       timestamp: payload.timestamp || new Date().toISOString(),
       errorFrequency,
@@ -540,7 +766,7 @@ export async function sendSlackAlert(payload) {
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(makePayload),
+      body: JSON.stringify(webhookPayload),
     })
 
     if (!response.ok) {
@@ -554,7 +780,7 @@ export async function sendSlackAlert(payload) {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[Alert] Sent to Make.com:', {
+      console.log('[Alert] Sent to webhook:', {
         endpoint: payload.endpoint,
         statusCode: payload.statusCode,
         severity: getSeverity(payload.statusCode, { responseTime: payload.responseTime, queryDuration: payload.queryDuration, errorSpike }),
@@ -587,7 +813,7 @@ export async function sendCriticalAlert(payload) {
 export async function sendBatchAlert(errors) {
   if (!errors || errors.length === 0) return { sent: false, reason: 'no_errors' }
 
-  const webhookUrl = process.env.MAKE_ALERTS_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL
+  const webhookUrl = process.env.MAKE_ALERTS_WEBHOOK_URL
   if (!webhookUrl) return { sent: false, reason: 'missing_webhook_url' }
 
   const criticalCount = errors.filter(e => getSeverity(e.statusCode) === 'critical').length

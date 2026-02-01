@@ -44,8 +44,8 @@ export function getPool() {
       : { rejectUnauthorized: false },
     // Connection pool settings
     max: 10, // Maximum number of clients in the pool
-    idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-    connectionTimeoutMillis: 10000, // Neon can be slow to handshake; don't fail too aggressively
+    idleTimeoutMillis: 60000, // Close idle clients after 60 seconds (increased for long-running syncs)
+    connectionTimeoutMillis: 20000, // Increased timeout for Neon handshake
     keepAlive: true,
   })
 
@@ -136,15 +136,28 @@ export async function query(text, params) {
       code === '57P01' || // admin shutdown
       code === 'ECONNRESET' ||
       code === 'ETIMEDOUT' ||
+      code === 'ENOTFOUND' ||
+      code === 'EAI_AGAIN' ||
       msg.includes('Connection terminated') ||
       msg.includes('timeout') ||
-      msg.includes('ECONNRESET')
+      msg.includes('ECONNRESET') ||
+      msg.includes('SSL') ||
+      msg.includes('TLS') ||
+      msg.includes('bad record mac') ||
+      msg.includes('ssl3_read_bytes') ||
+      msg.includes('connection closed') ||
+      msg.includes('socket hang up')
 
     if (retryable) {
-      console.warn('[DB] Retryable error detected, resetting pool and retrying once...')
+      console.warn('[DB] Retryable connection error detected, resetting pool and retrying once...', {
+        code,
+        message: msg.substring(0, 100)
+      })
       try {
         await closePool()
       } catch {}
+      // Small delay to let connections fully close
+      await new Promise(resolve => setTimeout(resolve, 100))
       const fresh = getPool()
       return await fresh.query(text, params)
     }

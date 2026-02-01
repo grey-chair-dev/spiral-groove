@@ -353,8 +353,27 @@ export async function webHandler(request) {
     })
   }
 
+  const startedAt = Date.now()
+  let syncLogId = null
+  
   try {
     await ensureSalesSchema()
+
+    // Log sync start
+    try {
+      const logResult = await query(`
+        INSERT INTO sync_log (sync_type, status, started_at, metadata)
+        VALUES ('sales', 'running', NOW(), $1::jsonb)
+        RETURNING id
+      `, [JSON.stringify({ 
+        method, 
+        isVercelCron,
+        userAgent: userAgent.substring(0, 100)
+      })])
+      syncLogId = logResult.rows[0]?.id
+    } catch (logError) {
+      console.warn('[Sales Sync] Failed to log start:', logError.message)
+    }
 
     const accessToken = process.env.SQUARE_ACCESS_TOKEN
     const locationId = process.env.SQUARE_LOCATION_ID
@@ -436,6 +455,36 @@ export async function webHandler(request) {
       await writeLastSyncedAt(new Date(latestCreatedAt))
     }
 
+    const durationMs = Date.now() - startedAt
+    
+    // Log sync success
+    if (syncLogId) {
+      try {
+        await query(`
+          UPDATE sync_log 
+          SET status = 'success',
+              completed_at = NOW(),
+              duration_ms = $1,
+              items_processed = $2,
+              items_created = $3,
+              metadata = COALESCE(metadata, '{}'::jsonb) || $4::jsonb
+          WHERE id = $5
+        `, [
+          durationMs,
+          totalOrders,
+          insertedLineItems,
+          JSON.stringify({ 
+            range: { startAt, endAt },
+            pages,
+            lastSyncedAt: latestCreatedAt
+          }),
+          syncLogId
+        ])
+      } catch (logError) {
+        console.warn('[Sales Sync] Failed to log success:', logError.message)
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -444,11 +493,31 @@ export async function webHandler(request) {
         orders: totalOrders,
         insertedLineItems,
         lastSyncedAt: latestCreatedAt,
+        syncLogId,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } },
     )
   } catch (e) {
-    return new Response(JSON.stringify({ success: false, error: e?.message || 'Sales sync failed' }), {
+    const durationMs = Date.now() - startedAt
+    const errorMessage = e?.message || 'Sales sync failed'
+    
+    // Log sync error
+    if (syncLogId) {
+      try {
+        await query(`
+          UPDATE sync_log 
+          SET status = 'error',
+              completed_at = NOW(),
+              duration_ms = $1,
+              error_message = $2
+          WHERE id = $3
+        `, [durationMs, errorMessage.substring(0, 1000), syncLogId])
+      } catch (logError) {
+        console.warn('[Sales Sync] Failed to log error:', logError.message)
+      }
+    }
+    
+    return new Response(JSON.stringify({ success: false, error: errorMessage, syncLogId }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })

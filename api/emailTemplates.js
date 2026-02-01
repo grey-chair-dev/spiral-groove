@@ -900,3 +900,154 @@ export function generateWeeklyNewsletterEmail(data) {
     bodyHtml,
   })
 }
+
+/**
+ * Generate error alert email HTML
+ */
+export function generateAlertEmail(data) {
+  const {
+    statusCode,
+    error,
+    endpoint,
+    method = 'GET',
+    severity = 'warning',
+    timestamp,
+    requestId,
+    ip,
+    userAgent,
+    stack,
+    responseTime,
+    queryDuration,
+    errorSpike,
+    context = {},
+    recoverySuggestions = [],
+    geminiPrompt,
+  } = data
+
+  const baseUrl = getBaseUrl()
+  const emoji = severity === 'critical' ? '🚨' : severity === 'warning' ? '⚠️' : 'ℹ️'
+  const severityColor = severity === 'critical' ? BRAND.red : severity === 'warning' ? BRAND.mustard : BRAND.teal
+  const statusColor = statusCode >= 500 ? BRAND.red : statusCode >= 400 ? BRAND.mustard : BRAND.teal
+
+  const detailsHtml = `
+    <div style="margin: 18px 0; padding: 18px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: ${BRAND.gray600};">
+        Error Details
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Status Code:</td>
+          <td style="padding: 6px 0; color: ${statusColor}; font-size: 14px; font-weight: 800;">${statusCode}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Severity:</td>
+          <td style="padding: 6px 0; color: ${severityColor}; font-size: 14px; font-weight: 800; text-transform: uppercase;">${severity}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Endpoint:</td>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 600;">${escapeHtml(method)} ${escapeHtml(endpoint || 'unknown')}</td>
+        </tr>
+        ${requestId ? `
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Request ID:</td>
+          <td style="padding: 6px 0; color: ${BRAND.gray600}; font-size: 12px; font-weight: 600; font-family: monospace;">${escapeHtml(requestId)}</td>
+        </tr>
+        ` : ''}
+        ${ip ? `
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">IP Address:</td>
+          <td style="padding: 6px 0; color: ${BRAND.gray600}; font-size: 12px; font-weight: 600;">${escapeHtml(ip)}</td>
+        </tr>
+        ` : ''}
+        ${responseTime ? `
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Response Time:</td>
+          <td style="padding: 6px 0; color: ${responseTime > 2000 ? BRAND.red : BRAND.gray600}; font-size: 14px; font-weight: 700;">${responseTime}ms ${responseTime > 2000 ? '⚠️ SLOW' : ''}</td>
+        </tr>
+        ` : ''}
+        ${queryDuration ? `
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Query Duration:</td>
+          <td style="padding: 6px 0; color: ${queryDuration > 500 ? BRAND.red : BRAND.gray600}; font-size: 14px; font-weight: 700;">${queryDuration}ms ${queryDuration > 500 ? '⚠️ SLOW' : ''}</td>
+        </tr>
+        ` : ''}
+        ${errorSpike ? `
+        <tr>
+          <td colspan="2" style="padding: 12px 0 6px 0; color: ${BRAND.red}; font-size: 14px; font-weight: 800;">
+            ⚠️ ERROR SPIKE: ${errorSpike.count} occurrences in last ${Math.round(errorSpike.windowMs / 1000 / 60)} minutes
+          </td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+  `
+
+  const errorMessageHtml = `
+    <div style="margin: 18px 0; padding: 18px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: ${BRAND.gray600};">
+        Error Message
+      </p>
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 600; font-family: monospace; word-break: break-word;">
+        ${escapeHtml(error || 'Unknown error')}
+      </p>
+    </div>
+  `
+
+  const stackTraceHtml = stack ? `
+    <div style="margin: 18px 0; padding: 18px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: ${BRAND.gray600};">
+        Stack Trace
+      </p>
+      <pre style="margin: 0; padding: 12px; background-color: ${BRAND.cream}; border: 1px solid ${BRAND.gray200}; border-radius: 8px; color: ${BRAND.black}; font-size: 11px; line-height: 1.5; font-family: monospace; white-space: pre-wrap; word-break: break-word; overflow-x: auto;">${escapeHtml(stack)}</pre>
+    </div>
+  ` : ''
+
+  const contextHtml = Object.keys(context).length > 0 ? `
+    <div style="margin: 18px 0; padding: 18px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: ${BRAND.gray600};">
+        Additional Context
+      </p>
+      <pre style="margin: 0; padding: 12px; background-color: ${BRAND.cream}; border: 1px solid ${BRAND.gray200}; border-radius: 8px; color: ${BRAND.black}; font-size: 11px; line-height: 1.5; font-family: monospace; white-space: pre-wrap; word-break: break-word; overflow-x: auto;">${escapeHtml(JSON.stringify(context, null, 2))}</pre>
+    </div>
+  ` : ''
+
+  const suggestionsHtml = recoverySuggestions.length > 0 ? `
+    <div style="margin: 18px 0; padding: 18px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: ${BRAND.black};">
+        Recovery Suggestions
+      </p>
+      <ul style="margin: 0; padding-left: 18px; color: ${BRAND.black}; font-size: 14px; line-height: 1.8; font-weight: 600;">
+        ${recoverySuggestions.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+      </ul>
+    </div>
+  ` : ''
+
+  const bodyHtml = `
+    <h2 style="margin: 0 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.15; letter-spacing: 0.02em;">
+      ${emoji} API Alert
+    </h2>
+    <p style="margin: 0 0 18px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600;">
+      An error was detected in your application${timestamp ? ` at ${new Date(timestamp).toLocaleString()}` : ''}.
+    </p>
+
+    ${detailsHtml}
+    ${errorMessageHtml}
+    ${stackTraceHtml}
+    ${contextHtml}
+    ${suggestionsHtml}
+
+    ${userAgent ? `
+    <div style="margin: 18px 0; padding: 12px; background-color: ${BRAND.gray200}; border-radius: 8px;">
+      <p style="margin: 0; color: ${BRAND.gray600}; font-size: 11px; line-height: 1.5; font-weight: 600; word-break: break-word;">
+        <strong>User Agent:</strong> ${escapeHtml(userAgent.substring(0, 200))}
+      </p>
+    </div>
+    ` : ''}
+  `.trim()
+
+  return renderLayout({
+    title: `${emoji} API Error Alert: ${statusCode}`,
+    preheader: `${method} ${endpoint} - ${error?.substring(0, 60) || 'Error detected'}`,
+    bodyHtml,
+  })
+}

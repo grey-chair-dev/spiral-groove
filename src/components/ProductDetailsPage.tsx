@@ -285,17 +285,17 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                      </div>
 
                      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="space-y-4 text-sm leading-relaxed text-gray-600 font-medium">
+                           <div className="space-y-4 text-sm leading-relaxed text-gray-600 font-medium">
                           {product.description ? (
                             <p>{product.description}</p>
-                          ) : (
-                            <p>
+                              ) : (
+                                <p>
                               {product.title}
                               {product.artist ? ` — ${product.artist}` : ''}
                               {product.format ? ` (${product.format})` : ''}
-                            </p>
-                          )}
-                        </div>
+                                </p>
+                              )}
+                           </div>
                      </div>
                    </>
                  ) : (

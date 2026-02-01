@@ -65,56 +65,52 @@ async function sendEmail(params) {
 
 async function getNewsletterSubscribers() {
   try {
-    // Check if there's a newsletter_subscribers table
-    const tableCheck = await query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'newsletter_subscribers'
-      )
-    `)
-    
-    if (!tableCheck.rows[0]?.exists) {
-      console.log('[Weekly Newsletter] No newsletter_subscribers table found')
-      console.log('[Weekly Newsletter] Checking for subscribers in other tables...')
-      
-      // Try to get subscribers from orders table (customers who have ordered)
-      const ordersResult = await query(`
-        SELECT DISTINCT
-          LOWER(COALESCE(pickup_details->>'email', '')) AS email,
-          pickup_details->>'firstName' AS first_name,
-          pickup_details->>'lastName' AS last_name
-        FROM orders
-        WHERE pickup_details->>'email' IS NOT NULL
-          AND pickup_details->>'email' != ''
-          AND LOWER(COALESCE(pickup_details->>'email', '')) != ''
-        ORDER BY email
-        LIMIT 100
+    // Get subscribers from email_list table (where subscribed = TRUE)
+    // Handle both snake_case and camelCase column names for compatibility
+    let result
+    try {
+      // Try snake_case first (most common)
+      result = await query(`
+        SELECT 
+          email, 
+          first_name, 
+          last_name,
+          subscribed
+        FROM email_list
+        WHERE subscribed = TRUE
+          AND email IS NOT NULL
+          AND email != ''
+          AND (unsubscribed_at IS NULL OR unsubscribed_at IS NULL)
+        ORDER BY created_at DESC
       `)
-      
-      return ordersResult.rows
-        .filter(row => row.email)
-        .map(row => ({
-          email: row.email,
-          firstName: row.first_name || null,
-          lastName: row.last_name || null,
-        }))
+    } catch (e) {
+      // Fallback: try camelCase column names
+      try {
+        result = await query(`
+          SELECT 
+            email, 
+            "firstName" as first_name, 
+            "lastName" as last_name,
+            subscribed
+          FROM email_list
+          WHERE subscribed = TRUE
+            AND email IS NOT NULL
+            AND email != ''
+          ORDER BY "createdAt" DESC
+        `)
+      } catch (e2) {
+        console.error('[Weekly Newsletter] Error querying email_list:', e2.message)
+        throw e2
+      }
     }
     
-    // Get subscribers from newsletter_subscribers table
-    const result = await query(`
-      SELECT email, first_name, last_name
-      FROM newsletter_subscribers
-      WHERE unsubscribed_at IS NULL
-        AND email IS NOT NULL
-        AND email != ''
-      ORDER BY created_at DESC
-    `)
-    
-    return result.rows.map(row => ({
-      email: row.email,
-      firstName: row.first_name || null,
-      lastName: row.last_name || null,
-    }))
+    return result.rows
+      .filter(row => row.email && row.subscribed !== false)
+      .map(row => ({
+        email: row.email.toLowerCase().trim(),
+        firstName: row.first_name || null,
+        lastName: row.last_name || null,
+      }))
   } catch (error) {
     console.error('[Weekly Newsletter] Error fetching subscribers:', error)
     return []

@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, Suspense, lazy } from 'react';
 import { trackPageView, trackProductView, trackAddToCart, trackRemoveFromCart, trackBeginCheckout, trackPurchase, trackSearch, trackNewsletterSignup, trackSignup } from './utils/analytics';
 import { Header } from './components/Header';
 import { NeonCursor } from './components/NeonCursor';
@@ -12,24 +12,26 @@ import { Footer } from './components/Footer';
 import { Chatbot } from './components/Chatbot';
 import { ProductModal } from './components/ProductModal';
 import { Toast } from './components/ui/Toast';
-import { EventsPage } from './components/EventsPage';
-import { AboutPage } from './components/AboutPage';
-import { LocationsPage } from './components/LocationsPage';
-import { WeBuyPage } from './components/WeBuyPage';
-import { CatalogPage } from './components/CatalogPage';
-import { ProductDetailsPage } from './components/ProductDetailsPage';
-import { ReceiptPage } from './components/ReceiptPage';
-import { OrderStatusPage } from './components/OrderStatusPage';
-import { ContactPage } from './components/ContactPage';
-import { StaffPicksPage } from './components/StaffPicksPage';
-import { CartPage } from './components/CartPage';
-import { CheckoutPage } from './components/CheckoutPage';
-import { OrderConfirmationPage } from './components/OrderConfirmationPage';
-import { SearchPage } from './components/SearchPage';
-import { ClientLoginPage } from './components/ClientLoginPage';
-import { PrivacyPage } from './components/PrivacyPage';
-import { TermsPage } from './components/TermsPage';
-import { AccessibilityPage } from './components/AccessibilityPage';
+
+// Lazy load route components for code splitting
+const EventsPage = lazy(() => import('./components/EventsPage'));
+const AboutPage = lazy(() => import('./components/AboutPage'));
+const LocationsPage = lazy(() => import('./components/LocationsPage'));
+const WeBuyPage = lazy(() => import('./components/WeBuyPage'));
+const CatalogPage = lazy(() => import('./components/CatalogPage'));
+const ProductDetailsPage = lazy(() => import('./components/ProductDetailsPage'));
+const ReceiptPage = lazy(() => import('./components/ReceiptPage'));
+const OrderStatusPage = lazy(() => import('./components/OrderStatusPage'));
+const ContactPage = lazy(() => import('./components/ContactPage'));
+const StaffPicksPage = lazy(() => import('./components/StaffPicksPage'));
+const CartPage = lazy(() => import('./components/CartPage'));
+const CheckoutPage = lazy(() => import('./components/CheckoutPage'));
+const OrderConfirmationPage = lazy(() => import('./components/OrderConfirmationPage'));
+const SearchPage = lazy(() => import('./components/SearchPage'));
+const ClientLoginPage = lazy(() => import('./components/ClientLoginPage'));
+const PrivacyPage = lazy(() => import('./components/PrivacyPage'));
+const TermsPage = lazy(() => import('./components/TermsPage'));
+const AccessibilityPage = lazy(() => import('./components/AccessibilityPage'));
 import { Product, ViewMode, Page, Order, Event, CartItem } from '../types';
 import { fetchProducts as fetchApiProducts, Product as ApiProduct } from './dataAdapter';
 import { getDefaultProductImage } from './utils/defaultProductImage';
@@ -1061,15 +1063,29 @@ function App() {
         )}
 
         {currentPage === 'events' && (
-            <EventsPage 
-                viewMode={effectiveViewMode} 
-                onRSVP={handleRSVP}
-                events={events}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading events...</p></div>}>
+                <EventsPage 
+                    viewMode={effectiveViewMode} 
+                    onRSVP={handleRSVP}
+                    events={events}
+                />
+            </Suspense>
         )}
-        {currentPage === 'about' && <AboutPage viewMode={effectiveViewMode} />}
-        {currentPage === 'locations' && <LocationsPage viewMode={effectiveViewMode} />}
-        {currentPage === 'we-buy' && <WeBuyPage viewMode={effectiveViewMode} onNavigate={handleNavigate} />}
+        {currentPage === 'about' && (
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading...</p></div>}>
+                <AboutPage viewMode={effectiveViewMode} />
+            </Suspense>
+        )}
+        {currentPage === 'locations' && (
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading...</p></div>}>
+                <LocationsPage viewMode={effectiveViewMode} />
+            </Suspense>
+        )}
+        {currentPage === 'we-buy' && (
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading...</p></div>}>
+                <WeBuyPage viewMode={effectiveViewMode} onNavigate={handleNavigate} />
+            </Suspense>
+        )}
         {currentPage === 'catalog' && (
             <>
                 {productsLoading ? (
@@ -1082,123 +1098,149 @@ function App() {
                         <p className="text-gray-500 text-sm mt-2">Please try again in a moment.</p>
                     </div>
                 ) : (
-                    <CatalogPage 
-                        viewMode={effectiveViewMode} 
-                        products={products}
-                        onProductClick={handleProductClick}
-                        onQuickAdd={addToCart}
-                        initialFilter={currentFilter}
-                        initialArtist={selectedArtist}
-                        onHomeClick={() => handleNavigate('home')}
-                        onNavigate={handleNavigate}
-                        onFilterChange={(newFilter) => setCurrentFilter(newFilter)}
-                    />
+                    <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading catalog...</p></div>}>
+                        <CatalogPage 
+                            viewMode={effectiveViewMode} 
+                            products={products}
+                            onProductClick={handleProductClick}
+                            onQuickAdd={addToCart}
+                            initialFilter={currentFilter}
+                            initialArtist={selectedArtist}
+                            onHomeClick={() => handleNavigate('home')}
+                            onNavigate={handleNavigate}
+                            onFilterChange={(newFilter) => setCurrentFilter(newFilter)}
+                        />
+                    </Suspense>
                 )}
             </>
         )}
         {currentPage === 'search' && (
-            <SearchPage 
-                viewMode={effectiveViewMode}
-                products={products}
-                searchQuery={searchQuery}
-                onProductClick={handleProductClick}
-                onQuickAdd={addToCart}
-                onHomeClick={() => handleNavigate('home')}
-                onNavigate={handleNavigate}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading search...</p></div>}>
+                <SearchPage 
+                    viewMode={effectiveViewMode}
+                    products={products}
+                    searchQuery={searchQuery}
+                    onProductClick={handleProductClick}
+                    onQuickAdd={addToCart}
+                    onHomeClick={() => handleNavigate('home')}
+                    onNavigate={handleNavigate}
+                />
+            </Suspense>
         )}
         {currentPage === 'product' && selectedProduct && (
-            <ProductDetailsPage
-                product={selectedProduct}
-                viewMode={effectiveViewMode}
-                onAddToCart={addToCart}
-                // When going back, return to catalog with the preserved filter
-                onBack={() => handleNavigate('catalog', currentFilter || 'All')}
-                onProductClick={handleProductClick}
-                relatedProducts={getRelatedProducts(selectedProduct)}
-                previousFilter={currentFilter}
-                onNavigate={handleNavigate}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading product...</p></div>}>
+                <ProductDetailsPage
+                    product={selectedProduct}
+                    viewMode={effectiveViewMode}
+                    onAddToCart={addToCart}
+                    // When going back, return to catalog with the preserved filter
+                    onBack={() => handleNavigate('catalog', currentFilter || 'All')}
+                    onProductClick={handleProductClick}
+                    relatedProducts={getRelatedProducts(selectedProduct)}
+                    previousFilter={currentFilter}
+                    onNavigate={handleNavigate}
+                />
+            </Suspense>
         )}
         {currentPage === 'cart' && (
-            <CartPage 
-                cartItems={cartItems}
-                viewMode={effectiveViewMode}
-                onUpdateQuantity={updateQuantity}
-                onRemoveItem={removeFromCart}
-                onNavigate={handleNavigate}
-                onCheckout={() => handleNavigate('checkout')}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading cart...</p></div>}>
+                <CartPage 
+                    cartItems={cartItems}
+                    viewMode={effectiveViewMode}
+                    onUpdateQuantity={updateQuantity}
+                    onRemoveItem={removeFromCart}
+                    onNavigate={handleNavigate}
+                    onCheckout={() => handleNavigate('checkout')}
+                />
+            </Suspense>
         )}
         {currentPage === 'checkout' && (
-            <CheckoutPage 
-                cartItems={cartItems}
-                viewMode={effectiveViewMode}
-                onBack={() => handleNavigate('cart')}
-                onPlaceOrder={handlePlaceOrder}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading checkout...</p></div>}>
+                <CheckoutPage 
+                    cartItems={cartItems}
+                    viewMode={effectiveViewMode}
+                    onBack={() => handleNavigate('cart')}
+                    onPlaceOrder={handlePlaceOrder}
+                />
+            </Suspense>
         )}
         {currentPage === 'order-confirmation' && lastPlacedOrder && (
-            <OrderConfirmationPage 
-                order={lastPlacedOrder}
-                viewMode={effectiveViewMode}
-                onNavigate={handleNavigate}
-                onPrintReceipt={handlePrintReceiptFromOrderConfirmation}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading...</p></div>}>
+                <OrderConfirmationPage 
+                    order={lastPlacedOrder}
+                    viewMode={effectiveViewMode}
+                    onNavigate={handleNavigate}
+                    onPrintReceipt={handlePrintReceiptFromOrderConfirmation}
+                />
+            </Suspense>
         )}
         {currentPage === 'receipt' && selectedOrder && (
-            <ReceiptPage 
-                order={selectedOrder}
-                viewMode={effectiveViewMode}
-                onBack={() => handleNavigate('order-status')}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading receipt...</p></div>}>
+                <ReceiptPage 
+                    order={selectedOrder}
+                    viewMode={effectiveViewMode}
+                    onBack={() => handleNavigate('order-status')}
+                />
+            </Suspense>
         )}
         {currentPage === 'order-status' && (
-            <OrderStatusPage 
-                viewMode={effectiveViewMode} 
-                onNavigate={handleNavigate}
-                onViewReceipt={handleViewReceipt}
-                onPersistLookup={(params) => {
-                  setOrderStatusParams(params);
-                  try {
-                    // Keep the URL in sync so refresh restores the lookup automatically.
-                    window.history.replaceState(null, '', toPathFromState({ page: 'order-status', orderStatusParams: params }));
-                  } catch {
-                    // ignore
-                  }
-                }}
-                initialOrderNumber={orderStatusParams.id}
-                initialEmail={orderStatusParams.email}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading order status...</p></div>}>
+                <OrderStatusPage 
+                    viewMode={effectiveViewMode} 
+                    onNavigate={handleNavigate}
+                    onViewReceipt={handleViewReceipt}
+                    onPersistLookup={(params) => {
+                      setOrderStatusParams(params);
+                      try {
+                        // Keep the URL in sync so refresh restores the lookup automatically.
+                        window.history.replaceState(null, '', toPathFromState({ page: 'order-status', orderStatusParams: params }));
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    initialOrderNumber={orderStatusParams.id}
+                    initialEmail={orderStatusParams.email}
+                />
+            </Suspense>
         )}
         {currentPage === 'contact' && (
-            <ContactPage viewMode={effectiveViewMode} />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading...</p></div>}>
+                <ContactPage viewMode={effectiveViewMode} />
+            </Suspense>
         )}
         {currentPage === 'staff-picks' && (
-            <StaffPicksPage 
-                viewMode={effectiveViewMode}
-                picks={staffPicks}
-                onProductClick={handleProductClick}
-                onNavigate={handleNavigate}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading staff picks...</p></div>}>
+                <StaffPicksPage 
+                    viewMode={effectiveViewMode}
+                    picks={staffPicks}
+                    onProductClick={handleProductClick}
+                    onNavigate={handleNavigate}
+                />
+            </Suspense>
         )}
         {currentPage === 'privacy' && (
-            <PrivacyPage 
-                viewMode={effectiveViewMode}
-                onNavigate={handleNavigate}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading...</p></div>}>
+                <PrivacyPage 
+                    viewMode={effectiveViewMode}
+                    onNavigate={handleNavigate}
+                />
+            </Suspense>
         )}
         {currentPage === 'terms' && (
-            <TermsPage 
-                viewMode={effectiveViewMode}
-                onNavigate={handleNavigate}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading...</p></div>}>
+                <TermsPage 
+                    viewMode={effectiveViewMode}
+                    onNavigate={handleNavigate}
+                />
+            </Suspense>
         )}
         {currentPage === 'accessibility' && (
-            <AccessibilityPage 
-                viewMode={effectiveViewMode}
-                onNavigate={handleNavigate}
-            />
+            <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading...</p></div>}>
+                <AccessibilityPage 
+                    viewMode={effectiveViewMode}
+                    onNavigate={handleNavigate}
+                />
+            </Suspense>
         )}
       </main>
 

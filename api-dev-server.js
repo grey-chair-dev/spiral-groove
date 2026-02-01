@@ -77,6 +77,8 @@ const server = createServer(async (req, res) => {
             handler = module.webHandler ?? module.default
           } else if (route === 'weekly-newsletter') {
             const module = await importFresh('./api/weekly-newsletter.js')
+          } else if (route === 'weekly-newsletter-bulk') {
+            const module = await importFresh('./api/weekly-newsletter-bulk.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'webhook/test') {
             const module = await importFresh('./api/webhook/test.js')

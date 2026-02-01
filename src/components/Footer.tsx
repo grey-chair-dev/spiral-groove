@@ -64,11 +64,11 @@ const NewsletterForm: React.FC = () => {
           setMessage({ type: 'already', text: data.message || 'Already subscribed.' });
         } else {
           setMessage({ type: 'success', text: data.message || 'Subscribed!' });
-          setEmail('');
+        setEmail('');
           setFirstName('');
           setLastName('');
-          // Track newsletter signup
-          trackNewsletterSignup('footer');
+        // Track newsletter signup
+        trackNewsletterSignup('footer');
         }
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to subscribe' });
@@ -106,22 +106,22 @@ const NewsletterForm: React.FC = () => {
         </div>
 
         <div className="relative">
-          <input 
-            type="email" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email" 
-            disabled={isSubmitting}
-            required
-            className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:bg-white/10 transition-colors disabled:opacity-50"
-          />
-          <button 
-            type="submit"
-            disabled={isSubmitting}
-            className="absolute right-1 top-1 bottom-1 px-3 bg-brand-orange text-brand-black font-bold uppercase text-[10px] tracking-wider hover:bg-brand-mustard transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? '...' : 'Join'}
-          </button>
+        <input 
+          type="email" 
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email" 
+          disabled={isSubmitting}
+          required
+          className="w-full bg-white/5 border border-white/10 rounded-sm px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-orange focus:bg-white/10 transition-colors disabled:opacity-50"
+        />
+        <button 
+          type="submit"
+          disabled={isSubmitting}
+          className="absolute right-1 top-1 bottom-1 px-3 bg-brand-orange text-brand-black font-bold uppercase text-[10px] tracking-wider hover:bg-brand-mustard transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? '...' : 'Join'}
+        </button>
         </div>
       </form>
       

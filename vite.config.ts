@@ -27,6 +27,21 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
-      }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              // Split vendor libraries into separate chunks
+              'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+              'ui-vendor': ['lucide-react'],
+              // Split heavy libraries that are only used in specific pages
+              'chart-vendor': ['recharts'],
+              'pdf-vendor': ['html2canvas', 'jspdf'],
+            },
+          },
+        },
+        chunkSizeWarningLimit: 600,
+      },
     };
 });
