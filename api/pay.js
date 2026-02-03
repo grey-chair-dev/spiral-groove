@@ -688,53 +688,42 @@ export async function webHandler(request) {
           ]
         )
 
-        // C. Create Order Items
-        if (cartItems && cartItems.length > 0) {
+        // C. Create Order Items (batched, FK-safe)
+        if (Array.isArray(canonicalCartItems) && canonicalCartItems.length > 0) {
+          const params = []
+          const tuples = []
+          let i = 1
           for (const item of canonicalCartItems) {
-             const itemId = crypto.randomUUID()
-             // Try to link to product if exists
-             // Note: cartItems.id should match products_cache.id (e.g. variation-XXX)
-             // We can check if product exists first, or rely on loose coupling if we didn't enforce FK (but I enforced FK in reset-db.mjs)
-             // Wait, I enforced FK: `product_id TEXT REFERENCES products_cache(id)`
-             // If cartItem.id doesn't exist in products_cache, this will fail.
-             // But cartItems come from the app which loads from products_cache.
-             // So it SHOULD exist.
-             
-             try {
-               await query(
-                 `INSERT INTO order_items (id, order_id, product_id, quantity, price_cents, name, created_at)
-                  VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-                 [
-                   itemId,
-                   dbOrderId,
-                   item.id, 
-                   item.quantity,
-                   Math.round(item.priceCents),
-                   item.name
-                 ]
-               )
-             } catch (itemErr) {
-               console.warn(`[Payment API] Failed to save order item ${item.id} (might not exist in cache):`, itemErr.message)
-               // Fallback: save without product_id if strict FK fails?
-               // Since FK is enforced, we can't save it with invalid product_id.
-               // We could save with NULL product_id if I made it nullable.
-               // In reset-db.mjs: `product_id TEXT REFERENCES products_cache(id)` -> implied nullable? YES, by default columns are nullable.
-               
-               if (itemErr.message.includes('foreign key constraint')) {
-                 await query(
-                   `INSERT INTO order_items (id, order_id, product_id, quantity, price_cents, name, created_at)
-                    VALUES ($1, $2, NULL, $4, $5, $6, NOW())`,
-                   [
-                     itemId,
-                     dbOrderId,
-                     item.quantity,
-                     Math.round(item.priceCents),
-                     item.name
-                   ]
-                 )
-               }
-             }
+            // We *attempt* to link product_id -> products_cache(id). If it doesn't exist, we insert NULL.
+            params.push(
+              crypto.randomUUID(), // item id
+              dbOrderId,           // order id
+              String(item.id),     // product id candidate
+              Number(item.quantity) || 0,
+              Math.round(Number(item.priceCents) || 0),
+              String(item.name || ''),
+            )
+            tuples.push(`($${i}::text, $${i + 1}::text, $${i + 2}::text, $${i + 3}::int, $${i + 4}::bigint, $${i + 5}::text)`)
+            i += 6
           }
+
+          await query(
+            `WITH v(item_id, order_id, product_id, quantity, price_cents, name) AS (
+               VALUES ${tuples.join(',')}
+             )
+             INSERT INTO order_items (id, order_id, product_id, quantity, price_cents, name, created_at)
+             SELECT
+               v.item_id,
+               v.order_id,
+               pc.id, -- NULL when no matching product exists
+               v.quantity,
+               v.price_cents,
+               v.name,
+               NOW()
+             FROM v
+             LEFT JOIN products_cache pc ON pc.id = v.product_id`,
+            params,
+          )
         }
 
         // D. Update product sold counts for best/worst-seller analytics (best-effort)

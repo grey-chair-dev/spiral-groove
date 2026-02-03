@@ -125,27 +125,20 @@ export async function webHandler(request) {
     const wasComplete = prevUpper === 'COMPLETED' || prevUpper === 'PICKED_UP' || prevUpper === 'DELIVERED'
     const isComplete = nextUpper === 'COMPLETED' || nextUpper === 'PICKED_UP' || nextUpper === 'DELIVERED'
 
-    // Update the order status
-    await query(
-      `UPDATE orders 
-       SET status = $1, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2`,
-      [status, dbOrderId]
-    )
-
-    // Fetch updated order (orders table only)
+    // Update the order status and fetch the updated row in one round-trip.
     const updatedOrder = await query(
-      `SELECT 
-         o.id,
-         o.order_number,
-         o.square_order_id,
-         o.status,
-         o.total_cents,
-         o.updated_at,
-         o.pickup_details
-       FROM orders o
-       WHERE o.id = $1`,
-      [dbOrderId]
+      `UPDATE orders
+       SET status = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING
+         id,
+         order_number,
+         square_order_id,
+         status,
+         total_cents,
+         updated_at,
+         pickup_details`,
+      [status, dbOrderId],
     )
 
     const updatedPickup =

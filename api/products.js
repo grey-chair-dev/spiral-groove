@@ -25,6 +25,29 @@ let lastFetchedAt = 0
 const CACHE_TTL_MS = 30_000
 const STALE_TTL_MS = 10 * 60 * 1000
 
+// Cache whether albums_cache exists to avoid hitting information_schema on every refresh.
+// In Vercel/serverless this will persist for warm instances and save a round trip.
+let albumsCacheExists = null
+let albumsCacheCheckedAt = 0
+const ALBUMS_CACHE_CHECK_TTL_MS = 10 * 60 * 1000
+
+async function getAlbumsCacheExists() {
+  const now = Date.now()
+  if (albumsCacheExists !== null && now - albumsCacheCheckedAt < ALBUMS_CACHE_CHECK_TTL_MS) {
+    return albumsCacheExists
+  }
+  const tableCheck = await query(`
+    SELECT EXISTS (
+      SELECT FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'albums_cache'
+    ) as exists
+  `)
+  albumsCacheExists = tableCheck.rows[0]?.exists === true
+  albumsCacheCheckedAt = now
+  return albumsCacheExists
+}
+
 /**
  * Maps a database row from products_cache to the Product type
  * @param {Object} row - Database row from products_cache table
@@ -117,15 +140,8 @@ export async function webHandler(request) {
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
     const oneMonthAgoISO = oneMonthAgo.toISOString()
     
-    // Check if albums_cache table exists, fallback to products_cache if not
-    const tableCheck = await query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'albums_cache'
-      ) as exists
-    `)
-    const useAlbumsCache = tableCheck.rows[0]?.exists === true
+    // Check if albums_cache table exists (cached), fallback to products_cache if not
+    const useAlbumsCache = await getAlbumsCacheExists()
     
     const tableName = useAlbumsCache ? 'albums_cache' : 'products_cache'
     
@@ -159,9 +175,10 @@ export async function webHandler(request) {
           (
             stock_count = 0 
             AND (
-              (last_stocked_at IS NOT NULL AND last_stocked_at >= $1::timestamptz)
+              -- Prefer generated column if present; fall back to COALESCE for older schemas.
+              (last_active_at IS NOT NULL AND last_active_at >= $1::timestamptz)
               OR
-              (last_stocked_at IS NULL AND created_at >= $1::timestamptz)
+              (last_active_at IS NULL AND COALESCE(last_stocked_at, created_at) >= $1::timestamptz)
             )
           )
         ORDER BY created_at DESC, id ASC`,

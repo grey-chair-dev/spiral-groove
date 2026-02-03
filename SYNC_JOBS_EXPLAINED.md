@@ -115,6 +115,29 @@ ORDER BY created_at DESC
 LIMIT 10;
 ```
 
+---
+
+## ⚡ Query/index optimization (recommended)
+
+To keep Neon fast as inventory + orders grow, run:
+
+```bash
+npm run db:optimize
+```
+
+This adds indexes that directly support the hot API paths:
+
+- **`/api/products`**
+  - `albums_cache` indexes for the stock/date filter and `ORDER BY created_at DESC`
+- **`/api/orders`** / **`/api/orders/update`**
+  - indexes for `order_number` and `square_order_id`
+  - expression indexes for `pickup_details` lookup keys (email/phone)
+- **`/api/pay`**
+  - indexes for `customers.email` and `customers.square_customer_id`
+  - `order_items.order_id` (also used by reporting)
+
+The script finishes by running `ANALYZE` on relevant tables to refresh planner stats.
+
 ### Log Fields
 - `sync_type`: `"products"` or `"sales"`
 - `status`: `"success"` or `"error"`

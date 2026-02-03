@@ -37,7 +37,9 @@ export async function ensureAlbumsCacheSchema() {
       last_adjustment_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      synced_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      synced_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      -- Sargable “recent activity” timestamp (used for filtering 0-stock items without OR chains)
+      last_active_at TIMESTAMPTZ GENERATED ALWAYS AS (COALESCE(last_stocked_at, created_at)) STORED
     )
   `)
 
@@ -56,6 +58,12 @@ export async function ensureAlbumsCacheSchema() {
   await query(`
     CREATE INDEX IF NOT EXISTS idx_albums_cache_zero_stock_recent 
     ON albums_cache (last_stocked_at, created_at DESC) 
+    WHERE stock_count = 0
+  `)
+
+  await query(`
+    CREATE INDEX IF NOT EXISTS idx_albums_cache_zero_stock_active 
+    ON albums_cache (last_active_at, created_at DESC, id ASC)
     WHERE stock_count = 0
   `)
   
