@@ -3,6 +3,7 @@ import React from 'react';
 import { Product } from '../../types';
 import { X, CheckCircle2, Disc, Music2, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
+import { getDefaultProductImage } from '../utils/defaultProductImage';
 
 interface ProductModalProps {
   product: Product | null;

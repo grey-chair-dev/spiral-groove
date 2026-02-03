@@ -1,8 +1,10 @@
 import { type ReactNode, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { featureFlags, siteConfig } from '../config'
-import type { Product, ConnectionMode } from '../dataAdapter'
+import type { Product } from '../dataAdapter'
 import { moneyFormatter } from '../formatters'
+
+type ConnectionMode = 'live' | 'snapshot' | 'mock' | 'offline'
 
 type HomePageProps = {
   products: Product[]

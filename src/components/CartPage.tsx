@@ -4,6 +4,7 @@ import { CartItem, ViewMode, Page } from '../../types';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { Minus, Plus, Trash2, ArrowRight, Disc, CreditCard, Lock } from 'lucide-react';
+import { getDefaultProductImage } from '../utils/defaultProductImage';
 
 interface CartPageProps {
   cartItems: CartItem[];

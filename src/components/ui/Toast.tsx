@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { CheckCircle2, X } from 'lucide-react';
-import { ViewMode } from '../../types';
+import { ViewMode } from '../../../types';
 
 interface ToastProps {
   message: string;

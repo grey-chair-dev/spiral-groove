@@ -10,10 +10,12 @@
  * 3. Update the LoginPage/SignUpPage to show the new provider button
  */
 
+import type { ReactNode } from 'react'
+
 export type AuthProvider = {
   id: string
   name: string
-  icon?: React.ReactNode
+  icon?: ReactNode
   enabled: boolean
   credentials: {
     [key: string]: string | undefined

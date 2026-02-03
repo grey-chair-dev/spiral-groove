@@ -126,9 +126,9 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
                 <Button 
                     size="lg" 
                     variant={isRetro ? 'outline' : 'ghost'}
-                    onClick={() => onNavigate('orders')}
+                    onClick={() => onNavigate('order-status')}
                 >
-                    View Order History
+                    Track an Order
                 </Button>
             </div>
 

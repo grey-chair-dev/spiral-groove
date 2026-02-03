@@ -27,7 +27,7 @@ export function initAnalytics() {
   if (typeof window.gtag === 'undefined') {
     window.dataLayer = window.dataLayer || []
     window.gtag = function(...args: any[]) {
-      window.dataLayer.push(args)
+      ;(window.dataLayer ||= []).push(args)
     }
   }
 

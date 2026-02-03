@@ -101,10 +101,10 @@ export function getAvailableAlbumCategories(products: Product[]): string[] {
   const categorySet = new Set<string>();
   
   products.forEach(product => {
-    // Check category field
-    const category = product.category || product.tags?.[0] || '';
-    if (category && ALBUM_CATEGORIES.includes(category) && !EXCLUDE_CATEGORIES.includes(category)) {
-      categorySet.add(category);
+    // Root `types.ts` uses `genre` as the primary category-like field.
+    const primary = product.genre || product.tags?.[0] || '';
+    if (primary && ALBUM_CATEGORIES.includes(primary) && !EXCLUDE_CATEGORIES.includes(primary)) {
+      categorySet.add(primary);
     }
     
     // Check all_categories array
@@ -147,7 +147,7 @@ export function getAvailableGenres(products: Product[]): string[] {
   
   const availableGenres = genres.filter(genre => {
     return products.some(product => {
-      const category = product.category || product.tags?.[0] || '';
+      const category = product.genre || product.tags?.[0] || '';
       const categories = product.categories || [];
       return category === genre || categories.includes(genre);
     });
@@ -163,12 +163,12 @@ export function getAvailableVinylFormats(products: Product[]): string[] {
   const formats: string[] = [];
   
   // Check for New Vinyl
-  if (products.some(p => (p.category || p.tags?.[0] || '') === 'New Vinyl' || (p.categories || []).includes('New Vinyl'))) {
+  if (products.some(p => (p.genre || p.tags?.[0] || '') === 'New Vinyl' || (p.categories || []).includes('New Vinyl'))) {
     formats.push('New Vinyl');
   }
   
   // Check for Used Vinyl
-  if (products.some(p => (p.category || p.tags?.[0] || '') === 'Used Vinyl' || (p.categories || []).includes('Used Vinyl'))) {
+  if (products.some(p => (p.genre || p.tags?.[0] || '') === 'Used Vinyl' || (p.categories || []).includes('Used Vinyl'))) {
     formats.push('Used Vinyl');
   }
   
@@ -176,7 +176,7 @@ export function getAvailableVinylFormats(products: Product[]): string[] {
   const vinylKeywords = ['45', '33New', '33Used', 'Box Set', 'Record Store Day', 'Compilations'];
   vinylKeywords.forEach(keyword => {
     if (products.some(p => {
-      const category = p.category || p.tags?.[0] || '';
+      const category = p.genre || p.tags?.[0] || '';
       const categories = p.categories || [];
       return category === keyword || categories.includes(keyword);
     })) {

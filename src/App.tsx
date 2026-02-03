@@ -509,7 +509,7 @@ function App() {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const createdAt = apiProduct.createdAt ? new Date(apiProduct.createdAt) : null;
-    const isNewArrival = createdAt && createdAt >= oneWeekAgo;
+    const isNewArrival = !!(createdAt && createdAt >= oneWeekAgo);
 
     return {
       id: apiProduct.id,
@@ -543,7 +543,6 @@ function App() {
       'we-buy': 'We Buy Records - Spiral Groove Records',
       'catalog': 'Catalog - Spiral Groove Records',
       'product': selectedProduct ? `${selectedProduct.title} - Spiral Groove Records` : 'Product - Spiral Groove Records',
-      'orders': 'Orders - Spiral Groove Records',
       'receipt': 'Receipt - Spiral Groove Records',
       'order-status': 'Order Status - Spiral Groove Records',
       'contact': 'Contact - Spiral Groove Records',
@@ -551,7 +550,6 @@ function App() {
       'cart': 'Cart - Spiral Groove Records',
       'checkout': 'Checkout - Spiral Groove Records',
       'order-confirmation': 'Order Confirmation - Spiral Groove Records',
-      'settings': 'Settings - Spiral Groove Records',
       'search': 'Search - Spiral Groove Records',
       'privacy': 'Privacy Policy - Spiral Groove Records',
       'terms': 'Terms of Service - Spiral Groove Records',

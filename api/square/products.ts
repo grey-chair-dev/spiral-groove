@@ -11,7 +11,7 @@
  * Example: VITE_PRODUCTS_SNAPSHOT_URL=https://your-app.vercel.app/api/square/products
  */
 
-import { fetchSquareProducts, type SquareConfig } from '../../src/services/squareAdapter'
+import { fetchSquareProducts, type SquareConfig } from '../_lib/squareAdapter'
 
 // Avoid depending on `@vercel/node` types (not installed in this repo).
 export default async function handler(req: any, res: any) {

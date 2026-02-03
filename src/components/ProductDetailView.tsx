@@ -246,7 +246,7 @@ export function ProductDetailView({
               <span className="text-lg font-bold text-white">
                 {moneyFormatter.format(product.price)}
               </span>
-              {isOnSale && (
+              {isLowStock && (
                 <p className="text-xs text-secondary">Limited stock</p>
               )}
             </div>

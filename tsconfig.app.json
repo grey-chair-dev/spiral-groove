@@ -5,7 +5,8 @@
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "types": ["vite/client"],
+    // `vite-env.d.ts` already references `vite/client`, and we want default type
+    // resolution to pick up `@types/react` / `@types/react-dom` for JSX.
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -20,6 +21,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"],
+  "include": ["src", "vite-env.d.ts"],
   "exclude": ["node_modules"]
 }
