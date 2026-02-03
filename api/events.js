@@ -18,6 +18,58 @@ let lastFetchedAt = 0
 const CACHE_TTL_MS = 30_000
 const STALE_TTL_MS = 10 * 60 * 1000
 
+// Best-effort schema guard so prod doesn't 500 if the events table (or columns) are missing.
+let didEnsureEventsSchema = false
+
+async function ensureEventsSchema() {
+  if (didEnsureEventsSchema) return
+  try {
+    await query(`
+      CREATE TABLE IF NOT EXISTS events (
+        id BIGSERIAL PRIMARY KEY,
+        is_event BOOLEAN DEFAULT TRUE,
+        event_type TEXT,
+        event_name TEXT,
+        artist TEXT,
+        venue TEXT,
+        event_date DATE,
+        start_time TIME,
+        end_time TIME,
+        event_description TEXT,
+        confidence NUMERIC,
+        event_image_url TEXT,
+        event_permalink TEXT,
+        fingerprint TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    // Add columns idempotently for existing tables.
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_event BOOLEAN DEFAULT TRUE`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_type TEXT`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_name TEXT`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS artist TEXT`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS venue TEXT`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_date DATE`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS start_time TIME`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TIME`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_description TEXT`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS confidence NUMERIC`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_image_url TEXT`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_permalink TEXT`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS fingerprint TEXT`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`)
+    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`)
+
+    didEnsureEventsSchema = true
+  } catch (e) {
+    // Don't fail the request if migrations are blocked; we still handle missing table below.
+    console.warn('[Events API] Unable to ensure events schema:', e?.message || e)
+    didEnsureEventsSchema = true
+  }
+}
+
 /**
  * @param {Request} request
  * @returns {Promise<Response>}
@@ -45,6 +97,9 @@ export async function webHandler(request) {
   }
 
   try {
+    // Best-effort schema check/migration
+    await ensureEventsSchema()
+
     // Serve hot cache if it's fresh
     if (Array.isArray(lastEvents) && Date.now() - lastFetchedAt < CACHE_TTL_MS) {
       return new Response(JSON.stringify({ success: true, events: lastEvents }), {
@@ -74,12 +129,14 @@ export async function webHandler(request) {
         venue,
         event_date::text AS date_iso,
         TO_CHAR(event_date, 'MON FMDD') AS date_label,
-        start_time::text AS start_time,
-        end_time::text AS end_time,
-        (event_date::text || 'T' || start_time::text) AS start_datetime_iso,
-        (event_date::text || 'T' || end_time::text) AS end_datetime_iso,
-        TO_CHAR(start_time, 'FMHH12:MI AM') AS start_time_label,
-        TO_CHAR(end_time, 'FMHH12:MI AM') AS end_time_label,
+        (NULLIF(start_time::text, ''))::time AS start_time_time,
+        (NULLIF(end_time::text, ''))::time AS end_time_time,
+        (NULLIF(start_time::text, '')) AS start_time,
+        (NULLIF(end_time::text, '')) AS end_time,
+        (event_date::text || 'T' || (NULLIF(start_time::text, ''))::time::text) AS start_datetime_iso,
+        (event_date::text || 'T' || (NULLIF(end_time::text, ''))::time::text) AS end_datetime_iso,
+        TO_CHAR((NULLIF(start_time::text, ''))::time, 'FMHH12:MI AM') AS start_time_label,
+        TO_CHAR((NULLIF(end_time::text, ''))::time, 'FMHH12:MI AM') AS end_time_label,
         event_description,
         confidence,
         event_image_url,
@@ -90,7 +147,7 @@ export async function webHandler(request) {
       FROM events
       WHERE is_event = true
         AND event_date >= CURRENT_DATE
-      ORDER BY event_date ASC, start_time ASC NULLS LAST, id ASC`
+      ORDER BY event_date ASC, start_time_time ASC NULLS LAST, id ASC`
     )
 
     const events = result.rows.map((row) => ({
@@ -129,6 +186,20 @@ export async function webHandler(request) {
       },
     })
   } catch (error) {
+    // If the events table doesn't exist (or schema is incompatible), don't take down the page.
+    const msg = String(error?.message || '')
+    if (msg.includes('relation') && msg.includes('events') && msg.includes('does not exist')) {
+      console.warn('[Events API] events table missing; returning empty list')
+      return new Response(JSON.stringify({ success: true, events: [] }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'X-Events-Cache': 'EMPTY',
+        },
+      })
+    }
+
     // Serve stale cache on transient Neon failures
     if (Array.isArray(lastEvents) && Date.now() - lastFetchedAt < STALE_TTL_MS) {
       console.warn('[Events API] Neon error; serving STALE cache', { ageMs: Date.now() - lastFetchedAt })
