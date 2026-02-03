@@ -1111,7 +1111,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
          // Generate pagination numbers with ellipsis
          const getPaginationNumbers = () => {
             const pages: (number | string)[] = []
-            const maxVisible = 7 // Show up to 7 page numbers
+            // Mobile should stay compact; desktop can show more context.
+            const maxVisible = isWide ? 7 : 5 // tokens including ellipses
             
             if (totalPages <= maxVisible) {
                // Show all pages if total is small
@@ -1119,36 +1120,32 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                   pages.push(i)
                }
             } else {
-               // Determine which pages to show based on current page
-               const showAroundCurrent = 1 // Pages to show around current (e.g., current-1, current, current+1)
-               
-               if (currentPage <= 4) {
-                  // Near the beginning: 1, 2, 3, ..., last-1, last
-                  for (let i = 1; i <= 3; i++) {
-                     pages.push(i)
-                  }
-                  pages.push('ellipsis')
-                  pages.push(totalPages - 1)
-                  pages.push(totalPages)
-               } else if (currentPage >= totalPages - 3) {
-                  // Near the end: 1, 2, ..., last-2, last-1, last
-                  pages.push(1)
-                  pages.push(2)
-                  pages.push('ellipsis')
-                  for (let i = totalPages - 2; i <= totalPages; i++) {
-                     pages.push(i)
+               if (!isWide) {
+                  // Mobile: keep it tight (<= 5 tokens)
+                  // - Start: 1, 2, 3, …, last
+                  // - End: 1, …, last-2, last-1, last
+                  // - Middle: 1, …, current, …, last
+                  if (currentPage <= 3) {
+                     pages.push(1, 2, 3, 'ellipsis', totalPages)
+                  } else if (currentPage >= totalPages - 2) {
+                     pages.push(1, 'ellipsis', totalPages - 2, totalPages - 1, totalPages)
+                  } else {
+                     pages.push(1, 'ellipsis', currentPage, 'ellipsis', totalPages)
                   }
                } else {
-                  // In the middle: 1, 2, ..., current-1, current, current+1, ..., last-1, last
-                  pages.push(1)
-                  pages.push(2)
-                  pages.push('ellipsis')
-                  pages.push(currentPage - 1)
-                  pages.push(currentPage)
-                  pages.push(currentPage + 1)
-                  pages.push('ellipsis')
-                  pages.push(totalPages - 1)
-                  pages.push(totalPages)
+                  // Desktop: show more context around the current page.
+                  if (currentPage <= 4) {
+                     // Near the beginning: 1, 2, 3, ..., last-1, last
+                     for (let i = 1; i <= 3; i++) pages.push(i)
+                     pages.push('ellipsis', totalPages - 1, totalPages)
+                  } else if (currentPage >= totalPages - 3) {
+                     // Near the end: 1, 2, ..., last-2, last-1, last
+                     pages.push(1, 2, 'ellipsis')
+                     for (let i = totalPages - 2; i <= totalPages; i++) pages.push(i)
+                  } else {
+                     // In the middle: 1, 2, ..., current-1, current, current+1, ..., last-1, last
+                     pages.push(1, 2, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages - 1, totalPages)
+                  }
                }
             }
             
@@ -1158,17 +1155,18 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
          const paginationNumbers = getPaginationNumbers()
          
          return (
-            <div className="mt-16 flex items-center justify-center gap-2 flex-wrap">
+            <div className="mt-12 sm:mt-16 flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                <button
                   disabled={currentPage === 1}
                   onClick={() => handlePageChange(currentPage - 1)}
-                  className={`p-3 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed
+                  className={`p-2 sm:p-3 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed
                      ${viewMode === 'retro' 
                        ? 'bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:shadow-pop-sm' 
                        : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-100'}
                   `}
                >
-                  <ChevronLeft size={16} strokeWidth={3} />
+                  <ChevronLeft size={14} className="sm:hidden" strokeWidth={3} />
+                  <ChevronLeft size={16} className="hidden sm:block" strokeWidth={3} />
                </button>
                
                {paginationNumbers.map((page, index) => {
@@ -1176,7 +1174,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                      return (
                         <span
                            key={`ellipsis-${index}`}
-                           className={`w-10 h-10 flex items-center justify-center font-bold text-sm
+                           className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center font-bold text-xs sm:text-sm
                               ${viewMode === 'retro' ? 'text-brand-black' : 'text-gray-600'}
                            `}
                         >
@@ -1190,7 +1188,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                      <button
                         key={pageNum}
                         onClick={() => handlePageChange(pageNum)}
-                        className={`w-10 h-10 flex items-center justify-center font-bold text-sm rounded-full transition-all
+                        className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center font-bold text-xs sm:text-sm rounded-full transition-all
                            ${currentPage === pageNum 
                               ? (viewMode === 'retro' ? 'bg-brand-black text-white border-2 border-brand-black shadow-pop-sm' : 'bg-black text-white')
                               : (viewMode === 'retro' ? 'bg-brand-cream text-brand-black border-2 border-brand-black hover:bg-brand-mustard' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100')}
@@ -1204,13 +1202,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                <button
                   disabled={currentPage === totalPages}
                   onClick={() => handlePageChange(currentPage + 1)}
-                  className={`p-3 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed
+                  className={`p-2 sm:p-3 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed
                      ${viewMode === 'retro' 
                        ? 'bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:shadow-pop-sm' 
                        : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-100'}
                   `}
                >
-                  <ChevronRight size={16} strokeWidth={3} />
+                  <ChevronRight size={14} className="sm:hidden" strokeWidth={3} />
+                  <ChevronRight size={16} className="hidden sm:block" strokeWidth={3} />
                </button>
             </div>
          )
