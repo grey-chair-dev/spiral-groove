@@ -28,13 +28,17 @@ const STALE_TTL_MS = 10 * 60 * 1000
 // Cache whether albums_cache exists to avoid hitting information_schema on every refresh.
 // In Vercel/serverless this will persist for warm instances and save a round trip.
 let albumsCacheExists = null
+let albumsCacheHasLastActiveAt = null
 let albumsCacheCheckedAt = 0
 const ALBUMS_CACHE_CHECK_TTL_MS = 10 * 60 * 1000
 
-async function getAlbumsCacheExists() {
+async function getAlbumsCacheCapabilities() {
   const now = Date.now()
   if (albumsCacheExists !== null && now - albumsCacheCheckedAt < ALBUMS_CACHE_CHECK_TTL_MS) {
-    return albumsCacheExists
+    return {
+      exists: albumsCacheExists,
+      hasLastActiveAt: Boolean(albumsCacheHasLastActiveAt),
+    }
   }
   const tableCheck = await query(`
     SELECT EXISTS (
@@ -44,8 +48,25 @@ async function getAlbumsCacheExists() {
     ) as exists
   `)
   albumsCacheExists = tableCheck.rows[0]?.exists === true
+  albumsCacheHasLastActiveAt = false
+
+  // If the table exists, check whether the optimized generated column exists.
+  if (albumsCacheExists) {
+    const colCheck = await query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'albums_cache'
+          AND column_name = 'last_active_at'
+      ) as exists
+    `)
+    albumsCacheHasLastActiveAt = colCheck.rows[0]?.exists === true
+  }
   albumsCacheCheckedAt = now
-  return albumsCacheExists
+  return {
+    exists: albumsCacheExists,
+    hasLastActiveAt: Boolean(albumsCacheHasLastActiveAt),
+  }
 }
 
 /**
@@ -141,7 +162,8 @@ export async function webHandler(request) {
     const oneMonthAgoISO = oneMonthAgo.toISOString()
     
     // Check if albums_cache table exists (cached), fallback to products_cache if not
-    const useAlbumsCache = await getAlbumsCacheExists()
+    const albumsCaps = await getAlbumsCacheCapabilities()
+    const useAlbumsCache = albumsCaps.exists
     
     const tableName = useAlbumsCache ? 'albums_cache' : 'products_cache'
     
@@ -150,6 +172,28 @@ export async function webHandler(request) {
     if (useAlbumsCache) {
       // Query from albums_cache (already filtered to albums)
       // Uses indexes: idx_albums_cache_created_at for sorting, composite indexes for filtering
+      const stockDatePredicate = albumsCaps.hasLastActiveAt
+        ? `
+          stock_count > 0
+          OR
+          (
+            stock_count = 0 
+            AND last_active_at >= $1::timestamptz
+          )
+        `
+        : `
+          stock_count > 0
+          OR
+          (
+            stock_count = 0 
+            AND (
+              (last_stocked_at IS NOT NULL AND last_stocked_at >= $1::timestamptz)
+              OR
+              (last_stocked_at IS NULL AND created_at >= $1::timestamptz)
+            )
+          )
+        `
+
       const result = await query(
         `SELECT 
           id,
@@ -170,17 +214,7 @@ export async function webHandler(request) {
         FROM albums_cache
         WHERE 
           -- Stock filtering: show products with stock OR recently stocked
-          stock_count > 0
-          OR
-          (
-            stock_count = 0 
-            AND (
-              -- Prefer generated column if present; fall back to COALESCE for older schemas.
-              (last_active_at IS NOT NULL AND last_active_at >= $1::timestamptz)
-              OR
-              (last_active_at IS NULL AND COALESCE(last_stocked_at, created_at) >= $1::timestamptz)
-            )
-          )
+          ${stockDatePredicate}
         ORDER BY created_at DESC, id ASC`,
         [oneMonthAgoISO]
       )

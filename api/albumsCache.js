@@ -37,10 +37,15 @@ export async function ensureAlbumsCacheSchema() {
       last_adjustment_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      synced_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      -- Sargable “recent activity” timestamp (used for filtering 0-stock items without OR chains)
-      last_active_at TIMESTAMPTZ GENERATED ALWAYS AS (COALESCE(last_stocked_at, created_at)) STORED
+      synced_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     )
+  `)
+
+  // Add generated column for sargable “recent activity” filtering (existing tables won’t get it via CREATE TABLE IF NOT EXISTS)
+  await query(`
+    ALTER TABLE albums_cache
+    ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ
+    GENERATED ALWAYS AS (COALESCE(last_stocked_at, created_at)) STORED
   `)
 
   // Create indexes for faster queries
