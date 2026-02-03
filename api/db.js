@@ -42,11 +42,14 @@ export function getPool() {
     ssl: process.env.NODE_ENV === 'production' 
       ? { rejectUnauthorized: false } 
       : { rejectUnauthorized: false },
-    // Connection pool settings
+    // Connection pool settings - optimized for Neon
     max: 10, // Maximum number of clients in the pool
     idleTimeoutMillis: 60000, // Close idle clients after 60 seconds (increased for long-running syncs)
     connectionTimeoutMillis: 20000, // Increased timeout for Neon handshake
-    keepAlive: true,
+    // Statement timeout to prevent runaway queries (30 seconds)
+    statement_timeout: 30000,
+    // Query timeout
+    query_timeout: 30000,
   })
 
   // Handle pool errors

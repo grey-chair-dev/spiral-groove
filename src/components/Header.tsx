@@ -1,8 +1,9 @@
 
-import React, { useLayoutEffect, useState, useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useState, useEffect, useRef, useMemo } from 'react';
 import { ShoppingCart, Menu, X, Search, ChevronDown } from 'lucide-react';
 import { ViewMode, Page, Product } from '../../types';
 import { ProductCategory, RecordFormat } from '../types/productEnums';
+import { getAvailableGenres, getAvailableVinylFormats } from '../utils/productCategories';
 
 interface HeaderProps {
   viewMode: ViewMode;
@@ -30,101 +31,85 @@ interface NavItem {
   simpleDropdown?: { label: string; page?: Page; filter?: string }[];
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'New Releases', page: 'catalog', filter: 'New Arrivals' },
-  { 
-    label: 'Shop', 
-    page: 'catalog', 
-    filter: 'All',
-    hasDropdown: true,
-    columns: [
-      {
-        title: 'Vinyl & Media',
-        links: [
-            { label: 'New Vinyl (33s)', page: 'catalog', filter: 'New Vinyl' }, 
-            { label: 'Used Vinyl (33s)', page: 'catalog', filter: 'Used Vinyl' }, 
-            { label: '45s / 7"', page: 'catalog', filter: RecordFormat.SEVEN_INCH }, 
-            { label: 'CDs', page: 'catalog', filter: RecordFormat.CD }, 
-            { label: 'Cassettes', page: 'catalog', filter: RecordFormat.CASSETTE }, 
-            { label: 'Box Sets', page: 'catalog', filter: 'Box Set' },
-            { label: 'Record Store Day', page: 'catalog', filter: 'Record Store Day' },
-            { label: 'Compilations', page: 'catalog', filter: 'Compilations' }
-        ]
-      },
-      {
-        title: 'By Genre',
-        links: [
-          ProductCategory.ROCK,
-          ProductCategory.JAZZ,
-          ProductCategory.RAP_HIP_HOP,
-          ProductCategory.FUNK_SOUL,
-          ProductCategory.INDIE,
-          ProductCategory.METAL,
-          ProductCategory.PUNK_SKA,
-          ProductCategory.REGGAE,
-          ProductCategory.COUNTRY,
-          ProductCategory.ELECTRONIC,
-          ProductCategory.BLUES,
-          ProductCategory.FOLK,
-          ProductCategory.POP,
-          ProductCategory.SOUNDTRACKS,
-        ]
-          .map(
-            (genre): { label: string; page: 'catalog'; filter: string } => ({
-              label: genre,
-              page: 'catalog',
-              filter: genre,
-            }),
-          )
-          .concat([{ label: 'Browse all genres', page: 'catalog', filter: 'All' }]),
-      },
-      {
-        title: 'Equipment',
-        links: [
-            { label: 'Turntables & Audio', page: 'catalog', filter: 'Equipment' }, 
-            { label: 'Cleaning Kits', page: 'catalog', filter: 'Cleaner' }, 
-            { label: 'Sleeves & Protection', page: 'catalog', filter: 'Sleeves' }, 
-            { label: 'Slip Mats', page: 'catalog', filter: 'Slip Mat' }, 
-            { label: 'Crates & Storage', page: 'catalog', filter: 'Crates' }, 
-            { label: 'Adapters', page: 'catalog', filter: 'Adapters' },
-            { label: 'Boomboxes', page: 'catalog', filter: 'Boombox' }
-        ]
-      },
-      {
-        title: 'Merch & Lifestyle',
-        links: [
-            { label: 'Apparel (T-Shirts, Hats)', page: 'catalog', filter: 'Apparel' }, 
-            { label: 'Home (Candles, Mugs)', page: 'catalog', filter: 'Home' }, 
-            { label: 'Posters & Art', page: 'catalog', filter: 'Poster' }, 
-            { label: 'Collectibles (Funko, Toys)', page: 'catalog', filter: 'Collectibles' }, 
-            { label: 'Pins, Patches & Stickers', page: 'catalog', filter: 'Sticker' }, 
-            { label: 'Books', page: 'catalog', filter: 'Book' },
-            { label: 'Tote Bags', page: 'catalog', filter: 'Tote Bag' }
-        ]
-      }
-    ]
-  },
-  { label: 'Events', page: 'events' },
-  { label: 'Locations', page: 'locations' },
-  {
-    label: 'About',
-    page: 'about',
-    hasDropdown: true,
-    simpleDropdown: [
-        { label: 'Our Story', page: 'about' }, 
-        { label: 'We Buy Records', page: 'we-buy' }
-    ]
-  },
-  { 
-    label: 'Help', 
-    page: 'contact',
-    hasDropdown: true,
-    simpleDropdown: [
-        { label: 'Pickup & Returns', page: 'locations' }, 
-        { label: 'Contact Us', page: 'contact' }
-    ]
+// Base NAV_ITEMS structure - will be enhanced with dynamic categories
+const getNavItems = (products: Product[] = []): NavItem[] => {
+  const availableGenres = getAvailableGenres(products);
+  const availableFormats = getAvailableVinylFormats(products);
+  
+  const albumLinks: { label: string; page: 'catalog'; filter: string }[] = [];
+  
+  // Add formats that exist
+  if (availableFormats.includes('New Vinyl')) {
+    albumLinks.push({ label: 'New Vinyl (33s)', page: 'catalog', filter: 'New Vinyl' });
   }
-];
+  if (products.some(p => {
+    const category = p.categories?.[0] || '';
+    return category === '45' || category.includes('45') || 
+           (p.format || '').toLowerCase().includes('7"') || 
+           (p.format || '').toLowerCase().includes('45');
+  })) {
+    albumLinks.push({ label: '45s / 7"', page: 'catalog', filter: RecordFormat.SEVEN_INCH });
+  }
+  if (availableFormats.includes('Box Set')) {
+    albumLinks.push({ label: 'Box Sets', page: 'catalog', filter: 'Box Set' });
+  }
+  if (availableFormats.includes('Record Store Day')) {
+    albumLinks.push({ label: 'Record Store Day', page: 'catalog', filter: 'Record Store Day' });
+  }
+  if (availableFormats.includes('Compilations')) {
+    albumLinks.push({ label: 'Compilations', page: 'catalog', filter: 'Compilations' });
+  }
+  
+  const genreLinks = availableGenres
+    .map((genre): { label: string; page: 'catalog'; filter: string } => ({
+      label: genre,
+      page: 'catalog',
+      filter: genre,
+    }))
+    .concat([{ label: 'Browse all genres', page: 'catalog', filter: 'All' }]);
+  
+  return [
+    { label: 'New Releases', page: 'catalog', filter: 'New Arrivals' },
+    { 
+      label: 'Shop', 
+      page: 'catalog', 
+      filter: 'All',
+      hasDropdown: true,
+      columns: [
+        {
+          title: '', // Removed "Albums" title
+          links: albumLinks.length > 0 ? albumLinks : [
+            { label: 'All Albums', page: 'catalog', filter: 'All' }
+          ]
+        },
+        {
+          title: 'By Genre',
+          links: genreLinks
+        },
+      ]
+    },
+    { label: 'Events', page: 'events' },
+    { label: 'Locations', page: 'locations' },
+    {
+      label: 'About',
+      page: 'about',
+      hasDropdown: true,
+      simpleDropdown: [
+          { label: 'Our Story', page: 'about' }, 
+          { label: 'We Buy Records', page: 'we-buy' }
+      ]
+    },
+    { 
+      label: 'Help', 
+      page: 'contact',
+      hasDropdown: true,
+      simpleDropdown: [
+          { label: 'Pickup & Returns', page: 'locations' }, 
+          { label: 'Contact Us', page: 'contact' }
+      ]
+    }
+  ];
+};
 
 export const Header: React.FC<HeaderProps> = ({ 
   viewMode, 
@@ -144,8 +129,6 @@ export const Header: React.FC<HeaderProps> = ({
   
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const mobileSearchRef = useRef<HTMLInputElement>(null);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -187,13 +170,6 @@ export const Header: React.FC<HeaderProps> = ({
   useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? 'hidden' : 'unset';
   }, [isMobileMenuOpen]);
-
-  // Focus mobile search input when opened
-  useEffect(() => {
-    if (isMobileSearchOpen && mobileSearchRef.current) {
-        setTimeout(() => mobileSearchRef.current?.focus(), 100);
-    }
-  }, [isMobileSearchOpen]);
 
   const toggleMobileGroup = (label: string) => {
     setMobileExpanded(prev => prev === label ? null : label);
@@ -262,6 +238,9 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const isRetro = viewMode === 'retro';
+  
+  // Build nav items dynamically from products (only show categories that exist)
+  const navItems = useMemo(() => getNavItems(products || []), [products]);
 
   return (
     <>
@@ -298,8 +277,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Logo */}
               <div className="flex-shrink-0 cursor-pointer group flex-1 md:flex-none text-center md:text-left" onClick={() => onNavigate('home')}>
-                <div className="flex items-center justify-center md:justify-start">
-                  
+                <div className="flex flex-col items-center md:items-start">
                   <div className={`flex flex-col leading-none items-center md:items-start transition-all origin-left
                     ${scrolled ? 'scale-100' : 'scale-100'}
                   `}>
@@ -310,6 +288,80 @@ export const Header: React.FC<HeaderProps> = ({
                         className="h-32 sm:h-36 md:h-40 w-auto transform group-hover:scale-[1.02] transition-transform object-contain"
                       />
                     </div>
+                  </div>
+                  
+                  {/* Mobile Search Bar - Under Logo */}
+                  <div className="md:hidden w-full max-w-xs mt-3" ref={searchContainerRef}>
+                    <form className="w-full relative group" onSubmit={handleSearchSubmit}>
+                      <input 
+                        type="text" 
+                        placeholder="Search..." 
+                        value={searchQuery}
+                        onChange={handleSearchInput}
+                        onFocus={() => {
+                            if (searchQuery.trim().length > 0) {
+                                setShowSearchDropdown(true);
+                            }
+                        }}
+                        className={`w-full pl-4 pr-10 h-10 text-sm font-medium transition-all focus:outline-none
+                          ${isRetro 
+                            ? 'bg-white border-2 border-brand-black text-brand-black placeholder-brand-black/40 shadow-pop-sm focus:border-brand-orange' 
+                            : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-brand-orange focus:ring-1 focus:ring-brand-orange rounded-lg'}
+                        `}
+                      />
+                      <button 
+                        type="submit"
+                        className={`absolute right-1 top-1 w-8 h-8 flex items-center justify-center transition-colors
+                          ${isRetro 
+                            ? 'text-brand-black hover:text-brand-orange' 
+                            : 'text-gray-400 hover:text-black'}
+                        `}
+                      >
+                        <Search size={18} strokeWidth={2.5} />
+                      </button>
+
+                      {/* Mobile Search Dropdown */}
+                      {showSearchDropdown && searchResults.length > 0 && (
+                        <div className={`absolute top-full left-0 right-0 mt-2 rounded-xl overflow-hidden z-[130]
+                            ${isRetro ? 'bg-white border-2 border-brand-black shadow-retro' : 'bg-white border border-gray-200 shadow-xl'}
+                        `}>
+                            <ul className="max-h-[200px] overflow-y-auto">
+                                {searchResults.map(product => (
+                                    <li key={product.id}>
+                                        <button
+                                            onClick={() => {
+                                                if (onProductClick) {
+                                                    onProductClick(product);
+                                                } else {
+                                                    window.history.pushState(null, '', `/product/${encodeURIComponent(product.id)}`);
+                                                }
+                                                setShowSearchDropdown(false);
+                                                setSearchQuery('');
+                                            }}
+                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none"
+                                        >
+                                            <div className="w-8 h-8 flex-shrink-0 bg-gray-100 rounded overflow-hidden border border-gray-200">
+                                                <img src={product.coverUrl} alt="" className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-bold text-xs truncate text-gray-900">{product.title}</div>
+                                                <div className="text-[10px] text-gray-500 truncate">{product.artist}</div>
+                                            </div>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                            <button
+                                onClick={handleSearchSubmit}
+                                className={`w-full py-3 text-center text-xs font-bold uppercase tracking-wider border-t transition-colors
+                                    ${isRetro ? 'bg-brand-mustard text-brand-black hover:bg-brand-orange border-brand-black' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-100'}
+                                `}
+                            >
+                                View all results
+                            </button>
+                        </div>
+                      )}
+                    </form>
                   </div>
                 </div>
               </div>
@@ -449,7 +501,7 @@ export const Header: React.FC<HeaderProps> = ({
              <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8">
                 <nav className={`flex items-center justify-center transition-all duration-300 ${scrolled ? 'h-10' : 'h-14'}`}>
                    <ul className="flex items-center gap-8 h-full">
-                        {NAV_ITEMS.map((item) => {
+                        {navItems.map((item) => {
                           // For catalog page, check both page and filter to determine active state
                           let isActive = false;
                           if (currentPage && item.page === currentPage) {
@@ -503,11 +555,13 @@ export const Header: React.FC<HeaderProps> = ({
                                        <div className="grid grid-cols-4 gap-12">
                                           {item.columns.map((col, idx) => (
                                              <div key={idx}>
-                                                <h4 className={`font-bold uppercase tracking-widest text-xs mb-5 pb-2 border-b
-                                                   ${isRetro ? 'text-brand-black border-brand-black font-header' : 'text-gray-900 border-gray-200 font-sans'}
-                                                `}>
-                                                   {col.title}
-                                                </h4>
+                                                {col.title && (
+                                                  <h4 className={`font-bold uppercase tracking-widest text-xs mb-5 pb-2 border-b
+                                                     ${isRetro ? 'text-brand-black border-brand-black font-header' : 'text-gray-900 border-gray-200 font-sans'}
+                                                  `}>
+                                                     {col.title}
+                                                  </h4>
+                                                )}
                                                 <ul className="space-y-3">
                                                    {col.links.map((link) => (
                                                       <li key={link.label}>
@@ -605,80 +659,10 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
              </div>
 
-             {/* Search in Drawer */}
-             <div className="px-6 pt-6 pb-2">
-                <form className="relative group" onSubmit={handleSearchSubmit}>
-                    <input 
-                        type="text" 
-                        placeholder="Search..." 
-                        value={searchQuery}
-                        onChange={handleSearchInput}
-                        className={`w-full pl-4 pr-10 h-10 text-sm font-medium transition-all focus:outline-none
-                            ${isRetro 
-                            ? 'bg-white border-2 border-brand-black text-brand-black placeholder-brand-black/40 shadow-pop-sm focus:border-brand-orange' 
-                            : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-brand-orange focus:ring-1 focus:ring-brand-orange rounded-lg'}
-                        `}
-                    />
-                    <button 
-                        type="submit"
-                        className={`absolute right-1 top-1 w-8 h-8 flex items-center justify-center transition-colors
-                        ${isRetro 
-                            ? 'text-brand-black hover:text-brand-orange' 
-                            : 'text-gray-400 hover:text-black'}
-                    `}>
-                        <Search size={18} strokeWidth={2.5} />
-                    </button>
-
-                    {/* Mobile Search Dropdown */}
-                    {showSearchDropdown && searchResults.length > 0 && (
-                        <div className={`mt-2 rounded-xl overflow-hidden z-[130]
-                            ${isRetro ? 'bg-white border-2 border-brand-black shadow-none' : 'bg-white border border-gray-200 shadow-lg'}
-                        `}>
-                            <ul className="max-h-[200px] overflow-y-auto">
-                                {searchResults.map(product => (
-                                    <li key={product.id}>
-                                        <button
-                                            onClick={() => {
-                                                // Same logic as desktop
-                                                if (onProductClick) {
-                                                    onProductClick(product);
-                                                } else {
-                                                    window.history.pushState(null, '', `/product/${encodeURIComponent(product.id)}`);
-                                                }
-                                                setShowSearchDropdown(false);
-                                                setIsMobileMenuOpen(false);
-                                                setSearchQuery('');
-                                            }}
-                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-none"
-                                        >
-                                            <div className="w-8 h-8 flex-shrink-0 bg-gray-100 rounded overflow-hidden border border-gray-200">
-                                                <img src={product.coverUrl} alt="" className="w-full h-full object-cover" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-bold text-xs truncate text-gray-900">{product.title}</div>
-                                                <div className="text-[10px] text-gray-500 truncate">{product.artist}</div>
-                                            </div>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                            <button
-                                onClick={handleSearchSubmit}
-                                className={`w-full py-3 text-center text-xs font-bold uppercase tracking-wider border-t transition-colors
-                                    ${isRetro ? 'bg-brand-mustard text-brand-black hover:bg-brand-orange border-brand-black' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-100'}
-                                `}
-                            >
-                                View all results
-                            </button>
-                        </div>
-                    )}
-                </form>
-             </div>
-
              {/* Links */}
              <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
                 <ul className="space-y-6">
-                  {NAV_ITEMS.map((item) => (
+                  {navItems.map((item) => (
                     <li key={item.label}>
                       {item.hasDropdown ? (
                         <div>

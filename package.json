@@ -6,6 +6,9 @@
   "scripts": {
     "send:weekly-newsletter": "node scripts/send-weekly-newsletter.mjs",
     "db:index-events": "node scripts/add-events-indexes.mjs",
+    "db:index-created-at": "node scripts/add-created-at-index.mjs",
+    "db:optimize": "node scripts/optimize-database-performance.mjs",
+    "validate:staff-picks": "node scripts/validate-staff-picks.mjs",
     "build:css": "tailwindcss -i ./src/globals.css -o ./public/tailwind.css --minify",
     "dev": "npm run build:css && vite",
     "dev:api": "node api-dev-server.js",

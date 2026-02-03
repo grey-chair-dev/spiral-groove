@@ -51,19 +51,44 @@ async function ensureProductsCacheSchema() {
   // Columns used elsewhere in the codebase.
   await query(`ALTER TABLE products_cache ADD COLUMN IF NOT EXISTS sold_count INTEGER NOT NULL DEFAULT 0`)
   await query(`ALTER TABLE products_cache ADD COLUMN IF NOT EXISTS last_sold_at TIMESTAMPTZ`)
+  await query(`ALTER TABLE products_cache ADD COLUMN IF NOT EXISTS last_stocked_at TIMESTAMPTZ`)
+  await query(`ALTER TABLE products_cache ADD COLUMN IF NOT EXISTS last_adjustment_at TIMESTAMPTZ`)
 }
 
 async function fetchAllCatalogItems(client) {
   const items = []
   let cursor = undefined
+  const accessToken = process.env.SQUARE_ACCESS_TOKEN
+  const squareVersion = '2025-10-16' // Square API version
 
   while (true) {
-    const resp = await client.catalog.list({ cursor, types: 'ITEM', limit: 200 })
-    const objects = resp?.response?.objects || []
+    // Use direct REST API to ensure we get all fields including created_at
+    const url = new URL('https://connect.squareup.com/v2/catalog/list')
+    url.searchParams.set('types', 'ITEM')
+    if (cursor) {
+      url.searchParams.set('cursor', cursor)
+    }
+
+    const resp = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Square-Version': squareVersion,
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!resp.ok) {
+      const errorText = await resp.text().catch(() => '')
+      throw new Error(`Square API error: ${resp.status} ${resp.statusText} - ${errorText}`)
+    }
+
+    const data = await resp.json()
+    const objects = data?.objects || []
     for (const obj of objects) {
       if (obj?.type === 'ITEM') items.push(obj)
     }
-    cursor = resp?.response?.cursor
+    cursor = data?.cursor
     if (!cursor) break
   }
 
@@ -136,17 +161,22 @@ function normalizeCategories(itemData, categoryNameById) {
 }
 
 function pickImageUrl(itemData, imageObjById) {
-  const imageIds = Array.isArray(itemData?.imageIds) ? itemData.imageIds : []
+  // Handle both camelCase (SDK) and snake_case (REST API) formats
+  const imageIds = Array.isArray(itemData?.imageIds) ? itemData.imageIds : 
+                   Array.isArray(itemData?.image_ids) ? itemData.image_ids : []
   for (const id of imageIds) {
     const obj = imageObjById.get(id)
-    const url = obj?.imageData?.url
+    // Handle both camelCase and snake_case image data
+    const url = obj?.imageData?.url || obj?.image_data?.url
     if (url) return String(url)
   }
   return ''
 }
 
 function getPriceCents(variationObj) {
-  const money = variationObj?.itemVariationData?.priceMoney
+  // Handle both camelCase (SDK) and snake_case (REST API) formats
+  const variationData = variationObj?.itemVariationData || variationObj?.item_variation_data || {}
+  const money = variationData?.priceMoney || variationData?.price_money
   const amt = money?.amount
   if (amt == null) return 0
   // Some SDKs return bigint-like strings
@@ -167,6 +197,7 @@ export async function syncSquareToNeon({
   if (!accessToken) throw new Error('SQUARE_ACCESS_TOKEN is not set')
   if (!locationId) throw new Error('SQUARE_LOCATION_ID is not set')
 
+  // For direct REST API calls, we still need the client for other operations (inventory, batchGet)
   const client = new SquareClient({
     token: accessToken,
     environment: getSquareEnv(),
@@ -199,12 +230,16 @@ export async function syncSquareToNeon({
   const variationIds = []
 
   for (const it of items) {
-    const d = it?.itemData || {}
-    if (d.categoryId) categoryIds.add(d.categoryId)
+    // Handle both camelCase (SDK) and snake_case (REST API) response formats
+    const d = it?.itemData || it?.item_data || {}
+    if (d.categoryId || d.category_id) categoryIds.add(d.categoryId || d.category_id)
     if (Array.isArray(d.categories)) {
       for (const c of d.categories) if (c?.id) categoryIds.add(c.id)
     }
-    if (Array.isArray(d.imageIds)) for (const id of d.imageIds) if (id) imageIds.add(id)
+    if (Array.isArray(d.imageIds) || Array.isArray(d.image_ids)) {
+      const ids = d.imageIds || d.image_ids || []
+      for (const id of ids) if (id) imageIds.add(id)
+    }
     if (Array.isArray(d.variations)) {
       for (const v of d.variations) if (v?.id) variationIds.push(String(v.id))
     }
@@ -224,11 +259,13 @@ export async function syncSquareToNeon({
   const rows = []
   for (const it of items) {
     const itemId = String(it.id || '')
-    const d = it?.itemData || {}
+    // Handle both camelCase (SDK) and snake_case (REST API) response formats
+    const d = it?.itemData || it?.item_data || {}
     const { category, allCategories } = normalizeCategories(d, categoryNameById)
     const imageUrl = pickImageUrl(d, imageObjById)
     const description = String(d.description || '')
 
+    // Handle both camelCase and snake_case variations
     const variations = Array.isArray(d.variations) ? d.variations : []
     for (const v of variations) {
       const variationId = String(v?.id || '')
@@ -242,11 +279,43 @@ export async function syncSquareToNeon({
 
       const id = `variation-${variationId}`
       const priceCents = getPriceCents(v)
-      const stockCount = inventoryByVar.get(variationId) ?? 0
+      let stockCount = inventoryByVar.get(variationId) ?? 0
+      
+      // Check if variation is available at location
+      // Square uses presentAtLocationIds to indicate availability
+      // If present at location but inventory count is 0, set to at least 1
+      // Handle both camelCase (SDK) and snake_case (REST API) formats
+      const variationData = v?.itemVariationData || v?.item_variation_data || {}
+      const presentAtLocationIds = Array.isArray(variationData.presentAtLocationIds) 
+        ? variationData.presentAtLocationIds 
+        : Array.isArray(variationData.present_at_location_ids)
+        ? variationData.present_at_location_ids
+        : (Array.isArray(v.presentAtLocationIds) ? v.presentAtLocationIds : 
+           Array.isArray(v.present_at_location_ids) ? v.present_at_location_ids : [])
+      
+      // Check if variation is available at THIS location
+      // Must explicitly include the locationId, not just have any locations
+      const isAvailable = presentAtLocationIds.includes(locationId) ||
+                         variationData.available === true ||
+                         v.available === true
+      
+      // If available at this location but inventory count is 0, set to at least 1
+      // If not available, ensure it's 0
+      if (isAvailable && stockCount === 0) {
+        stockCount = 1  // At least 1 if available
+      } else if (!isAvailable) {
+        stockCount = 0  // Ensure 0 if not available
+      }
 
       // Name strategy: most stores use 1 variation per item; keep it simple.
       const name = String(d.name || '')
 
+      // Square Catalog API returns snake_case (created_at, updated_at) from REST API
+      // SDK may return camelCase (createdAt, updatedAt)
+      // Prefer created_at for creation date, fallback to updated_at if not available
+      const squareCreatedAt = it.created_at || it.createdAt || null
+      const squareUpdatedAt = it.updated_at || it.updatedAt || null
+      
       rows.push({
         id,
         square_item_id: itemId,
@@ -258,8 +327,8 @@ export async function syncSquareToNeon({
         all_categories: allCategories,
         stock_count: stockCount,
         image_url: imageUrl,
-        created_at: it.createdAt || null,
-        updated_at: it.updatedAt || null,
+        created_at: squareCreatedAt || squareUpdatedAt, // Use Square's createdAt if available, else updatedAt
+        updated_at: squareUpdatedAt,
       })
     }
   }
@@ -282,13 +351,18 @@ export async function syncSquareToNeon({
          rating,
          review_count,
          created_at,
-         updated_at
+         updated_at,
+         last_stocked_at
        ) VALUES (
          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
          COALESCE((SELECT rating FROM products_cache WHERE id = $1), 0),
          COALESCE((SELECT review_count FROM products_cache WHERE id = $1), 0),
          COALESCE($11::timestamptz, CURRENT_TIMESTAMP),
-         COALESCE($12::timestamptz, CURRENT_TIMESTAMP)
+         COALESCE($12::timestamptz, CURRENT_TIMESTAMP),
+         CASE 
+           WHEN $9 > 0 THEN CURRENT_TIMESTAMP
+           ELSE (SELECT last_stocked_at FROM products_cache WHERE id = $1)
+         END
        )
        ON CONFLICT (id) DO UPDATE SET
          square_item_id = EXCLUDED.square_item_id,
@@ -300,7 +374,18 @@ export async function syncSquareToNeon({
          all_categories = EXCLUDED.all_categories,
          stock_count = EXCLUDED.stock_count,
          image_url = EXCLUDED.image_url,
-         updated_at = EXCLUDED.updated_at`,
+         -- Preserve original created_at (don't overwrite on updates)
+         -- Only set created_at if it doesn't exist yet (new product)
+         created_at = COALESCE(products_cache.created_at, EXCLUDED.created_at),
+         updated_at = EXCLUDED.updated_at,
+         last_stocked_at = CASE
+           -- If stock went from 0 (or null) to > 0, update last_stocked_at
+           WHEN EXCLUDED.stock_count > 0 AND (products_cache.stock_count IS NULL OR products_cache.stock_count = 0) THEN CURRENT_TIMESTAMP
+           -- If stock increased (but was already > 0), update last_stocked_at
+           WHEN EXCLUDED.stock_count > products_cache.stock_count AND products_cache.stock_count > 0 THEN CURRENT_TIMESTAMP
+           -- Otherwise keep existing value
+           ELSE products_cache.last_stocked_at
+         END`,
       [
         r.id,
         r.square_item_id,
@@ -319,10 +404,36 @@ export async function syncSquareToNeon({
     upserted += 1
   }
 
+  // Delete products that no longer exist in Square (only for full syncs)
+  let deleted = 0
+  if (full && rows.length > 0) {
+    // Get all variation IDs that exist in Square
+    const squareVariationIds = [...new Set(rows.map(r => r.square_variation_id).filter(Boolean))]
+    
+    if (squareVariationIds.length > 0) {
+      // Delete products where square_variation_id is not in the current Square catalog
+      // Only delete if square_variation_id is set (to avoid deleting products that were never synced from Square)
+      const placeholders = squareVariationIds.map((_, i) => `$${i + 1}`).join(',')
+      const deleteResult = await query(
+        `DELETE FROM products_cache 
+         WHERE square_variation_id IS NOT NULL 
+         AND square_variation_id != ''
+         AND square_variation_id NOT IN (${placeholders})`,
+        squareVariationIds
+      )
+      deleted = deleteResult.rowCount || 0
+      
+      if (deleted > 0) {
+        console.log(`[Square Sync] Deleted ${deleted} products that no longer exist in Square`)
+      }
+    }
+  }
+
   return {
     items: items.length,
     variations: rows.length,
     upserted,
+    deleted,
   }
 }
 

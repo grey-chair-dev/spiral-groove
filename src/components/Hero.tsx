@@ -37,68 +37,6 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate, products, onPr
 
   const slides: Slide[] = useMemo(() => {
     const inStock = (p: Product) => p.inStock !== false
-    const isAlbum = (p: Product) => {
-      const f = (p.format || '').toLowerCase()
-      // Heuristic: treat LP/12" vinyl as album; exclude singles/cd/cassette
-      if (f.includes('45') || f.includes('7"') || f.includes('7\'') || f.includes('single')) return false
-      if (f.includes('cd') || f.includes('cassette') || f.includes('tape')) return false
-      return f.includes('lp') || f.includes('vinyl') || f.includes('12"') || f.includes('12\'') || f.length === 0
-    }
-    const isNonMusic = (p: Product) => {
-      const haystack = `${p.format || ''} ${(p.tags || []).join(' ')} ${(p.categories || []).join(' ')}`
-      return /(equipment|turntable|receiver|speakers|speaker|poster|puzzle|crates|crate|sleeves|cleaner|book|dvd|misc|merch|gift\s*card)/i.test(
-        haystack
-      )
-    }
-    const hasTag = (p: Product, re: RegExp) => (p.tags || []).some((t) => re.test(String(t)))
-    const isBestSellerTag = (p: Product) =>
-      hasTag(p, /best\s*seller|bestseller|top\s*seller|popular|trending|hot/i)
-
-    const soldCount = (p: Product) => Number(p.soldCount ?? 0) || 0
-    const soldAtMs = (p: Product) => {
-      const raw = p.lastSoldAt
-      if (!raw) return 0
-      const t = new Date(raw).getTime()
-      return Number.isFinite(t) ? t : 0
-    }
-
-    // "Newest album" should reflect the most recently added album from Neon.
-    // /api/products returns products_cache ordered by created_at DESC, so `products[0]` is newest.
-    // We then filter down to "album-like" items to avoid picking equipment/merch.
-    const albumPoolNewestFirst = products.filter((p) => !isNonMusic(p)).filter(isAlbum)
-    const newest =
-      albumPoolNewestFirst[0] ||
-      products.filter((p) => !isNonMusic(p))[0] ||
-      products.filter(inStock)[0] ||
-      products[0]
-
-    // Best sellers should come from actual sales data first (soldCount / lastSoldAt).
-    // Fallback: "best seller" tags, then newest-ish in-stock items.
-    const bestSellerBySales = products
-      .filter(inStock)
-      .filter((p) => !isNonMusic(p))
-      .filter(isAlbum)
-      .filter((p) => soldCount(p) > 0)
-      .sort((a, b) => {
-        const sc = soldCount(b) - soldCount(a)
-        if (sc !== 0) return sc
-        const tm = soldAtMs(b) - soldAtMs(a)
-        if (tm !== 0) return tm
-        return `${a.artist} ${a.title}`.localeCompare(`${b.artist} ${b.title}`)
-      })
-
-    const bestSellerByTag = products
-      .filter(inStock)
-      .filter((p) => !isNonMusic(p))
-      .filter(isAlbum)
-      .filter(isBestSellerTag)
-
-    const bestSellerFallback = products.filter(inStock).filter((p) => !isNonMusic(p)).filter(isAlbum)
-
-    const bestSellerPool = [...bestSellerBySales, ...bestSellerByTag, ...bestSellerFallback]
-      .filter((p, idx, arr) => arr.findIndex((x) => x.id === p.id) === idx)
-      .filter((p) => (newest ? p.id !== newest.id : true))
-      .slice(0, 3)
 
     const pickDescription = (p: Product) => {
       if (p.description && p.description.trim()) return p.description.trim()
@@ -108,70 +46,31 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate, products, onPr
     }
 
     const baseCatalog = () => onNavigate('catalog', 'All')
+    const viewNewArrivals = () => onNavigate('catalog', 'New Arrivals')
+
+    // Filter to only newly added products (isNewArrival flag is set in App.tsx based on createdAt within last 7 days)
+    const newArrivals = products
+      .filter((p) => p.isNewArrival === true)
+      .filter(inStock)
+      .slice(0, 10) // Limit to 10 newest for carousel
 
     const built: Slide[] = []
-    const usedIds = new Set<string>()
-    if (newest) {
-      usedIds.add(newest.id)
-      built.push({
-        id: `newest:${newest.id}`,
-        badge: 'Newest album',
-        title: newest.title,
-        subtitle: `${newest.artist}${newest.format ? ` • ${newest.format}` : ''}${newest.genre ? ` • ${newest.genre}` : ''}`,
-        description: pickDescription(newest),
-        image: newest.coverUrl,
-        ctaPrimary: 'View record',
-        ctaSecondary: 'Shop best sellers',
-        onPrimary: () => onProductClick(newest),
-        onSecondary: baseCatalog,
-      })
-    }
 
-    bestSellerPool.forEach((p) => {
-      usedIds.add(p.id)
+    // Create slides for each newly added product
+    newArrivals.forEach((p) => {
       built.push({
-        id: `bestseller:${p.id}`,
-        badge: 'Best seller',
+        id: `newarrival:${p.id}`,
+        badge: 'New arrival',
         title: p.title,
         subtitle: `${p.artist}${p.format ? ` • ${p.format}` : ''}${p.genre ? ` • ${p.genre}` : ''}`,
         description: pickDescription(p),
         image: p.coverUrl,
         ctaPrimary: 'View record',
-        ctaSecondary: 'Shop the catalog',
+        ctaSecondary: 'View all new arrivals',
         onPrimary: () => onProductClick(p),
-        onSecondary: baseCatalog,
+        onSecondary: viewNewArrivals,
       })
     })
-
-    // "Worst seller" (aka least-promoted) — pick something in-stock that isn't
-    // newest/best-seller, with minimal tags/flags. We label it as "Explore new digs".
-    const deepCutPool = products
-      .filter(inStock)
-      .filter((p) => !usedIds.has(p.id))
-      .filter((p) => !isBestSellerTag(p))
-      .filter((p) => !p.isNewArrival)
-      .sort((a, b) => {
-        const aTags = (a.tags?.length ?? 0) + (a.onSale ? 1 : 0)
-        const bTags = (b.tags?.length ?? 0) + (b.onSale ? 1 : 0)
-        if (aTags !== bTags) return aTags - bTags
-        return `${a.artist} ${a.title}`.localeCompare(`${b.artist} ${b.title}`)
-      })
-
-    const deepCut = deepCutPool[0]
-    if (deepCut) {
-      built.push({
-        id: `explore:${deepCut.id}`,
-        badge: 'Explore new digs',
-        title: deepCut.title,
-        subtitle: `${deepCut.artist}${deepCut.format ? ` • ${deepCut.format}` : ''}${deepCut.genre ? ` • ${deepCut.genre}` : ''}`,
-        description: pickDescription(deepCut),
-        image: deepCut.coverUrl,
-        ctaPrimary: 'View record',
-        ctaSecondary: 'Browse more',
-        onPrimary: () => onProductClick(deepCut),
-        onSecondary: baseCatalog,
-      })
-    }
 
     // Ensure we always have at least 1 slide
     if (built.length === 0) {

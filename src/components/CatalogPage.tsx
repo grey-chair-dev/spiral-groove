@@ -26,6 +26,23 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({
     onNavigate,
     onFilterChange
 }) => {
+    // Filter to only show products added in the last 2 weeks when "New Arrivals" filter is active
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    
+    const filteredProducts = React.useMemo(() => {
+        // Only apply date filter for "New Arrivals" or "Coming Soon"
+        if (initialFilter === "New Arrivals" || initialFilter === "Coming Soon") {
+            return products.filter(product => {
+                if (!product.createdAt) return false;
+                const createdAt = new Date(product.createdAt);
+                return createdAt >= twoWeeksAgo;
+            });
+        }
+        // For all other filters, show all products
+        return products;
+    }, [products, initialFilter]);
+
     return (
         <div className="animate-in fade-in duration-500 pt-8 min-h-screen">
              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
@@ -48,7 +65,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({
                 </div>
              </div>
             <ProductGrid 
-                products={products} 
+                products={filteredProducts} 
                 onProductClick={onProductClick} 
                 onQuickAdd={onQuickAdd} 
                 viewMode={viewMode}

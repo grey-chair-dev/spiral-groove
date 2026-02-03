@@ -89,6 +89,17 @@ export async function webHandler(request) {
 
     const result = await syncSquareToNeon({ full, squareItemIds, squareVariationIds, limit })
     
+    // Populate albums_cache table after sync completes
+    let albumsCacheResult = null
+    try {
+      const { populateAlbumsCache } = await import('../albumsCache.js')
+      albumsCacheResult = await populateAlbumsCache()
+      console.log(`[Square Sync] Albums cache populated: ${albumsCacheResult.albumCount} albums`)
+    } catch (albumsError) {
+      // Don't fail the sync if albums cache population fails
+      console.warn('[Square Sync] Failed to populate albums cache:', albumsError.message)
+    }
+    
     const durationMs = Date.now() - startedAt
     
     // Log sync success
@@ -109,7 +120,14 @@ export async function webHandler(request) {
           result.items || 0,
           result.upserted || 0,
           result.upserted || 0,
-          JSON.stringify({ result }),
+          JSON.stringify({ 
+            result,
+            deleted: result.deleted || 0,
+            albumsCache: albumsCacheResult ? {
+              albumCount: albumsCacheResult.albumCount,
+              durationMs: albumsCacheResult.durationMs
+            } : null
+          }),
           syncLogId
         ])
       } catch (logError) {

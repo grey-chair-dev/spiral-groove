@@ -14,24 +14,25 @@ import { ProductModal } from './components/ProductModal';
 import { Toast } from './components/ui/Toast';
 
 // Lazy load route components for code splitting
-const EventsPage = lazy(() => import('./components/EventsPage'));
-const AboutPage = lazy(() => import('./components/AboutPage'));
-const LocationsPage = lazy(() => import('./components/LocationsPage'));
-const WeBuyPage = lazy(() => import('./components/WeBuyPage'));
-const CatalogPage = lazy(() => import('./components/CatalogPage'));
-const ProductDetailsPage = lazy(() => import('./components/ProductDetailsPage'));
-const ReceiptPage = lazy(() => import('./components/ReceiptPage'));
-const OrderStatusPage = lazy(() => import('./components/OrderStatusPage'));
-const ContactPage = lazy(() => import('./components/ContactPage'));
-const StaffPicksPage = lazy(() => import('./components/StaffPicksPage'));
-const CartPage = lazy(() => import('./components/CartPage'));
-const CheckoutPage = lazy(() => import('./components/CheckoutPage'));
-const OrderConfirmationPage = lazy(() => import('./components/OrderConfirmationPage'));
-const SearchPage = lazy(() => import('./components/SearchPage'));
-const ClientLoginPage = lazy(() => import('./components/ClientLoginPage'));
-const PrivacyPage = lazy(() => import('./components/PrivacyPage'));
-const TermsPage = lazy(() => import('./components/TermsPage'));
-const AccessibilityPage = lazy(() => import('./components/AccessibilityPage'));
+// Handle named exports by wrapping them as default exports
+const EventsPage = lazy(() => import('./components/EventsPage').then(module => ({ default: module.EventsPage })));
+const AboutPage = lazy(() => import('./components/AboutPage').then(module => ({ default: module.AboutPage })));
+const LocationsPage = lazy(() => import('./components/LocationsPage').then(module => ({ default: module.LocationsPage })));
+const WeBuyPage = lazy(() => import('./components/WeBuyPage').then(module => ({ default: module.WeBuyPage })));
+const CatalogPage = lazy(() => import('./components/CatalogPage').then(module => ({ default: module.CatalogPage })));
+const ProductDetailsPage = lazy(() => import('./components/ProductDetailsPage').then(module => ({ default: module.ProductDetailsPage })));
+const ReceiptPage = lazy(() => import('./components/ReceiptPage').then(module => ({ default: module.ReceiptPage })));
+const OrderStatusPage = lazy(() => import('./components/OrderStatusPage').then(module => ({ default: module.OrderStatusPage })));
+const ContactPage = lazy(() => import('./components/ContactPage').then(module => ({ default: module.ContactPage })));
+const StaffPicksPage = lazy(() => import('./components/StaffPicksPage').then(module => ({ default: module.StaffPicksPage })));
+const CartPage = lazy(() => import('./components/CartPage').then(module => ({ default: module.CartPage })));
+const CheckoutPage = lazy(() => import('./components/CheckoutPage').then(module => ({ default: module.CheckoutPage })));
+const OrderConfirmationPage = lazy(() => import('./components/OrderConfirmationPage').then(module => ({ default: module.OrderConfirmationPage })));
+const SearchPage = lazy(() => import('./components/SearchPage').then(module => ({ default: module.SearchPage })));
+const ClientLoginPage = lazy(() => import('./components/ClientLoginPage').then(module => ({ default: module.ClientLoginPage })));
+const PrivacyPage = lazy(() => import('./components/PrivacyPage').then(module => ({ default: module.PrivacyPage })));
+const TermsPage = lazy(() => import('./components/TermsPage').then(module => ({ default: module.TermsPage })));
+const AccessibilityPage = lazy(() => import('./components/AccessibilityPage').then(module => ({ default: module.AccessibilityPage })));
 import { Product, ViewMode, Page, Order, Event, CartItem } from '../types';
 import { fetchProducts as fetchApiProducts, Product as ApiProduct } from './dataAdapter';
 import { getDefaultProductImage } from './utils/defaultProductImage';
@@ -504,10 +505,11 @@ function App() {
       extractedFormat = formatTag;
     }
     
-    // Check if product is a new arrival
-    const isNewArrival = allTags.some(t => t.toLowerCase().includes('new vinyl')) || 
-                         apiProduct.category?.toLowerCase().includes('new vinyl') ||
-                         (apiProduct.categories && apiProduct.categories.some(c => c.toLowerCase().includes('new vinyl')));
+    // Check if product is a new arrival (added in the last week)
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const createdAt = apiProduct.createdAt ? new Date(apiProduct.createdAt) : null;
+    const isNewArrival = createdAt && createdAt >= oneWeekAgo;
 
     return {
       id: apiProduct.id,
@@ -522,11 +524,12 @@ function App() {
       condition: 'Mint' as const, // Default, API might not have this
       tags: allTags,
       categories: apiProduct.categories, // Pass through original categories array
-      isNewArrival: isNewArrival, // True if category contains "New Vinyl"
+      isNewArrival: isNewArrival, // True if product was added in the last week
       inStock: apiProduct.stockCount > 0,
       soldCount: apiProduct.soldCount ?? 0,
       lastSoldAt: apiProduct.lastSoldAt ?? null,
-      releaseDate: undefined
+      releaseDate: undefined,
+      createdAt: apiProduct.createdAt ?? null,
     };
   };
 
@@ -1029,19 +1032,32 @@ function App() {
                         <p className="text-red-500">Error: {productsError}</p>
                         <p className="text-gray-500 text-sm mt-2">Please try again in a moment.</p>
                     </div>
-                ) : (
-                    <ProductGrid 
-                        products={products} 
-                        onProductClick={handleProductClick}
-                        onQuickAdd={addToCart} 
-                        viewMode={effectiveViewMode}
-                        initialFilter="New Arrivals"
-                        showFilters={false}
-                        onViewCatalog={() => handleNavigate('catalog', 'All')}
-                        limit={12}
-                        onViewMore={() => handleNavigate('catalog', 'New Arrivals')}
-                    />
-                )}
+                ) : (() => {
+                    // Filter to only show products added in the last 2 days on home page
+                    // This ensures we only show truly new products, not all products
+                    const twoDaysAgo = new Date();
+                    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+                    
+                    const recentProducts = products.filter(product => {
+                        if (!product.createdAt) return false;
+                        const createdAt = new Date(product.createdAt);
+                        return createdAt >= twoDaysAgo;
+                    });
+                    
+                    return (
+                        <ProductGrid 
+                            products={recentProducts} 
+                            onProductClick={handleProductClick}
+                            onQuickAdd={addToCart} 
+                            viewMode={effectiveViewMode}
+                            initialFilter="New Arrivals"
+                            showFilters={false}
+                            onViewCatalog={() => handleNavigate('catalog', 'All')}
+                            limit={12}
+                            onViewMore={() => handleNavigate('catalog', 'New Arrivals')}
+                        />
+                    );
+                })()}
                 {staffPicks.length > 0 && (
                   <StaffPicks 
                       picks={staffPicks} 

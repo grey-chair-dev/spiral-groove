@@ -18,6 +18,9 @@ export interface Product {
   releaseDate?: string;
   soldCount?: number;
   lastSoldAt?: string | null;
+  lastStockedAt?: string | null;
+  lastAdjustmentAt?: string | null;
+  createdAt?: string | null;
 }
 
 export interface StaffPick extends Product {

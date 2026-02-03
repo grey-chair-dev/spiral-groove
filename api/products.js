@@ -47,6 +47,9 @@ function mapRowToProduct(row) {
     reviewCount: row.review_count != null ? Number(row.review_count) : 0,
     soldCount: row.sold_count != null ? Number(row.sold_count) : 0,
     lastSoldAt: row.last_sold_at ? String(row.last_sold_at) : null,
+    lastStockedAt: row.last_stocked_at ? String(row.last_stocked_at) : null,
+    lastAdjustmentAt: row.last_adjustment_at ? String(row.last_adjustment_at) : null,
+    createdAt: row.created_at ? String(row.created_at) : null,
   }
 }
 
@@ -105,49 +108,173 @@ export async function webHandler(request) {
       throw new Error('SGR_DATABASE_URL (preferred), SPR_DATABASE_URL (legacy), or DATABASE_URL environment variable is not set')
     }
 
-    // Query all products from products_cache table
+    // Query all albums from albums_cache table (pre-filtered, faster queries)
+    // albums_cache is populated after each sync and contains only albums
+    // Filter out products with 0 stock that haven't been stocked in the last month
     // Order by created_at descending to show newest first
     // Note: price_dollars is a generated column from price_cents
-    const result = await query(
-      `SELECT 
-        id,
-        name,
-        description,
-        price_dollars,
-        category,
-        all_categories,
-        stock_count,
-        image_url,
-        rating,
-        review_count,
-        sold_count,
-        last_sold_at
-      FROM products_cache
-      ORDER BY created_at DESC, id ASC`
-    )
-
-    // Map database rows to Product type
-    const products = result.rows.map(mapRowToProduct)
-
-    console.log('[Products API] Fetched products', { count: products.length })
-
-    // Update cache
-    lastProducts = products
-    lastFetchedAt = Date.now()
-
-    // Return products in expected format
-    return new Response(
-      JSON.stringify({ products }),
-      {
-        status: 200,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*', // Adjust for production
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
+    const oneMonthAgo = new Date()
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+    const oneMonthAgoISO = oneMonthAgo.toISOString()
+    
+    // Check if albums_cache table exists, fallback to products_cache if not
+    const tableCheck = await query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'albums_cache'
+      ) as exists
+    `)
+    const useAlbumsCache = tableCheck.rows[0]?.exists === true
+    
+    const tableName = useAlbumsCache ? 'albums_cache' : 'products_cache'
+    
+    // If using products_cache, we need the full filtering logic
+    // If using albums_cache, it's already filtered to albums only
+    if (useAlbumsCache) {
+      // Query from albums_cache (already filtered to albums)
+      // Uses indexes: idx_albums_cache_created_at for sorting, composite indexes for filtering
+      const result = await query(
+        `SELECT 
+          id,
+          name,
+          description,
+          price_dollars,
+          category,
+          all_categories,
+          stock_count,
+          image_url,
+          rating,
+          review_count,
+          sold_count,
+          last_sold_at,
+          last_stocked_at,
+          last_adjustment_at,
+          created_at
+        FROM albums_cache
+        WHERE 
+          -- Stock filtering: show products with stock OR recently stocked
+          stock_count > 0
+          OR
+          (
+            stock_count = 0 
+            AND (
+              (last_stocked_at IS NOT NULL AND last_stocked_at >= $1::timestamptz)
+              OR
+              (last_stocked_at IS NULL AND created_at >= $1::timestamptz)
+            )
+          )
+        ORDER BY created_at DESC, id ASC`,
+        [oneMonthAgoISO]
+      )
+      
+      // Map database rows to Product type
+      const products = result.rows.map(mapRowToProduct)
+      console.log('[Products API] Fetched albums from albums_cache', { count: products.length })
+      
+      // Update cache
+      lastProducts = products
+      lastFetchedAt = Date.now()
+      
+      return new Response(
+        JSON.stringify({ products }),
+        {
+          status: 200,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
         }
-      }
-    )
+      )
+    } else {
+      // Fallback to products_cache with full filtering (for backwards compatibility)
+      const albumCategories = [
+        'New Vinyl', 'Used Vinyl', '33New', '33Used', '45',
+        'Rock', 'Jazz', 'Blues', 'Country', 'Folk', 'Electronic', 'Funk/Soul', 
+        'Indie', 'Industrial', 'Metal', 'Pop', 'Punk/Ska', 'Rap/Hip-Hop', 
+        'Reggae', 'Singer Songwriter', 'Soundtracks', 'Bluegrass', 
+        'Compilations', 'Other'
+      ]
+      
+      const excludeCategories = [
+        "DVD's", 'DVDs', 'Videogames', 'VHS', "CD's", 'CDs', 'Cassettes',
+        'Food', 'Drinks', 'Jewelry', 'Equipment', 'T-Shirts', 'Tote Bag',
+        'Candles', 'Animals (Minis)', 'Spin Clean', 'Sticker', 'Action Figures',
+        'Funko Pop', 'Adapters', 'Buttons', 'Coasters', 'Coffee Mug', 'Crates',
+        'Guitar picks', 'Hats', 'Patches', 'Pin', 'Poster', 'Sleeves',
+        'Slip Mat', 'Wallets', 'Wristband', 'Book', 'Boombox', 'Bowl',
+        'Box Set', 'Incense', 'Charms', 'Sprouts', 'Lava Lamps',
+        'Essential Oils', 'Puzzle', 'Record Store Day', 'Miscellaneous',
+        'Reel To Reel', 'Vinyl Styl', 'ABL'
+      ]
+      
+      const result = await query(
+        `SELECT 
+          id,
+          name,
+          description,
+          price_dollars,
+          category,
+          all_categories,
+          stock_count,
+          image_url,
+          rating,
+          review_count,
+          sold_count,
+          last_sold_at,
+          last_stocked_at,
+          last_adjustment_at,
+          created_at
+        FROM products_cache
+        WHERE 
+          (
+            category = ANY($1::text[])
+            OR 'New Vinyl' = ANY(all_categories)
+            OR 'Used Vinyl' = ANY(all_categories)
+            OR category IS NULL
+          )
+          AND (category IS NULL OR category != ALL($2::text[]))
+          AND NOT ('DVD' = ANY(all_categories) OR 'DVDs' = ANY(all_categories) OR 'DVD''s' = ANY(all_categories))
+          AND NOT ('Videogames' = ANY(all_categories))
+          AND (
+            stock_count > 0
+            OR
+            (
+              stock_count = 0 
+              AND (
+                (last_stocked_at IS NOT NULL AND last_stocked_at >= $3::timestamptz)
+                OR
+                (last_stocked_at IS NULL AND created_at >= $3::timestamptz)
+              )
+            )
+          )
+        ORDER BY created_at DESC, id ASC`,
+        [albumCategories, excludeCategories, oneMonthAgoISO]
+      )
+      
+      // Map database rows to Product type
+      const products = result.rows.map(mapRowToProduct)
+      console.log('[Products API] Fetched albums from products_cache (fallback)', { count: products.length })
+      
+      // Update cache
+      lastProducts = products
+      lastFetchedAt = Date.now()
+      
+      return new Response(
+        JSON.stringify({ products }),
+        {
+          status: 200,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
+        }
+      )
+    }
   } catch (error) {
     // If Neon is temporarily down but we have a recent cache, serve it instead of hard failing.
     if (Array.isArray(lastProducts) && Date.now() - lastFetchedAt < STALE_TTL_MS) {

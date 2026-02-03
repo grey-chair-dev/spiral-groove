@@ -62,6 +62,8 @@ export async function webHandler(request) {
       throw new Error('SGR_DATABASE_URL (preferred), SPR_DATABASE_URL (legacy), or DATABASE_URL environment variable is not set')
     }
 
+    // Optimized query: filter to future events and use index-friendly ordering
+    // The composite index events_is_event_date_idx should handle this efficiently
     const result = await query(
       `SELECT
         id,
@@ -87,7 +89,8 @@ export async function webHandler(request) {
         updated_at
       FROM events
       WHERE is_event = true
-      ORDER BY event_date ASC, start_time ASC, id ASC`
+        AND event_date >= CURRENT_DATE
+      ORDER BY event_date ASC, start_time ASC NULLS LAST, id ASC`
     )
 
     const events = result.rows.map((row) => ({

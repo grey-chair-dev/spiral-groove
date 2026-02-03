@@ -49,9 +49,23 @@ export async function fetchStaffPickMeta(limit: number = 12): Promise<StaffPickM
 }
 
 export function mergeStaffPicks(products: any[], rows: StaffPickMetaRow[]): StaffPick[] {
+  // Create maps for both ID and square_variation_id lookups
   const byId = new Map<string, any>()
+  const bySquareVariationId = new Map<string, any>()
+  
   for (const p of products || []) {
-    if (p?.id) byId.set(String(p.id), p)
+    if (p?.id) {
+      byId.set(String(p.id), p)
+      // Also index by square_variation_id if available (from the product's square_variation_id or extracted from id)
+      if (p.squareVariationId) {
+        bySquareVariationId.set(String(p.squareVariationId), p)
+      }
+      // Extract square_variation_id from id if it's in format "variation-{id}"
+      if (p.id.startsWith('variation-')) {
+        const rawId = p.id.replace(/^variation-/, '')
+        bySquareVariationId.set(rawId, p)
+      }
+    }
   }
 
   const picks: StaffPick[] = []
@@ -59,12 +73,28 @@ export function mergeStaffPicks(products: any[], rows: StaffPickMetaRow[]): Staf
   for (const row of rows || []) {
     const rawVarId = String(row.square_variation_id || '').trim()
     if (!rawVarId) continue
+    
+    // Try multiple lookup strategies
     const candidateIds = rawVarId.startsWith('variation-') ? [rawVarId] : [`variation-${rawVarId}`, rawVarId]
-
-    const product =
-      candidateIds.map((id) => byId.get(id)).find(Boolean) ||
-      null
-    if (!product) continue
+    
+    // First try by ID (with variation- prefix)
+    let product = candidateIds.map((id) => byId.get(id)).find(Boolean)
+    
+    // If not found, try by square_variation_id directly
+    if (!product) {
+      product = bySquareVariationId.get(rawVarId)
+    }
+    
+    // Still not found? Try without any prefix
+    if (!product && !rawVarId.startsWith('variation-')) {
+      product = byId.get(rawVarId)
+    }
+    
+    if (!product) {
+      // Log for debugging but don't break - just skip this pick
+      console.warn(`[StaffPicks] Could not find product for staff pick variation ID: ${rawVarId}`)
+      continue
+    }
 
     const staffName = String(row.name || 'Staff').trim() || 'Staff'
     const seed = encodeURIComponent(staffName.toLowerCase().replace(/\s+/g, '-'))

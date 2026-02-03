@@ -27,17 +27,15 @@ interface ProductGridProps {
 const QUICK_FILTERS = ["All", "New Arrivals", "Bargain Bin", "Recently Sold"] as const;
 
 // Category filter should be record format only (per productEnums.ts)
+// Only albums (vinyl records) - exclude CDs, Cassettes, and other non-album formats
 const FORMAT_FILTERS: RecordFormat[] = [
   RecordFormat.VINYL,
   RecordFormat.LP,
   RecordFormat.TWELVE_INCH,
   RecordFormat.SEVEN_INCH,
   RecordFormat.TEN_INCH,
-  RecordFormat.CD,
-  RecordFormat.CASSETTE,
-  RecordFormat.REEL_TO_REEL,
   RecordFormat.BOX_SET,
-  RecordFormat.DIGITAL,
+  // Excluded: CD, CASSETTE, REEL_TO_REEL, DIGITAL (non-album items)
 ];
 
 // Genres sourced from productEnums.ts (lines ~68-87)
@@ -766,7 +764,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             {/* Results Count & Page Size (Right Side) */}
             <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                <span className="hidden sm:inline">
-                   {sortedProducts.length} Results
+                   {limit ? Math.min(sortedProducts.length, limit) : sortedProducts.length} Results
                </span>
                <div className="flex items-center gap-1">
                    <span>Show</span>
@@ -1109,46 +1107,114 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       })()}
       
       {/* Pagination Controls - Hide in compact mode */}
-      {!compact && !limit && totalPages > 1 && (
-         <div className="mt-16 flex items-center justify-center gap-2">
-            <button
-               disabled={currentPage === 1}
-               onClick={() => handlePageChange(currentPage - 1)}
-               className={`p-3 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed
-                  ${viewMode === 'retro' 
-                    ? 'bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:shadow-pop-sm' 
-                    : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-100'}
-               `}
-            >
-               <ChevronLeft size={16} strokeWidth={3} />
-            </button>
-            {/* ... Pagination numbers ... */}
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+      {!compact && !limit && totalPages > 1 && (() => {
+         // Generate pagination numbers with ellipsis
+         const getPaginationNumbers = () => {
+            const pages: (number | string)[] = []
+            const maxVisible = 7 // Show up to 7 page numbers
+            
+            if (totalPages <= maxVisible) {
+               // Show all pages if total is small
+               for (let i = 1; i <= totalPages; i++) {
+                  pages.push(i)
+               }
+            } else {
+               // Determine which pages to show based on current page
+               const showAroundCurrent = 1 // Pages to show around current (e.g., current-1, current, current+1)
+               
+               if (currentPage <= 4) {
+                  // Near the beginning: 1, 2, 3, ..., last-1, last
+                  for (let i = 1; i <= 3; i++) {
+                     pages.push(i)
+                  }
+                  pages.push('ellipsis')
+                  pages.push(totalPages - 1)
+                  pages.push(totalPages)
+               } else if (currentPage >= totalPages - 3) {
+                  // Near the end: 1, 2, ..., last-2, last-1, last
+                  pages.push(1)
+                  pages.push(2)
+                  pages.push('ellipsis')
+                  for (let i = totalPages - 2; i <= totalPages; i++) {
+                     pages.push(i)
+                  }
+               } else {
+                  // In the middle: 1, 2, ..., current-1, current, current+1, ..., last-1, last
+                  pages.push(1)
+                  pages.push(2)
+                  pages.push('ellipsis')
+                  pages.push(currentPage - 1)
+                  pages.push(currentPage)
+                  pages.push(currentPage + 1)
+                  pages.push('ellipsis')
+                  pages.push(totalPages - 1)
+                  pages.push(totalPages)
+               }
+            }
+            
+            return pages
+         }
+         
+         const paginationNumbers = getPaginationNumbers()
+         
+         return (
+            <div className="mt-16 flex items-center justify-center gap-2 flex-wrap">
                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`w-10 h-10 flex items-center justify-center font-bold text-sm rounded-full transition-all
-                     ${currentPage === page 
-                        ? (viewMode === 'retro' ? 'bg-brand-black text-white border-2 border-brand-black shadow-pop-sm' : 'bg-black text-white')
-                        : (viewMode === 'retro' ? 'bg-brand-cream text-brand-black border-2 border-brand-black hover:bg-brand-mustard' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100')}
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className={`p-3 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed
+                     ${viewMode === 'retro' 
+                       ? 'bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:shadow-pop-sm' 
+                       : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-100'}
                   `}
                >
-                  {page}
+                  <ChevronLeft size={16} strokeWidth={3} />
                </button>
-            ))}
-            <button
-               disabled={currentPage === totalPages}
-               onClick={() => handlePageChange(currentPage + 1)}
-               className={`p-3 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed
-                  ${viewMode === 'retro' 
-                    ? 'bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:shadow-pop-sm' 
-                    : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-100'}
-               `}
-            >
-               <ChevronRight size={16} strokeWidth={3} />
-            </button>
-         </div>
-      )}
+               
+               {paginationNumbers.map((page, index) => {
+                  if (page === 'ellipsis') {
+                     return (
+                        <span
+                           key={`ellipsis-${index}`}
+                           className={`w-10 h-10 flex items-center justify-center font-bold text-sm
+                              ${viewMode === 'retro' ? 'text-brand-black' : 'text-gray-600'}
+                           `}
+                        >
+                           ...
+                        </span>
+                     )
+                  }
+                  
+                  const pageNum = page as number
+                  return (
+                     <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`w-10 h-10 flex items-center justify-center font-bold text-sm rounded-full transition-all
+                           ${currentPage === pageNum 
+                              ? (viewMode === 'retro' ? 'bg-brand-black text-white border-2 border-brand-black shadow-pop-sm' : 'bg-black text-white')
+                              : (viewMode === 'retro' ? 'bg-brand-cream text-brand-black border-2 border-brand-black hover:bg-brand-mustard' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100')}
+                        `}
+                     >
+                        {pageNum}
+                     </button>
+                  )
+               })}
+               
+               <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={`p-3 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed
+                     ${viewMode === 'retro' 
+                       ? 'bg-brand-cream border-2 border-brand-black text-brand-black hover:bg-brand-orange hover:shadow-pop-sm' 
+                       : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-100'}
+                  `}
+               >
+                  <ChevronRight size={16} strokeWidth={3} />
+               </button>
+            </div>
+         )
+      })()}
 
       {/* View More Button for Limited Views */}
       {limit && onViewMore && (

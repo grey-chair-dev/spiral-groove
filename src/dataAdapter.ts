@@ -24,6 +24,9 @@ export type Product = {
   reviewCount: number
   soldCount?: number
   lastSoldAt?: string | null
+  lastStockedAt?: string | null
+  lastAdjustmentAt?: string | null
+  createdAt?: string | null
 }
 
 const PLACEHOLDER_IMAGE =
@@ -191,6 +194,9 @@ function sanitizeProduct(product: Product): Product {
     reviewCount: Math.max(0, Math.round(coerceNumber(product.reviewCount, 0, 0))),
     soldCount: Math.max(0, Math.round(coerceNumber(product.soldCount, 0, 0))),
     lastSoldAt: product.lastSoldAt ? sanitizeText(product.lastSoldAt, { maxLength: 80 }) : null,
+    lastStockedAt: product.lastStockedAt ? sanitizeText(product.lastStockedAt, { maxLength: 80 }) : null,
+    lastAdjustmentAt: product.lastAdjustmentAt ? sanitizeText(product.lastAdjustmentAt, { maxLength: 80 }) : null,
+    createdAt: product.createdAt ? sanitizeText(product.createdAt, { maxLength: 80 }) : null,
   }
 }
 
