@@ -97,6 +97,13 @@ export async function webHandler(request) {
   }
 
   try {
+    const url = new URL(request.url)
+    const includePast =
+      (url.searchParams.get('includePast') || '').toLowerCase() === 'true' ||
+      (url.searchParams.get('includePast') || '') === '1'
+    const pastDaysRaw = url.searchParams.get('pastDays')
+    const pastDays = pastDaysRaw != null ? Math.max(1, Math.min(3650, Number(pastDaysRaw))) : 365
+
     // Best-effort schema check/migration
     await ensureEventsSchema()
 
@@ -117,8 +124,15 @@ export async function webHandler(request) {
       throw new Error('SGR_DATABASE_URL (preferred), SPR_DATABASE_URL (legacy), or DATABASE_URL environment variable is not set')
     }
 
-    // Optimized query: filter to future events and use index-friendly ordering
-    // The composite index events_is_event_date_idx should handle this efficiently
+    // Default: upcoming events only. If includePast=1, include the last N days (pastDays, default 365).
+    const where = includePast
+      ? `WHERE is_event = true
+        AND event_date >= (CURRENT_DATE - ($1::int * INTERVAL '1 day'))`
+      : `WHERE is_event = true
+        AND event_date >= CURRENT_DATE`
+
+    const params = includePast ? [pastDays] : []
+
     const result = await query(
       `SELECT
         id,
@@ -145,9 +159,10 @@ export async function webHandler(request) {
         created_at,
         updated_at
       FROM events
-      WHERE is_event = true
-        AND event_date >= CURRENT_DATE
+      ${where}
       ORDER BY event_date ASC, start_time_time ASC NULLS LAST, id ASC`
+      ,
+      params
     )
 
     const events = result.rows.map((row) => ({

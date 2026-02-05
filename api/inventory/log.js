@@ -129,29 +129,20 @@ export async function webHandler(request) {
 
     const inventoryRecord = result.rows[0]
 
-    // Update products_cache stock_count if product exists (match by square_variation_id)
-    // This keeps products_cache in sync with inventory changes
-    // Also update last_stocked_at when stock increases and last_adjustment_at for any adjustment
+    // Update products.stock_count if product exists (match by square_variation_id)
+    // This keeps the authoritative `products` table in sync with inventory changes.
     try {
       await query(
-        `UPDATE products_cache 
-         SET stock_count = stock_count + $1, 
-             updated_at = CURRENT_TIMESTAMP,
-             last_adjustment_at = $3,
-             last_stocked_at = CASE
-               -- If stock went from 0 (or null) to > 0, update last_stocked_at
-               WHEN (stock_count + $1) > 0 AND (stock_count IS NULL OR stock_count = 0) THEN $3
-               -- If stock increased (but was already > 0), update last_stocked_at
-               WHEN $1 > 0 AND stock_count > 0 THEN $3
-               -- Otherwise keep existing value
-               ELSE last_stocked_at
-             END
+        `UPDATE products
+         SET stock_count = GREATEST(stock_count + $1, 0),
+             updated_at = $3::timestamptz,
+             synced_at = $3::timestamptz
          WHERE square_variation_id = $2`,
-        [quantity_change, squareVariationId, adjustmentTimestamp.toISOString()]
+        [quantity_change, squareVariationId, adjustmentTimestamp.toISOString()],
       )
     } catch (updateErr) {
       // Log but don't fail - product might not exist in cache yet
-      console.warn(`[Inventory Log] Could not update products_cache for variation ${squareVariationId}:`, updateErr.message)
+      console.warn(`[Inventory Log] Could not update products for variation ${squareVariationId}:`, updateErr.message)
     }
 
     return new Response(

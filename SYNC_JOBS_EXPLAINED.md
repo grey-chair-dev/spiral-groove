@@ -2,14 +2,11 @@
 
 ## Overview
 
-There are **two separate sync jobs** that run daily via Vercel cron:
-
-1. **Products Sync** (`/api/square/sync`) - 6:00 AM UTC
-2. **Sales Sync** (`/api/square/sales-sync`) - 6:30 AM UTC
+Square sync jobs have been removed. There is no scheduled Square catalog pull.
 
 ---
 
-## 1. Products Sync (`/api/square/sync`)
+## (Removed) Products Sync
 
 ### What It Does
 Syncs **Square catalog items** (products) to the `products_cache` table in Neon.
@@ -44,61 +41,12 @@ Syncs **Square catalog items** (products) to the `products_cache` table in Neon.
 
 ---
 
-## 2. Sales Sync (`/api/square/sales-sync`)
-
-### What It Does
-Syncs **Square orders** (sales transactions) to Neon database.
-
-### Data Synced
-- ✅ **Orders**: Order records from Square
-- ✅ **Line Items**: Individual items in each order
-- ✅ **Sold Counts**: Updates `sold_count` in `products_cache`
-- ✅ **Last Sold Dates**: Updates `last_sold_at` timestamps
-
-### Tables Updated
-- `orders` - Order records
-- `order_items` - Line items for each order
-- `products_cache` - Updates `sold_count` and `last_sold_at`
-- `sales_sync_state` - Tracks last sync timestamp
-
-### Schedule
-- **Cron**: Daily at 6:30 AM UTC (`30 6 * * *`)
-- **Default**: Last 24 hours (incremental)
-- **Manual**: Can backfill historical orders via POST
-
-### Example Response
-```json
-{
-  "success": true,
-  "range": {
-    "startAt": "2025-01-31T06:30:00Z",
-    "endAt": "2025-02-01T06:30:00Z"
-  },
-  "pages": 3,
-  "orders": 45,
-  "insertedLineItems": 120,
-  "lastSyncedAt": "2025-02-01T06:25:00Z"
-}
-```
-
----
-
-## Key Differences
-
-| Feature | Products Sync | Sales Sync |
-|---------|--------------|------------|
-| **Source** | Square Catalog API | Square Orders API |
-| **Target Table** | `products_cache` | `orders`, `order_items` |
-| **Frequency** | Daily (full sync) | Daily (incremental) |
-| **Time Range** | All products | Last 24 hours |
-| **Purpose** | Keep product catalog up-to-date | Track sales & update analytics |
-| **Also Updates** | - | `products_cache.sold_count` |
-
----
+## (Removed) Sales Sync
+*(Removed)* This project no longer runs a Square “sales pull” job.
 
 ## Sync Logging
 
-Both syncs are now logged to the `sync_log` table:
+Historically, the products sync logged to the `sync_log` table:
 
 ```sql
 SELECT 
@@ -194,51 +142,17 @@ GROUP BY sync_type;
 
 ## Manual Execution
 
-### Products Sync
-```bash
-# Full sync
-curl -X POST https://your-domain.com/api/square/sync \
-  -H "x-webhook-secret: YOUR_SECRET" \
-  -H "Content-Type: application/json" \
-  -d '{"full": true}'
-
-# Sync specific items
-curl -X POST https://your-domain.com/api/square/sync \
-  -H "x-webhook-secret: YOUR_SECRET" \
-  -H "Content-Type: application/json" \
-  -d '{"squareItemIds": ["ITEM_ID_1", "ITEM_ID_2"]}'
-```
-
-### Sales Sync
-```bash
-# Sync last 24 hours (default)
-curl -X POST https://your-domain.com/api/square/sales-sync \
-  -H "x-webhook-secret: YOUR_SECRET" \
-  -H "Content-Type: application/json"
-
-# Backfill specific date range
-curl -X POST https://your-domain.com/api/square/sales-sync \
-  -H "x-webhook-secret: YOUR_SECRET" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "startAt": "2025-01-01T00:00:00Z",
-    "endAt": "2025-01-31T23:59:59Z"
-  }'
-```
+*(Removed)* Square sync endpoints no longer exist.
 
 ---
 
 ## Troubleshooting
 
 ### Products Not Updating
-1. Check `sync_log` for recent products sync errors
-2. Verify `SQUARE_ACCESS_TOKEN` is set
-3. Check Square API rate limits
-4. Review sync logs in Vercel dashboard
+If products are not updating, check your inventory webhook ingest (`POST /api/inventory/log`) and your database state (`products_cache`, `albums_cache`).
 
 ### Sales Not Syncing
-1. Check `sync_log` for recent sales sync errors
-2. Verify `sales_sync_state` table exists
+*(Removed)* Sales sync has been deleted.
 3. Check if orders exist in Square for the time range
 4. Review `last_synced_at` in `sales_sync_state`
 

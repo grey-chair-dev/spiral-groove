@@ -241,11 +241,18 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
                         {/* Main Ticket Content */}
                         <div className="flex-1 flex flex-col md:flex-row gap-6 p-6">
                             {/* Image */}
-                            <div className={`w-full md:w-48 h-48 md:h-auto flex-shrink-0 overflow-hidden relative
-                                ${isRetro ? 'border-2 border-brand-black grayscale group-hover:grayscale-0 transition-all' : 'rounded-lg'}
-                            `}>
-                                <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
-                            </div>
+                            {event.imageUrl ? (
+                              <div className={`w-full md:w-48 h-48 md:h-auto flex-shrink-0 overflow-hidden relative
+                                  ${isRetro ? 'border-2 border-brand-black grayscale group-hover:grayscale-0 transition-all' : 'rounded-lg'}
+                              `}>
+                                  <img
+                                    src={event.imageUrl}
+                                    alt={event.title}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                  />
+                              </div>
+                            ) : null}
 
                             {/* Info */}
                             <div className="flex-1 flex flex-col justify-center">
@@ -452,9 +459,16 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
              <div className="space-y-6">
                 {archivePageItems.map(event => (
                     <div key={event.id} className="flex gap-4 group opacity-70 hover:opacity-100 transition-opacity">
-                        <div className={`w-24 h-24 flex-shrink-0 overflow-hidden ${isRetro ? 'border-2 border-brand-black grayscale' : 'rounded-lg'}`}>
-                            <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
-                        </div>
+                        {event.imageUrl ? (
+                          <div className={`w-24 h-24 flex-shrink-0 overflow-hidden ${isRetro ? 'border-2 border-brand-black grayscale' : 'rounded-lg'}`}>
+                              <img
+                                src={event.imageUrl}
+                                alt={event.title}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                          </div>
+                        ) : null}
                         <div className="flex-1">
                             <span className="text-xs font-bold uppercase tracking-widest text-gray-500">{event.date}</span>
                             <div className="flex items-start justify-between gap-3">

@@ -184,7 +184,7 @@ function generateRecoverySuggestions(payload) {
       suggestions.push('Check for connection pool exhaustion')
     }
     if (error?.includes('table') && error?.includes('not exist')) {
-      suggestions.push('Run database migrations: npm run sync:square')
+      // Square sync tooling removed.
       suggestions.push('Verify table schema matches expected structure')
     }
   }

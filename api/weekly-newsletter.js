@@ -93,7 +93,7 @@ async function getNewRecords() {
   try {
     const result = await query(
       `SELECT
-        id,
+        ('variation-' || square_variation_id) AS id,
         name,
         description,
         price_dollars AS price,
@@ -101,7 +101,7 @@ async function getNewRecords() {
         image_url,
         stock_count,
         created_at
-      FROM products_cache
+      FROM products
       WHERE stock_count > 0
         AND created_at >= NOW() - INTERVAL '30 days'
         AND (
@@ -169,16 +169,16 @@ async function getRecommendations(customerEmail) {
       // Only vinyl records
       const recommendationsResult = await query(
         `SELECT
-          id,
+          ('variation-' || square_variation_id) AS id,
           name,
           description,
           price_dollars AS price,
           category,
           image_url,
           stock_count
-        FROM products_cache
+        FROM products
         WHERE stock_count > 0
-          AND id != ALL($1::text[])
+          AND ('variation-' || square_variation_id) != ALL($1::text[])
           AND (
             category IN ('New Vinyl', 'Used Vinyl', '33New', '33Used', '45', 'LP', '12"', '7"', '10"')
             OR category ILIKE '%vinyl%'
@@ -191,7 +191,6 @@ async function getRecommendations(customerEmail) {
           ${categoryArray.length > 0 ? `AND (category = ANY($2::text[]) OR category IS NULL)` : ''}
         ORDER BY 
           ${categoryArray.length > 0 ? `CASE WHEN category = ANY($2::text[]) THEN 1 ELSE 2 END,` : ''}
-          sold_count DESC,
           created_at DESC
         LIMIT 12`,
         categoryArray.length > 0 
@@ -218,14 +217,14 @@ async function getPopularRecords() {
   try {
     const result = await query(
       `SELECT
-        id,
+        ('variation-' || square_variation_id) AS id,
         name,
         description,
         price_dollars AS price,
         category,
         image_url,
         stock_count
-      FROM products_cache
+      FROM products
       WHERE stock_count > 0
         AND (
           category IN ('New Vinyl', 'Used Vinyl', '33New', '33Used', '45', 'LP', '12"', '7"', '10"')
@@ -236,7 +235,7 @@ async function getPopularRecords() {
           OR category ILIKE '%10"%'
           OR category ILIKE '%45%'
         )
-      ORDER BY sold_count DESC, created_at DESC
+      ORDER BY created_at DESC NULLS LAST
       LIMIT 12`
     )
     

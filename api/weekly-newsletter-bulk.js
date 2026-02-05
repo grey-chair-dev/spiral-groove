@@ -2,7 +2,7 @@
  * Weekly Newsletter Bulk Sender
  * 
  * Vercel Cron endpoint that sends weekly newsletter to all subscribers in email_list
- * Runs every Monday at 9:00 AM UTC
+ * Cron schedule is configured in vercel.json (currently Fridays at 9:00 AM UTC)
  * 
  * This endpoint is called by Vercel cron and sends to all subscribers automatically
  */
@@ -87,8 +87,8 @@ export async function webHandler(request) {
     )
   }
 
-  // Check if we're past the start date (February 15, 2026)
-  const START_DATE = new Date('2026-02-15T00:00:00Z')
+  // Check if we're past the start date (March 1, 2026)
+  const START_DATE = new Date('2026-03-01T00:00:00Z')
   const now = new Date()
   
   if (now < START_DATE) {

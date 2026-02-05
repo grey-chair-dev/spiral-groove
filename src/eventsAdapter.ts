@@ -73,8 +73,14 @@ function mapEventTypeToUiType(eventType: string | null | undefined): Event['type
 }
 
 function getSafeImageUrl(url: string | null | undefined): string {
-  const u = (url || '').trim()
-  if (!u) return 'https://picsum.photos/600/400?random=90'
+  const u = (url || '')
+    // strip whitespace + common invisible chars that can break URL parsing/hostnames
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim()
+  if (!u) return ''
+  // "Just use the image": return the provided URL directly (no proxy, no fallback).
+  // Minimal normalization for protocol-relative URLs.
+  if (u.startsWith('//')) return `https:${u}`
   return u
 }
 
@@ -82,7 +88,17 @@ export async function fetchEvents(): Promise<Event[]> {
   try {
     // @ts-ignore - Vite environment variables
     const apiUrl = import.meta.env.VITE_EVENTS_API_URL || '/api/events'
-    const res = await fetch(apiUrl, { headers: { accept: 'application/json' } })
+    // Include past events so the Events page "Archive" section can populate.
+    // Server defaults to upcoming-only unless includePast=1 is provided.
+    const url =
+      apiUrl.startsWith('http://') || apiUrl.startsWith('https://')
+        ? new URL(apiUrl)
+        : new URL(apiUrl, window.location.origin)
+    url.searchParams.set('includePast', '1')
+    // Keep a reasonable cap; can be increased if you want deeper history.
+    url.searchParams.set('pastDays', url.searchParams.get('pastDays') || '3650')
+
+    const res = await fetch(url.toString(), { headers: { accept: 'application/json' } })
     const rawText = await res.text()
 
     if (!res.ok) {

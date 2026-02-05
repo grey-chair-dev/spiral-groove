@@ -31,7 +31,8 @@ const jsonReplacer = (key, value) => {
   return typeof value === 'bigint' ? value.toString() : value;
 }
 
-let didEnsureProductsCacheSalesColumns = false
+// Sold-count analytics previously updated products_cache. Catalog now uses `products` table.
+// Keep checkout flow simple: skip sold-count tracking unless reintroduced explicitly.
 
 // Basic in-memory rate limiter (best-effort). Vercel serverless may not preserve state across invocations,
 // but it still reduces bursts within a warm instance.
@@ -57,57 +58,8 @@ function checkRateLimit(key, { windowMs, max }) {
   return { ok: true, remaining: max - prev.count, resetAt: prev.resetAt }
 }
 
-async function ensureProductsCacheSalesColumns() {
-  if (didEnsureProductsCacheSalesColumns) return
-  try {
-    // Best-effort, idempotent schema update so we can track best/worst sellers.
-    // If you prefer migrations, we can move this into a one-off script.
-    await query(`ALTER TABLE products_cache ADD COLUMN IF NOT EXISTS sold_count INTEGER NOT NULL DEFAULT 0`)
-    await query(`ALTER TABLE products_cache ADD COLUMN IF NOT EXISTS last_sold_at TIMESTAMPTZ`)
-    didEnsureProductsCacheSalesColumns = true
-  } catch (e) {
-    // Don't fail checkout if schema update is blocked; just skip sold tracking.
-    console.warn('[Payment API] Unable to ensure products_cache sales columns:', e?.message || e)
-  }
-}
-
-async function incrementSoldCounts(cartItems) {
-  if (!Array.isArray(cartItems) || cartItems.length === 0) return
-  try {
-    await ensureProductsCacheSalesColumns()
-
-    // Aggregate quantities per product id
-    const qtyById = new Map()
-    for (const item of cartItems) {
-      const id = item?.id
-      const qty = Number(item?.quantity || 0)
-      if (!id || !Number.isFinite(qty) || qty <= 0) continue
-      qtyById.set(id, (qtyById.get(id) || 0) + qty)
-    }
-    if (qtyById.size === 0) return
-
-    const params = []
-    const tuples = []
-    let i = 1
-    for (const [id, qty] of qtyById.entries()) {
-      params.push(String(id), Number(qty))
-      // Cast parameters so Postgres doesn't infer qty as TEXT (which breaks integer arithmetic).
-      tuples.push(`($${i}::text, $${i + 1}::int)`)
-      i += 2
-    }
-
-    await query(
-      `UPDATE products_cache pc
-       SET sold_count = COALESCE(pc.sold_count, 0) + v.qty,
-           last_sold_at = NOW()
-       FROM (VALUES ${tuples.join(',')}) AS v(id, qty)
-       WHERE pc.id = v.id`,
-      params
-    )
-  } catch (e) {
-    // Never block checkout success on analytics.
-    console.warn('[Payment API] Unable to increment sold_count:', e?.message || e)
-  }
+async function incrementSoldCounts(_cartItems) {
+  // no-op
 }
 
 /**
@@ -343,14 +295,17 @@ export async function webHandler(request) {
     }
 
     const ids = Array.from(new Set(requested.map((x) => x.id)))
+    const variationIds = ids
+      .map((id) => (String(id).startsWith('variation-') ? String(id).slice('variation-'.length) : String(id)))
+      .filter(Boolean)
     const dbRes = await query(
-      `SELECT id, name, price_cents, square_variation_id
-       FROM products_cache
-       WHERE id = ANY($1::text[])`,
-      [ids],
+      `SELECT square_variation_id, name, price_cents
+       FROM products
+       WHERE square_variation_id = ANY($1::text[])`,
+      [variationIds],
     )
-    const byId = new Map(dbRes.rows.map((r) => [String(r.id), r]))
-    const missing = ids.filter((id) => !byId.has(id))
+    const byVariationId = new Map(dbRes.rows.map((r) => [String(r.square_variation_id), r]))
+    const missing = variationIds.filter((vid) => !byVariationId.has(vid))
     if (missing.length > 0) {
       return new Response(
         JSON.stringify({ success: false, error: 'One or more items are no longer available.', missing }),
@@ -359,14 +314,15 @@ export async function webHandler(request) {
     }
 
     const canonicalCartItems = requested.map((it) => {
-      const row = byId.get(it.id)
-      const priceCents = Number(row.price_cents || 0)
+      const variationId = String(it.id).startsWith('variation-') ? String(it.id).slice('variation-'.length) : String(it.id)
+      const row = byVariationId.get(variationId)
+      const priceCents = Number(row?.price_cents || 0)
       return {
         id: it.id,
-        name: String(row.name || ''),
+        name: String(row?.name || ''),
         quantity: Math.min(99, Math.max(1, Math.round(it.quantity))),
         priceCents: Math.max(0, Math.round(priceCents)),
-        squareVariationId: row.square_variation_id ? String(row.square_variation_id) : null,
+        squareVariationId: variationId || null,
       }
     })
 
@@ -715,13 +671,12 @@ export async function webHandler(request) {
              SELECT
                v.item_id,
                v.order_id,
-               pc.id, -- NULL when no matching product exists
+               v.product_id,
                v.quantity,
                v.price_cents,
                v.name,
                NOW()
-             FROM v
-             LEFT JOIN products_cache pc ON pc.id = v.product_id`,
+             FROM v`,
             params,
           )
         }

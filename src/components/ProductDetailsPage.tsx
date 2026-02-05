@@ -4,7 +4,7 @@ import { Product, ViewMode, Page } from '../../types';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { ProductGrid } from './ProductGrid';
-import { ArrowLeft, CheckCircle2, Share2, Heart } from 'lucide-react';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { CategoryGroups, isProductStyleCategory } from '../types/productEnums';
 import { getDefaultProductImage } from '../utils/defaultProductImage';
 
@@ -239,20 +239,10 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
 
               {/* Price Section */}
               <div className="mb-8">
-                 <div className="flex items-center justify-between mb-6">
-                    <div>
-                       <span className="block text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">PRICE</span>
-                       <div className={`font-header font-extrabold tabular-nums text-5xl ${isSoldOut ? 'text-gray-300 line-through decoration-brand-black' : 'text-gray-900'}`}>
-                          ${product.price.toFixed(2)}
-                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                       <button className="w-12 h-12 flex items-center justify-center border-2 border-gray-300 bg-white hover:bg-gray-50 text-gray-600 transition-all">
-                          <Heart size={20} />
-                       </button>
-                       <button className="w-12 h-12 flex items-center justify-center border-2 border-gray-300 bg-white hover:bg-gray-50 text-gray-600 transition-all">
-                          <Share2 size={20} />
-                       </button>
+                 <div className="mb-6">
+                    <span className="block text-[10px] font-bold uppercase text-gray-400 tracking-widest mb-1">PRICE</span>
+                    <div className={`font-header font-extrabold tabular-nums text-5xl ${isSoldOut ? 'text-gray-300 line-through decoration-brand-black' : 'text-gray-900'}`}>
+                       ${product.price.toFixed(2)}
                     </div>
                  </div>
               </div>

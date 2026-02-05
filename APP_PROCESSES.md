@@ -7,30 +7,10 @@ This document lists all processes, cron jobs, API endpoints, and background task
 
 ## 🕐 Scheduled Cron Jobs (Vercel)
 
-### 1. **Products Sync** (`/api/square/sync`)
-- **Schedule**: Daily at 6:00 AM UTC (`0 6 * * *`)
-- **Purpose**: Syncs Square catalog items to `products_cache` table
-- **What it does**:
-  - Fetches all products from Square Catalog API
-  - Updates `products_cache` with product info, prices, images, categories
-  - Updates inventory counts
-  - Deletes products that no longer exist in Square
-  - Populates `albums_cache` table after sync completes
-- **Tables Updated**: `products_cache`, `albums_cache`
-- **Logs**: Creates entry in `sync_log` table
+### 1. **(Removed) Square Products Sync** (`/api/square/sync`)
+- This sync has been removed and is no longer scheduled or callable.
 
-### 2. **Sales Sync** (`/api/square/sales-sync`)
-- **Schedule**: Daily at 6:30 AM UTC (`30 6 * * *`)
-- **Purpose**: Syncs Square orders to database
-- **What it does**:
-  - Fetches orders from Square (last 24 hours by default)
-  - Inserts orders into `sales_orders` table
-  - Inserts line items into `sales_line_items` table
-  - Updates `sold_count` and `last_sold_at` in `products_cache`
-- **Tables Updated**: `sales_orders`, `sales_line_items`, `products_cache`, `sales_sync_state`
-- **Logs**: Creates entry in `sync_log` table
-
-### 3. **Weekly Newsletter** (`/api/weekly-newsletter-bulk`)
+### 2. **Weekly Newsletter** (`/api/weekly-newsletter-bulk`)
 - **Schedule**: Every Friday at 9:00 AM UTC (`0 9 * * 5`)
 - **Purpose**: Sends weekly newsletter to all subscribers
 - **What it does**:
@@ -50,7 +30,6 @@ This document lists all processes, cron jobs, API endpoints, and background task
 ### Product & Catalog
 - **`GET /api/products`** - Fetches all products from `albums_cache` (or `products_cache` fallback)
 - **`GET /api/staff-picks`** - Fetches staff picks with product data merged
-- **`GET /api/sales/best-sellers`** - Fetches best-selling products
 
 ### Orders & Payments
 - **`POST /api/pay`** - Processes Square payment and creates order
@@ -74,8 +53,6 @@ This document lists all processes, cron jobs, API endpoints, and background task
 - **`POST /api/forgot-password`** - Password reset request
 
 ### Sync & Admin
-- **`GET/POST /api/square/sync`** - Syncs Square products (cron + manual)
-- **`GET/POST /api/square/sales-sync`** - Syncs Square sales (cron + manual)
 - **`POST /api/inventory/log`** - Logs inventory changes from Square webhooks
 
 ### Utilities
@@ -123,7 +100,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
   - Sends alerts for slow performance
 
 ### 4. **Albums Cache Population** (`api/albumsCache.js`)
-- **Trigger**: After products sync completes
+- **Trigger**: Run manually / on deploy as needed
 - **What it does**:
   - Creates `albums_cache` table if missing
   - Populates with only album products (filters out DVDs, etc.)
@@ -140,8 +117,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 - **`npm run db:optimize`** - Optimizes database performance (adds missing indexes, updates statistics)
 
 ### Sync Jobs
-- **`npm run sync:square`** - Manual Square products sync
-- **`npm run sync:sales`** - Manual Square sales sync
+*(Removed)* Square sync scripts have been deleted.
 
 ### Newsletter
 - **`npm run send:weekly-newsletter`** - Sends test weekly newsletter
@@ -174,7 +150,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 ## 📊 Database Tables
 
 ### Product Tables
-- **`products_cache`** - Main product catalog (synced from Square)
+- **`products_cache`** - Main product catalog (populated via Square sync historically; now updated via webhooks/manual processes)
 - **`albums_cache`** - Pre-filtered albums only (for faster queries)
 - **`staff_picks`** - Staff pick metadata
 
@@ -195,8 +171,8 @@ This document lists all processes, cron jobs, API endpoints, and background task
 - **`inventory`** - Inventory change log
 
 ### Sync & Logging Tables
-- **`sync_log`** - Sync job execution logs
-- **`sales_sync_state`** - Sales sync state tracking
+- **`sync_log`** - Historical sync job execution logs
+- **`sales_sync_state`** - Historical sales sync state tracking
 
 ---
 
@@ -240,21 +216,10 @@ This document lists all processes, cron jobs, API endpoints, and background task
 ## 🎯 Key Workflows
 
 ### Product Sync Workflow
-1. Cron triggers `/api/square/sync` at 6:00 AM UTC
-2. Fetches all items from Square Catalog API
-3. Processes variations and inventory
-4. Upserts into `products_cache`
-5. Deletes products no longer in Square
-6. Populates `albums_cache` table
-7. Logs results to `sync_log`
+*(Removed)* Square products sync workflow has been deleted.
 
 ### Sales Sync Workflow
-1. Cron triggers `/api/square/sales-sync` at 6:30 AM UTC
-2. Fetches orders from Square (last 24 hours)
-3. Inserts into `sales_orders` and `sales_line_items`
-4. Updates `sold_count` and `last_sold_at` in `products_cache`
-5. Updates `sales_sync_state` with last sync timestamp
-6. Logs results to `sync_log`
+*(Removed)* Square sales sync workflow has been deleted.
 
 ### Weekly Newsletter Workflow
 1. Cron triggers `/api/weekly-newsletter-bulk` every Friday at 9:00 AM UTC
@@ -286,9 +251,7 @@ Located in `scripts/` directory:
 - **`optimize-products-cache-indexes.mjs`** - Removes redundant indexes
 - **`populate-albums-cache.mjs`** - Manual albums cache population
 - **`send-weekly-newsletter.mjs`** - Manual newsletter send
-- **`sync-square.mjs`** - Manual Square sync
-- **`sync-square-sales.mjs`** - Manual sales sync
-- **`test-cron-endpoints.mjs`** - Tests cron endpoints
+*(Removed)* Square sync scripts deleted (`sync-square.mjs`, `sync-square-sales.mjs`, `test-cron-endpoints.mjs`).
 - **`validate-staff-picks.mjs`** - Validates staff picks
 
 ---
@@ -297,8 +260,6 @@ Located in `scripts/` directory:
 
 | Time (UTC) | Day | Process | Endpoint |
 |------------|-----|---------|----------|
-| 6:00 AM | Daily | Products Sync | `/api/square/sync` |
-| 6:30 AM | Daily | Sales Sync | `/api/square/sales-sync` |
 | 9:00 AM | Friday | Weekly Newsletter | `/api/weekly-newsletter-bulk` |
 
 ---
@@ -307,12 +268,12 @@ Located in `scripts/` directory:
 
 ### Product Data Flow
 ```
-Square Catalog API → /api/square/sync → products_cache → albums_cache → /api/products → Frontend
+Square Catalog API → (removed sync) → products_cache → albums_cache → /api/products → Frontend
 ```
 
 ### Sales Data Flow
 ```
-Square Orders API → /api/square/sales-sync → sales_orders + sales_line_items → products_cache (sold_count) → Analytics
+Square Orders API → (removed sync) → sales_orders + sales_line_items → products_cache (sold_count) → Analytics
 ```
 
 ### Newsletter Flow
@@ -334,7 +295,3 @@ email_list → /api/weekly-newsletter-bulk → Make.com Webhook → Email Delive
 ## 📝 Notes
 
 - All cron jobs run on Vercel
-- Manual triggers require `WEBHOOK_SECRET` header in production
-- Development mode allows GET requests without authentication
-- All syncs are idempotent (safe to run multiple times)
-- `albums_cache` is repopulated after each products sync

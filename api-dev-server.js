@@ -95,14 +95,8 @@ const server = createServer(async (req, res) => {
           } else if (route === 'staff-picks') {
             const module = await importFresh('./api/staff-picks.js')
             handler = module.webHandler ?? module.default
-          } else if (route === 'square/sync') {
-            const module = await importFresh('./api/square/sync.js')
-            handler = module.webHandler ?? module.default
-          } else if (route === 'square/sales-sync') {
-            const module = await importFresh('./api/square/sales-sync.js')
-            handler = module.webHandler ?? module.default
-          } else if (route === 'sales/best-sellers') {
-            const module = await importFresh('./api/sales/best-sellers.js')
+          } else if (route === 'image-proxy') {
+            const module = await importFresh('./api/image-proxy.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'inventory/log') {
             const module = await importFresh('./api/inventory/log.js')
@@ -176,27 +170,46 @@ const server = createServer(async (req, res) => {
         const headers = Object.fromEntries(response.headers.entries())
         
         // Get body
-        let body
+        let bodyBuf
         try {
-          body = await response.text()
+          const ab = await response.arrayBuffer()
+          bodyBuf = Buffer.from(ab)
         } catch (e) {
           console.error('[API Dev Server] Failed to read response body:', e)
-          body = JSON.stringify({ error: 'Failed to read response body' })
-        }
-        
-        // Ensure we have a body
-        if (!body || !body.trim()) {
-          console.warn('[API Dev Server] Empty response body, using default error')
-          body = JSON.stringify({ 
-            success: false, 
-            error: 'Empty response from handler',
-            status 
-          })
+          bodyBuf = Buffer.from(JSON.stringify({ error: 'Failed to read response body' }), 'utf8')
           headers['Content-Type'] = 'application/json'
         }
         
+        // Ensure we have a body
+        if (!bodyBuf || bodyBuf.length === 0) {
+          // Allow empty bodies (204, redirects, etc). For errors, provide JSON.
+          if (status >= 400) {
+            console.warn('[API Dev Server] Empty response body, using default error')
+            bodyBuf = Buffer.from(
+              JSON.stringify({
+                success: false,
+                error: 'Empty response from handler',
+                status,
+              }),
+              'utf8',
+            )
+            headers['Content-Type'] = 'application/json'
+          } else {
+            bodyBuf = Buffer.alloc(0)
+          }
+        }
+
+        // Avoid invalid/conflicting hop-by-hop headers and ensure Content-Length matches bytes we send.
+        delete headers['transfer-encoding']
+        delete headers['Transfer-Encoding']
+        delete headers['connection']
+        delete headers['Connection']
+        delete headers['content-length']
+        delete headers['Content-Length']
+        headers['Content-Length'] = String(bodyBuf.length)
+
         res.writeHead(status, headers)
-        res.end(body)
+        res.end(bodyBuf)
       } else {
         // Fallback for other response types
         res.writeHead(response.status || 200, response.headers || { 'Content-Type': 'application/json' })

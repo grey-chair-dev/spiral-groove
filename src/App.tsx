@@ -633,11 +633,11 @@ function App() {
     return () => window.removeEventListener('popstate', onPopState);
   }, [products, requireClientLogin, clientAuthed]);
 
-  // If we just authenticated the client gate, go to the intended route (or catalog).
+  // If we just authenticated the client gate, go to the intended route (or stay on home).
   useEffect(() => {
     if (!requireClientLogin || !clientAuthed) return;
     if (window.location.pathname !== '/') return;
-    let next = '/catalog';
+    let next = '/';
     try {
       const intended = sessionStorage.getItem('greychair_client_intended');
       if (intended && intended !== '/' && intended.startsWith('/')) next = intended;
@@ -645,8 +645,10 @@ function App() {
     } catch {
       // ignore
     }
-    window.history.replaceState(null, '', next);
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, '', next);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
   }, [requireClientLogin, clientAuthed]);
 
   // If we navigated directly to a product URL before products loaded, resolve once products arrive.

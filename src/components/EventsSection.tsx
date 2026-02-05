@@ -54,15 +54,36 @@ export const EventsSection: React.FC<EventsSectionProps> = ({ events, viewMode, 
               </div>
 
               <div className="flex-1 p-6 flex flex-col">
-                 <div className="mb-3">
-                   <span className={`inline-block px-2 py-1 text-[10px] font-bold uppercase tracking-wider mb-2 rounded-sm
-                     ${viewMode === 'retro' ? 'bg-brand-teal text-white' : 'bg-brand-orange/10 text-brand-orange'}`}>
-                     {event.type}
-                   </span>
-                   <h3 className="text-xl md:text-2xl font-bold leading-tight group-hover:text-brand-orange transition-colors font-header">{event.title}</h3>
+                 {/* Thumbnail */}
+                 <div className="flex items-start justify-between gap-4 mb-4">
+                   <div className="min-w-0">
+                     <div className="mb-3">
+                       <span className={`inline-block px-2 py-1 text-[10px] font-bold uppercase tracking-wider mb-2 rounded-sm
+                         ${viewMode === 'retro' ? 'bg-brand-teal text-white' : 'bg-brand-orange/10 text-brand-orange'}`}>
+                         {event.type}
+                       </span>
+                       <h3 className="text-xl md:text-2xl font-bold leading-tight group-hover:text-brand-orange transition-colors font-header">{event.title}</h3>
+                     </div>
+                     
+                     <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">{event.description}</p>
+                   </div>
+
+                   {event.imageUrl ? (
+                     <div
+                       className={`w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 overflow-hidden
+                         ${viewMode === 'retro' ? 'border-2 border-brand-black grayscale group-hover:grayscale-0 transition-all' : 'rounded-xl border border-gray-100'}
+                       `}
+                     >
+                       <img
+                         src={event.imageUrl}
+                         alt={event.title}
+                         className="w-full h-full object-cover"
+                         loading="lazy"
+                       />
+                     </div>
+                   ) : null}
                  </div>
-                 
-                 <p className="text-gray-600 text-sm mb-6 line-clamp-2 leading-relaxed">{event.description}</p>
+                 <div className="mb-6" />
                  
                   <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide">

@@ -1,19 +1,19 @@
 /**
  * Albums Cache Table
  * 
- * A pre-filtered table containing only albums (vinyl records) from products_cache.
+ * A pre-filtered table containing only albums (vinyl records) from products.
  * This table is populated after each sync to enable faster queries.
  * 
  * Benefits:
  * - Faster queries (no need to filter albums on every request)
  * - Pre-applied album filtering logic
- * - Same structure as products_cache for easy querying
+ * - Same structure as legacy products_cache for easy querying
  */
 
 import { query } from './db.js'
 
 /**
- * Ensure albums_cache table exists with the same structure as products_cache
+ * Ensure albums_cache table exists with a products_cache-like structure (legacy).
  */
 export async function ensureAlbumsCacheSchema() {
   await query(`
@@ -85,7 +85,7 @@ export async function ensureAlbumsCacheSchema() {
 }
 
 /**
- * Populate albums_cache table with only albums from products_cache
+ * Populate albums_cache table with only albums from products
  * This should be called after each sync completes
  */
 export async function populateAlbumsCache() {
@@ -125,8 +125,8 @@ export async function populateAlbumsCache() {
   // Clear existing albums_cache
   await query('TRUNCATE TABLE albums_cache')
   
-  // Insert only albums from products_cache
-  // Using the same filtering logic as the products API
+  // Insert only albums from products
+  // Note: `products` does not have sold_count/last_stocked_at metadata; we populate those as defaults.
   const result = await query(`
     INSERT INTO albums_cache (
       id,
@@ -150,7 +150,7 @@ export async function populateAlbumsCache() {
       synced_at
     )
     SELECT 
-      id,
+      ('variation-' || square_variation_id) AS id,
       square_item_id,
       square_variation_id,
       name,
@@ -160,16 +160,16 @@ export async function populateAlbumsCache() {
       all_categories,
       stock_count,
       image_url,
-      rating,
-      review_count,
-      sold_count,
-      last_sold_at,
-      last_stocked_at,
-      last_adjustment_at,
+      0::numeric AS rating,
+      0::int AS review_count,
+      0::int AS sold_count,
+      NULL::timestamptz AS last_sold_at,
+      NULL::timestamptz AS last_stocked_at,
+      NULL::timestamptz AS last_adjustment_at,
       created_at,
       updated_at,
       CURRENT_TIMESTAMP as synced_at
-    FROM products_cache
+    FROM products
     WHERE 
       -- Only albums: category must be in album categories OR all_categories contains vinyl
       -- Include uncategorized items (will be manually updated over time)
@@ -189,11 +189,7 @@ export async function populateAlbumsCache() {
         OR
         (
           stock_count = 0 
-          AND (
-            (last_stocked_at IS NOT NULL AND last_stocked_at >= $3::timestamptz)
-            OR
-            (last_stocked_at IS NULL AND created_at >= $3::timestamptz)
-          )
+          AND created_at >= $3::timestamptz
         )
       )
   `, [albumCategories, excludeCategories, oneMonthAgoISO])
