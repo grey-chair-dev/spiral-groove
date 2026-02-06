@@ -53,6 +53,14 @@ export async function ensureAlbumsCacheSchema() {
     CREATE INDEX IF NOT EXISTS idx_albums_cache_created_desc 
     ON albums_cache (created_at DESC, id ASC)
   `)
+
+  // Fast path for newsletter + "most recent" queries:
+  // WHERE stock_count > 0 ORDER BY created_at DESC LIMIT N
+  await query(`
+    CREATE INDEX IF NOT EXISTS idx_albums_cache_instock_created_desc
+    ON albums_cache (created_at DESC, id ASC)
+    WHERE stock_count > 0
+  `)
   
   await query(`
     CREATE INDEX IF NOT EXISTS idx_albums_cache_stock_count 
