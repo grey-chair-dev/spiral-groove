@@ -125,7 +125,7 @@ export async function query(text, params) {
     console.log('[DB] Query executed', { text: text.substring(0, 50), duration, rows: result.rowCount })
     
     // Alert on slow queries (even if successful)
-    const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_QUERY_THRESHOLD_MS || '500', 10)
+    const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_QUERY_THRESHOLD_MS || '1000', 10)
     if (duration > SLOW_QUERY_THRESHOLD_MS) {
       const { sendSlackAlert } = await import('./slackAlerts.js')
       void sendSlackAlert({
