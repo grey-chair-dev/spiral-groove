@@ -740,7 +740,11 @@ export async function webHandler(request) {
         // Send internal sale alert email (best-effort)
         try {
           const { sendEmail } = await import('./sendEmail.js')
-          const salesTo = process.env.SALES_ALERT_EMAIL || 'adam@spiralgrooverecords.com'
+          // Always route production sale alerts to Adam. Allow overrides only in non-prod for testing.
+          const salesTo =
+            process.env.NODE_ENV === 'production'
+              ? 'adam@spiralgrooverecords.com'
+              : (process.env.SALES_ALERT_EMAIL || 'adam@spiralgrooverecords.com')
 
           await sendEmail({
             type: 'sale_alert',
