@@ -751,7 +751,7 @@ function App() {
     let mounted = true;
     const loadStaffPicks = async () => {
       try {
-        const rows = await fetchStaffPickMeta(12);
+        const rows = await fetchStaffPickMeta(4);
         if (!mounted) return;
         setStaffPickRows(rows);
       } catch (err) {

@@ -21,9 +21,8 @@ export async function webHandler(request) {
   }
 
   try {
-    const url = new URL(request.url)
-    const limitRaw = url.searchParams.get('limit')
-    const limit = Math.min(50, Math.max(1, Number(limitRaw || 12) || 12))
+    // Always return the 4 most recent staff picks.
+    const limit = 4
 
     const result = await query(
       `SELECT

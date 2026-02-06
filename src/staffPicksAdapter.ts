@@ -38,11 +38,12 @@ function writeCachedRows(rows: StaffPickMetaRow[]) {
   }
 }
 
-export async function fetchStaffPickMeta(limit: number = 12): Promise<StaffPickMetaRow[]> {
+export async function fetchStaffPickMeta(limit: number = 4): Promise<StaffPickMetaRow[]> {
   const cached = readCachedRows()
   if (cached) return cached
 
-  const res = await fetch(`/api/staff-picks?limit=${encodeURIComponent(String(limit))}`)
+  const effectiveLimit = Math.max(1, Math.min(4, Number(limit) || 4))
+  const res = await fetch(`/api/staff-picks?limit=${encodeURIComponent(String(effectiveLimit))}`)
   if (!res.ok) throw new Error(`Failed to fetch staff picks (${res.status})`)
   const data = await res.json()
   const rows = Array.isArray(data?.staffPicks) ? (data.staffPicks as StaffPickMetaRow[]) : []
