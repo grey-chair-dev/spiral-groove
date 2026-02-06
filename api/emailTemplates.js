@@ -961,6 +961,7 @@ export function generateWeeklyNewsletterEmail(data) {
  * Internal sale alert email HTML
  */
 export function generateSaleAlertEmail(data) {
+  // Use the same internal "admin card" style as the Contact Inquiry template.
   const baseUrl = getBaseUrl()
   const {
     orderNumber,
@@ -975,19 +976,13 @@ export function generateSaleAlertEmail(data) {
 
   const squareOrderUrl = getSquareOrderDashboardUrl(squareOrderId)
   const squarePaymentUrl = getSquarePaymentDashboardUrl(squarePaymentId)
+  const siteOrderUrl = `${baseUrl}/order-status?order=${encodeURIComponent(orderNumber || '')}&email=${encodeURIComponent(customerEmail || '')}`
 
   const currencySymbol = currency === 'USD' ? '$' : ''
   const formattedTotal =
     total != null && total !== '' && Number.isFinite(Number(total))
       ? `${currencySymbol}${Number(total).toFixed(2)}`
-      : null
-
-  const safeOrderNumber = escapeHtml(orderNumber || '')
-  const safeCustomer = escapeHtml(customerName || '')
-  const safeCustomerEmail = escapeHtml(customerEmail || '')
-
-  const safeSquareOrderId = escapeHtml(squareOrderId || '')
-  const safeSquarePaymentId = escapeHtml(squarePaymentId || '')
+      : ''
 
   const whatSummary =
     Array.isArray(items) && items.length > 0
@@ -1002,115 +997,80 @@ export function generateSaleAlertEmail(data) {
           .join(', ') + (items.length > 4 ? ` (+${items.length - 4} more)` : '')
       : ''
 
-  const itemsHtml =
+  const safe = {
+    orderNumber: escapeHtml(orderNumber || ''),
+    total: escapeHtml(formattedTotal || ''),
+    what: escapeHtml(whatSummary || ''),
+    customerName: escapeHtml(customerName || ''),
+    customerEmail: escapeHtml(customerEmail || ''),
+    squareOrderId: escapeHtml(squareOrderId || ''),
+    squarePaymentId: escapeHtml(squarePaymentId || ''),
+    squareOrderUrl: squareOrderUrl ? escapeHtml(squareOrderUrl) : '',
+    squarePaymentUrl: squarePaymentUrl ? escapeHtml(squarePaymentUrl) : '',
+    siteOrderUrl: escapeHtml(siteOrderUrl),
+  }
+
+  const itemsLines =
     Array.isArray(items) && items.length > 0
-      ? `
-        <h3 style="margin: 18px 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 22px; letter-spacing: 0.02em;">
-          Items
-        </h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; overflow: hidden;">
-          <thead>
-            <tr style="background-color: ${BRAND.black};">
-              <th style="padding: 12px 10px; text-align: left; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Item</th>
-              <th style="padding: 12px 10px; text-align: center; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Qty</th>
-              <th style="padding: 12px 10px; text-align: right; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items
-              .map((item) => {
-                const name = escapeHtml(item?.name || 'Item')
-                const qty = escapeHtml(item?.quantity || 1)
-                const price = typeof item?.price === 'number' ? item.price : Number(item?.price || 0)
-                return `
-                  <tr>
-                    <td style="padding: 10px 12px; border-bottom: 1px solid #E5E5E5; color: #231F20; font-weight: 600;">${name}</td>
-                    <td style="padding: 10px 12px; border-bottom: 1px solid #E5E5E5; text-align: center; color: #231F20; font-weight: 600;">${qty}</td>
-                    <td style="padding: 10px 12px; border-bottom: 1px solid #E5E5E5; text-align: right; color: #231F20; font-weight: 700;">${currencySymbol}${price.toFixed(2)}</td>
-                  </tr>
-                `
-              })
-              .join('')}
-          </tbody>
-        </table>
-      `
+      ? items
+          .slice(0, 12)
+          .map((it) => {
+            const name = escapeHtml(String(it?.name || 'Item'))
+            const qty = escapeHtml(String(it?.quantity || 1))
+            const price = typeof it?.price === 'number' ? it.price : Number(it?.price || 0)
+            const priceTxt = `${currencySymbol}${Number.isFinite(price) ? price.toFixed(2) : '0.00'}`
+            return `${qty}× ${name} — ${escapeHtml(priceTxt)}`
+          })
+          .join('<br/>')
       : ''
 
-  // Match the "internal templates" look (same structure as generateAlertEmail):
-  // a labeled details card with a simple table, then action buttons.
-  const detailsHtml = `
-    <div style="margin: 18px 0; padding: 18px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
-      <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: ${BRAND.gray600};">
-        Order Details
-      </p>
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
-        ${whatSummary ? `
-        <tr>
-          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700; vertical-align: top;">What:</td>
-          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">${escapeHtml(whatSummary)}</td>
-        </tr>
-        ` : ''}
-        <tr>
-          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Order #:</td>
-          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 800;">${safeOrderNumber || '—'}</td>
-        </tr>
-        ${formattedTotal ? `
-        <tr>
-          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Total:</td>
-          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 800;">${escapeHtml(formattedTotal)}</td>
-        </tr>
-        ` : ''}
-        ${(safeCustomer || safeCustomerEmail) ? `
-        <tr>
-          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Customer:</td>
-          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 600;">${safeCustomer ? `${safeCustomer} • ` : ''}${safeCustomerEmail}</td>
-        </tr>
-        ` : ''}
-        ${safeSquareOrderId ? `
-        <tr>
-          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Square Order ID:</td>
-          <td style="padding: 6px 0; color: ${BRAND.gray600}; font-size: 12px; font-weight: 600; font-family: monospace;">${safeSquareOrderId}</td>
-        </tr>
-        ` : ''}
-        ${safeSquarePaymentId ? `
-        <tr>
-          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Square Payment ID:</td>
-          <td style="padding: 6px 0; color: ${BRAND.gray600}; font-size: 12px; font-weight: 600; font-family: monospace;">${safeSquarePaymentId}</td>
-        </tr>
-        ` : ''}
-      </table>
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spiral Groove — New Order</title>
+    <style>
+      :root { color-scheme: light; }
+      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:#f7f4ef; color:#111; margin:0; padding:32px; }
+      .card { max-width: 760px; margin: 0 auto; background:#fff; border:2px solid #111; box-shadow: 8px 8px 0 #111; }
+      .header { padding: 18px 20px; border-bottom:2px solid #111; background:#f1b23e; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+      .content { padding: 20px; }
+      .row { display:flex; gap:16px; padding:10px 0; border-bottom:1px dashed #ddd; }
+      .row:last-child { border-bottom:0; }
+      .k { width: 160px; flex-shrink:0; font-weight:800; text-transform:uppercase; font-size:12px; opacity:.75; letter-spacing:.08em; }
+      .v { flex:1; font-size:14px; line-height:1.5; word-break:break-word; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      a { color:#0b5fff; text-decoration:none; }
+      a:hover { text-decoration:underline; }
+      .ok { display:inline-block; margin: 0 0 14px 0; padding: 6px 10px; border:2px solid #111; background:#12b981; color:#111; font-weight:900; text-transform:uppercase; font-size:12px; letter-spacing:.08em; }
+      .actions { display:flex; flex-wrap:wrap; gap:10px; margin: 6px 0 14px 0; }
+      .btn { display:inline-block; padding:10px 14px; border:2px solid #111; background:#111; color:#fff !important; font-weight:900; text-transform:uppercase; font-size:12px; letter-spacing:.08em; }
+      .btn:hover { opacity:.9; text-decoration:none; }
+      .btn.secondary { background:#fff; color:#111 !important; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">New Order Received</div>
+      <div class="content">
+        <div class="ok">Paid</div>
+        <div class="actions">
+          ${safe.squareOrderUrl ? `<a class="btn" href="${safe.squareOrderUrl}" target="_blank" rel="noreferrer">View in Square</a>` : ''}
+          ${!safe.squareOrderUrl && safe.squarePaymentUrl ? `<a class="btn" href="${safe.squarePaymentUrl}" target="_blank" rel="noreferrer">View payment</a>` : ''}
+          <a class="btn secondary" href="${safe.siteOrderUrl}" target="_blank" rel="noreferrer">View status page</a>
+        </div>
+
+        <div class="row"><div class="k">What</div><div class="v">${safe.what || '<span style="opacity:.6">—</span>'}</div></div>
+        <div class="row"><div class="k">Customer</div><div class="v">${(safe.customerName || safe.customerEmail) ? `${safe.customerName ? `${safe.customerName} • ` : ''}${safe.customerEmail}` : '<span style="opacity:.6">—</span>'}</div></div>
+        <div class="row"><div class="k">Order #</div><div class="v">${safe.orderNumber || '<span style="opacity:.6">—</span>'}</div></div>
+        <div class="row"><div class="k">Total</div><div class="v">${safe.total || '<span style="opacity:.6">—</span>'}</div></div>
+        ${itemsLines ? `<div class="row"><div class="k">Items</div><div class="v">${itemsLines}</div></div>` : ''}
+        <div class="row"><div class="k">Meta</div><div class="v mono">squareOrderId=${safe.squareOrderId || '—'}<br/>squarePaymentId=${safe.squarePaymentId || '—'}</div></div>
+      </div>
     </div>
-  `
-
-  const bodyHtml = `
-    <h2 style="margin: 0 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.1; text-align:center; letter-spacing: 0.02em;">
-      New order 🎉
-    </h2>
-    <p style="margin: 0 0 10px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600; text-align:center;">
-      ${whatSummary ? `${escapeHtml(whatSummary)}<br>` : ''}${safeCustomer ? `${safeCustomer} • ` : ''}${safeCustomerEmail}
-    </p>
-
-    ${detailsHtml}
-
-    ${itemsHtml}
-
-    ${squareOrderUrl ? renderButton({ href: squareOrderUrl, label: 'View in Square (Order)', tone: 'teal' }) : ''}
-    ${!squareOrderUrl && squarePaymentUrl ? renderButton({ href: squarePaymentUrl, label: 'View in Square (Payment)', tone: 'teal' }) : ''}
-
-    <div style="margin-top: 12px;">
-      ${renderButton({
-        href: `${baseUrl}/order-status?order=${encodeURIComponent(orderNumber || '')}&email=${encodeURIComponent(customerEmail || '')}`,
-        label: 'View order status page',
-        tone: 'orange',
-      })}
-    </div>
-  `.trim()
-
-  return renderLayout({
-    title: `New order ${orderNumber || ''}`.trim(),
-    preheader: `New order ${orderNumber || ''}`.trim(),
-    bodyHtml,
-  })
+  </body>
+</html>`
 }
 
 /**
