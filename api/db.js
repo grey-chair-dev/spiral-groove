@@ -14,6 +14,16 @@ import { notifyWebhook } from './notifyWebhook.js'
 
 let pool = null
 
+function isInsertStatement(text) {
+  const sql = String(text || '').trimStart().toUpperCase()
+  if (!sql) return false
+  // Direct INSERT
+  if (sql.startsWith('INSERT')) return true
+  // CTE with INSERT, e.g. "WITH ... INSERT INTO ..."
+  if (sql.startsWith('WITH') && /\bINSERT\s+INTO\b/.test(sql)) return true
+  return false
+}
+
 /**
  * Get or create the database connection pool
  * @returns {pg.Pool}
@@ -126,7 +136,8 @@ export async function query(text, params) {
     
     // Alert on slow queries (even if successful)
     const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_QUERY_THRESHOLD_MS || '1000', 10)
-    if (duration > SLOW_QUERY_THRESHOLD_MS) {
+    // Do not alert on INSERT timings (noise). INSERTs should only alert on failure.
+    if (duration > SLOW_QUERY_THRESHOLD_MS && !isInsertStatement(text)) {
       const { sendSlackAlert } = await import('./slackAlerts.js')
       void sendSlackAlert({
         statusCode: 200, // Not an error, but performance issue
