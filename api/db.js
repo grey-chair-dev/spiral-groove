@@ -127,30 +127,50 @@ export async function withQueryTimings(fn) {
  */
 export async function query(text, params) {
   const pool = getPool()
-  const start = Date.now()
+  const startTotal = Date.now()
+  const acquireStart = Date.now()
+  /** @type {import('pg').PoolClient | null} */
+  let client = null
   
   try {
-    const result = await pool.query(text, params)
-    const duration = Date.now() - start
-    console.log('[DB] Query executed', { text: text.substring(0, 50), duration, rows: result.rowCount })
+    client = await pool.connect()
+    const acquireMs = Date.now() - acquireStart
+
+    const queryStart = Date.now()
+    const result = await client.query(text, params)
+    const queryMs = Date.now() - queryStart
+    const totalMs = Date.now() - startTotal
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[DB] Query executed', {
+        text: String(text || '').substring(0, 50),
+        acquireMs,
+        queryMs,
+        totalMs,
+        rows: result.rowCount,
+      })
+    }
     
     // Alert on slow queries (even if successful)
     const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_QUERY_THRESHOLD_MS || '1000', 10)
     // Do not alert on INSERT timings (noise). INSERTs should only alert on failure.
-    if (duration > SLOW_QUERY_THRESHOLD_MS && !isInsertStatement(text)) {
+    // NOTE: measure "slow query" based on query execution time, not pool acquisition / TLS handshake.
+    if (queryMs > SLOW_QUERY_THRESHOLD_MS && !isInsertStatement(text)) {
       const { sendSlackAlert } = await import('./slackAlerts.js')
       void sendSlackAlert({
         statusCode: 200, // Not an error, but performance issue
-        error: `Slow database query detected: ${duration}ms`,
+        error: `Slow database query detected: ${queryMs}ms`,
         endpoint: 'database',
         method: 'QUERY',
         context: {
           queryType: 'slow_query',
-          durationMs: duration,
+          durationMs: queryMs,
+          acquireMs,
+          totalMs,
           sql: String(text || '').substring(0, 200),
           rowCount: result.rowCount,
         },
-        queryDuration: duration,
+        queryDuration: queryMs,
         dedupeKey: `db:slow:${text.substring(0, 50)}`,
         dedupeTtlMs: 60 * 1000, // 1 minute for slow query alerts
       })
@@ -158,7 +178,7 @@ export async function query(text, params) {
     
     return result
   } catch (error) {
-    const duration = Date.now() - start
+    const totalMs = Date.now() - startTotal
     console.error('[DB] Query error', { text: text.substring(0, 50), duration, error: error.message })
 
     // Enhanced alert with performance and context
@@ -174,7 +194,7 @@ export async function query(text, params) {
         sql: String(text || '').substring(0, 200),
         paramCount: params?.length || 0,
       },
-      queryDuration: duration,
+      queryDuration: totalMs,
       stack: error?.stack,
       dedupeKey: `db:${error?.code || ''}:${error?.message || 'unknown'}`,
     })
@@ -186,7 +206,7 @@ export async function query(text, params) {
       message: error?.message || 'Unknown error',
       context: {
         code: error?.code,
-        durationMs: duration,
+        durationMs: totalMs,
         sql: String(text || '').substring(0, 200),
       },
       dedupeKey: `db:${error?.code || ''}:${error?.message || 'unknown'}`,
@@ -226,6 +246,10 @@ export async function query(text, params) {
     }
 
     throw error
+  } finally {
+    try {
+      client?.release?.()
+    } catch {}
   }
 }
 

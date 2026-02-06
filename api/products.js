@@ -31,6 +31,7 @@ const MAX_LIMIT = 5000
 // Version check for ETag. We keep this cheap and only run it if the client sends If-None-Match.
 // albums_cache is rebuilt in one shot and uses a uniform synced_at per rebuild.
 const VERSION_SQL = `SELECT synced_at FROM albums_cache ORDER BY synced_at DESC LIMIT 1`
+const PRODUCTS_CACHE_ETAG_SQL = `SELECT etag FROM products_api_cache WHERE id = 1`
 const PRODUCTS_CACHE_SQL = `SELECT etag, body_json FROM products_api_cache WHERE id = 1`
 
 /**
@@ -163,6 +164,24 @@ export async function webHandler(request) {
 
       // Try DB precomputed payload (best-effort fallback to live query if missing)
       try {
+        // If the client sent If-None-Match, avoid transferring the large `body_json` just to return a 304.
+        if (ifNoneMatch) {
+          const et = await query(PRODUCTS_CACHE_ETAG_SQL)
+          const dbEtagOnly = et.rows?.[0]?.etag ? `"${String(et.rows[0].etag)}"` : null
+          if (dbEtagOnly && ifNoneMatch === dbEtagOnly) {
+            return new Response(null, {
+              status: 304,
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': EDGE_CACHE_CONTROL,
+                ETag: dbEtagOnly,
+                'X-Products-Not-Modified': '1',
+                'X-Products-Source': 'products_api_cache:etag',
+              },
+            })
+          }
+        }
+
         const cached = await query(PRODUCTS_CACHE_SQL)
         const dbEtag = cached.rows?.[0]?.etag ? `"${String(cached.rows[0].etag)}"` : null
         const bodyJson = cached.rows?.[0]?.body_json ? String(cached.rows[0].body_json) : null
