@@ -989,6 +989,19 @@ export function generateSaleAlertEmail(data) {
   const safeSquareOrderId = escapeHtml(squareOrderId || '')
   const safeSquarePaymentId = escapeHtml(squarePaymentId || '')
 
+  const whatSummary =
+    Array.isArray(items) && items.length > 0
+      ? items
+          .slice(0, 4)
+          .map((it) => {
+            const name = String(it?.name || '').trim() || 'Item'
+            const qty = Number(it?.quantity || 1)
+            const q = Number.isFinite(qty) && qty > 1 ? `${qty}× ` : ''
+            return `${q}${name}`
+          })
+          .join(', ') + (items.length > 4 ? ` (+${items.length - 4} more)` : '')
+      : ''
+
   const itemsHtml =
     Array.isArray(items) && items.length > 0
       ? `
@@ -1031,6 +1044,12 @@ export function generateSaleAlertEmail(data) {
         Order Details
       </p>
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+        ${whatSummary ? `
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700; vertical-align: top;">What:</td>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">${escapeHtml(whatSummary)}</td>
+        </tr>
+        ` : ''}
         <tr>
           <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Order #:</td>
           <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 800;">${safeOrderNumber || '—'}</td>
@@ -1068,7 +1087,7 @@ export function generateSaleAlertEmail(data) {
       New order 🎉
     </h2>
     <p style="margin: 0 0 10px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600; text-align:center;">
-      ${safeCustomer ? `${safeCustomer} • ` : ''}${safeCustomerEmail}
+      ${whatSummary ? `${escapeHtml(whatSummary)}<br>` : ''}${safeCustomer ? `${safeCustomer} • ` : ''}${safeCustomerEmail}
     </p>
 
     ${detailsHtml}
