@@ -311,7 +311,15 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                   
                   {/* Mobile Search Bar - Under Logo */}
-                  <div className="md:hidden w-full max-w-xs mt-3" ref={mobileSearchContainerRef}>
+                  <div
+                    className="md:hidden w-full max-w-xs mt-3"
+                    ref={mobileSearchContainerRef}
+                    // This sits inside the clickable logo container (navigates home).
+                    // Prevent taps/clicks inside search from bubbling and sending users home.
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <form className="w-full relative group" onSubmit={handleSearchSubmit}>
                       <input 
                         type="text" 
