@@ -86,8 +86,8 @@ function formatTimeLabel(time) {
 }
 
 /**
- * Get new records (recently added, sorted by created_at DESC - newest first)
- * Only vinyl records: New Vinyl, Used Vinyl, 33New, 33Used, 45, LP, 12", 7", 10"
+ * Get the most recent albums.
+ * Keep it simple: just return the 12 most recently created in-stock albums from albums_cache.
  */
 async function getNewRecords() {
   try {
@@ -101,20 +101,10 @@ async function getNewRecords() {
         image_url,
         stock_count,
         created_at
-      FROM products
+      FROM albums_cache
       WHERE stock_count > 0
-        AND created_at >= NOW() - INTERVAL '30 days'
-        AND (
-          category IN ('New Vinyl', 'Used Vinyl', '33New', '33Used', '45', 'LP', '12"', '7"', '10"')
-          OR category ILIKE '%vinyl%'
-          OR category ILIKE '%LP%'
-          OR category ILIKE '%12"%'
-          OR category ILIKE '%7"%'
-          OR category ILIKE '%10"%'
-          OR category ILIKE '%45%'
-        )
-      ORDER BY created_at DESC NULLS LAST
-      LIMIT 30`
+      ORDER BY created_at DESC NULLS LAST, id ASC
+      LIMIT 12`
     )
     
     return result.rows || []
@@ -176,7 +166,7 @@ async function getRecommendations(customerEmail) {
           category,
           image_url,
           stock_count
-        FROM products
+        FROM albums_cache
         WHERE stock_count > 0
           AND ('variation-' || square_variation_id) != ALL($1::text[])
           AND (
@@ -224,7 +214,7 @@ async function getPopularRecords() {
         category,
         image_url,
         stock_count
-      FROM products
+      FROM albums_cache
       WHERE stock_count > 0
         AND (
           category IN ('New Vinyl', 'Used Vinyl', '33New', '33Used', '45', 'LP', '12"', '7"', '10"')
@@ -250,11 +240,12 @@ async function getPopularRecords() {
  * Generate weekly newsletter data for a customer
  */
 export async function generateWeeklyNewsletterData(customerEmail, firstName, lastName) {
-  const [upcomingEvents, newRecords, recommendations] = await Promise.all([
+  const [upcomingEvents, newRecords] = await Promise.all([
     getUpcomingEvents(),
     getNewRecords(),
-    getRecommendations(customerEmail),
   ])
+  // Simplified newsletter: no personalization, just the most recent albums.
+  const recommendations = []
   
   return {
     email: customerEmail,
