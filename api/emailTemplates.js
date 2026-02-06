@@ -57,7 +57,27 @@ function getContactEmail() {
 }
 
 function escapeHtml(value) {
-  return String(value ?? '')
+  // Some upstream data (or DB content) can already be HTML-escaped (e.g. "R&amp;B").
+  // If we escape again, email clients render the entity literally ("&amp;").
+  // Decode common entities first, then escape once for safety.
+  const raw = String(value ?? '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    // Decode numeric entities (best-effort)
+    .replace(/&#(\d+);/g, (_, n) => {
+      const code = Number.parseInt(String(n), 10)
+      return Number.isFinite(code) ? String.fromCharCode(code) : _
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+      const code = Number.parseInt(String(hex), 16)
+      return Number.isFinite(code) ? String.fromCharCode(code) : _
+    })
+
+  return raw
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -111,8 +131,28 @@ function renderLayout({ title, preheader, bodyHtml }) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Shrikhand&display=swap" rel="stylesheet">
+  <style>
+    /* Mobile-only: make the newsletter "hero" header black so Gmail iOS dark mode can't wash out the text. */
+    @media screen and (max-width: 520px) {
+      .sg-mobile-hero {
+        background: ${BRAND.black} !important;
+        border-color: ${BRAND.black} !important;
+      }
+      .sg-mobile-hero,
+      .sg-mobile-hero p,
+      .sg-mobile-hero h1,
+      .sg-mobile-hero h2,
+      .sg-mobile-hero h3,
+      .sg-mobile-hero span {
+        color: ${BRAND.cream} !important;
+      }
+      .sg-mobile-hero .sg-accent {
+        color: ${BRAND.orange} !important;
+      }
+    }
+  </style>
 </head>
-<body style="margin: 0; padding: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background-color: ${BRAND.cream};">
+<body style="margin: 0; padding: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background-color: ${BRAND.cream}; color: ${BRAND.black};">
   <div style="display:none; font-size:1px; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">
     ${escapeHtml(preheader || '')}
   </div>
@@ -120,7 +160,7 @@ function renderLayout({ title, preheader, bodyHtml }) {
   <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: ${BRAND.cream};">
     <tr>
       <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 680px; margin: 0 auto; background-color: ${BRAND.black}; border-bottom: 4px solid ${BRAND.orange};">
+        <table role="presentation" bgcolor="${BRAND.black}" style="width: 100%; border-collapse: collapse; max-width: 680px; margin: 0 auto; background-color: ${BRAND.black}; border-bottom: 4px solid ${BRAND.orange};">
           <tr>
             <td style="padding: 18px 18px 14px 18px; text-align: center;">
               <a href="${baseUrl}" style="text-decoration:none; display:inline-block;">
@@ -139,16 +179,13 @@ function renderLayout({ title, preheader, bodyHtml }) {
 
     <tr>
       <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 680px; margin: 0 auto; background-color: ${BRAND.cream};">
+        <table role="presentation" bgcolor="${BRAND.cream}" style="width: 100%; border-collapse: collapse; max-width: 680px; margin: 0 auto; background-color: ${BRAND.cream};">
           <tr>
-            <td style="padding: 0; background-color: ${BRAND.cream};">
-              <div style="margin: 0 14px; border: 2px solid ${BRAND.black}; box-shadow: 8px 8px 0px 0px ${BRAND.black}; background: ${BRAND.cream};">
-                <div style="padding: 34px 22px 28px 22px; background-color: ${BRAND.cream};
-                  background-image:
-                    linear-gradient(${BRAND.black}10 1px, transparent 1px),
-                    linear-gradient(90deg, ${BRAND.black}10 1px, transparent 1px);
-                  background-size: 26px 26px;
-                  background-position: -1px -1px;">
+            <td bgcolor="${BRAND.cream}" style="padding: 0; background-color: ${BRAND.cream};">
+              <!-- Gmail iOS dark mode can wash out text on light patterned backgrounds.
+                   Use a clean white card for the body to render consistently across clients. -->
+              <div style="margin: 0 14px; border: 2px solid ${BRAND.black}; box-shadow: 8px 8px 0px 0px ${BRAND.black}; background: ${BRAND.white};">
+                <div style="padding: 34px 22px 28px 22px; background-color: ${BRAND.white}; color: ${BRAND.black};">
                   ${bodyHtml}
                 </div>
               </div>
@@ -160,7 +197,7 @@ function renderLayout({ title, preheader, bodyHtml }) {
 
     <tr>
       <td style="padding: 0;">
-        <table role="presentation" style="width: 100%; border-collapse: collapse; max-width: 680px; margin: 0 auto; background-color: ${BRAND.black}; border-top: 4px solid ${BRAND.orange};">
+        <table role="presentation" bgcolor="${BRAND.black}" style="width: 100%; border-collapse: collapse; max-width: 680px; margin: 0 auto; background-color: ${BRAND.black}; border-top: 4px solid ${BRAND.orange};">
           <tr>
             <td style="padding: 22px 18px; text-align: center; color: ${BRAND.cream}; font-size: 12px;">
               <p style="margin: 0 0 6px 0; font-weight: 800; letter-spacing: 0.04em;">Spiral Groove Records</p>
@@ -651,7 +688,7 @@ export function generateReviewRequestEmail(data) {
 
     <div style="margin-top: 18px;">
       ${renderButton({
-        href: `${baseUrl}/catalog`,
+        href: `${baseUrl}/catalog/${encodeURIComponent('New Arrivals')}`,
         label: 'Browse new arrivals',
         tone: 'orange',
       })}
@@ -696,18 +733,23 @@ export function generateWeeklyNewsletterEmail(data) {
       const eventTime = event.start_time_label || event.start_time || ''
       const eventName = escapeHtml(event.event_name || event.artist || 'Event')
       const venue = escapeHtml(event.venue || '')
-      const eventUrl = event.id ? `${baseUrl}/events#event-${event.id}` : `${baseUrl}/events`
+      const eventUrlRaw =
+        (event.event_permalink && String(event.event_permalink).trim()) ||
+        (event.id ? `${baseUrl}/events#event-${event.id}` : `${baseUrl}/events`)
+      const eventUrl = escapeHtml(eventUrlRaw)
       
       return `
-        <div style="margin: 0 0 16px 0; padding: 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
-          <p style="margin: 0 0 6px 0; color: ${BRAND.orange}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
-            ${eventDate}${eventTime ? ` • ${eventTime}` : ''}
-          </p>
-          <p style="margin: 0 0 4px 0; color: ${BRAND.black}; font-size: 18px; font-weight: 800; line-height: 1.3;">
-            ${eventName}
-          </p>
-          ${venue ? `<p style="margin: 0; color: ${BRAND.gray600}; font-size: 14px; font-weight: 600;">${venue}</p>` : ''}
-        </div>
+        <a href="${eventUrl}" target="_blank" rel="noopener noreferrer" style="display:block; text-decoration:none; color: inherit;">
+          <div style="margin: 0 0 16px 0; padding: 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+            <p style="margin: 0 0 6px 0; color: ${BRAND.orange}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
+              ${eventDate}${eventTime ? ` • ${eventTime}` : ''}
+            </p>
+            <p style="margin: 0 0 4px 0; color: ${BRAND.black}; font-size: 18px; font-weight: 800; line-height: 1.3;">
+              ${eventName}
+            </p>
+            ${venue ? `<p style="margin: 0; color: ${BRAND.gray600}; font-size: 14px; font-weight: 600;">${venue}</p>` : ''}
+          </div>
+        </a>
       `
     }).join('')}
     ${renderButton({ href: `${baseUrl}/events`, label: 'View all events', tone: 'teal' })}
@@ -740,7 +782,9 @@ export function generateWeeklyNewsletterEmail(data) {
             const title = nameParts.length > 1 ? escapeHtml(nameParts.slice(1).join(' - ')) : recordName
             const recordPrice = record.price ? `$${Number(record.price).toFixed(2)}` : ''
             const recordImage = getAbsoluteImageUrl(record.image_url)
-            const recordUrl = `${baseUrl}/catalog${record.id ? `?product=${record.id}` : ''}`
+            const recordUrl = record.id
+              ? `${baseUrl}/product/${encodeURIComponent(String(record.id))}`
+              : `${baseUrl}/catalog`
             const recordCategory = escapeHtml(record.category || '')
 
             return `
@@ -782,7 +826,7 @@ export function generateWeeklyNewsletterEmail(data) {
         return rows.join('')
       })()}
     </table>
-    ${renderButton({ href: `${baseUrl}/catalog`, label: 'Browse all new arrivals', tone: 'orange' })}
+    ${renderButton({ href: `${baseUrl}/catalog/${encodeURIComponent('New Arrivals')}`, label: 'Browse all new arrivals', tone: 'orange' })}
   ` : ''
 
   // Render personalized recommendations section (exact match to website ProductGrid styling)
@@ -803,7 +847,9 @@ export function generateWeeklyNewsletterEmail(data) {
           const title = nameParts.length > 1 ? escapeHtml(nameParts.slice(1).join(' - ')) : recordName
           const recordPrice = record.price ? `$${Number(record.price).toFixed(2)}` : ''
           const recordImage = getAbsoluteImageUrl(record.image_url)
-          const recordUrl = `${baseUrl}/catalog${record.id ? `?product=${record.id}` : ''}`
+          const recordUrl = record.id
+            ? `${baseUrl}/product/${encodeURIComponent(String(record.id))}`
+            : `${baseUrl}/catalog`
           const recordCategory = escapeHtml(record.category || '')
           const isNewCategory = recordCategory.toLowerCase().includes('new')
           
@@ -862,12 +908,14 @@ export function generateWeeklyNewsletterEmail(data) {
   ` : ''
 
   const bodyHtml = `
-    <h2 style="margin: 0 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.15; letter-spacing: 0.02em;">
-      Hey <span style="color:${BRAND.orange};">${escapeHtml(name)}</span> 👋
-    </h2>
-    <p style="margin: 0 0 18px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600;">
-      Here's what's happening this week at Spiral Groove Records.
-    </p>
+    <div class="sg-mobile-hero" style="margin: 0 0 18px 0; padding: 18px 16px; background: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <h2 style="margin: 0 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.15; letter-spacing: 0.02em;">
+        Hey <span class="sg-accent" style="color:${BRAND.orange};">${escapeHtml(name)}</span> 👋
+      </h2>
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600;">
+        Here's what's happening this week at Spiral Groove Records.
+      </p>
+    </div>
 
     ${eventsHtml}
     ${newRecordsHtml}

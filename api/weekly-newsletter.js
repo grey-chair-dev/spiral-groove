@@ -35,7 +35,8 @@ async function getUpcomingEvents() {
         artist,
         venue,
         event_date,
-        start_time
+        start_time,
+        event_permalink
       FROM events
       WHERE is_event = true
         AND event_date >= CURRENT_DATE
@@ -59,6 +60,7 @@ async function getUpcomingEvents() {
         date_label: eventDate ? formatDateLabel(eventDate) : null,
         start_time: startTime ? (typeof startTime === 'string' ? startTime : new Date(startTime).toISOString().split('T')[1]?.split('.')[0]) : null,
         start_time_label: startTime ? formatTimeLabel(startTime) : null,
+        event_permalink: row.event_permalink != null ? String(row.event_permalink) : null,
       }
     })
   } catch (error) {
@@ -77,12 +79,42 @@ function formatDateLabel(date) {
 
 function formatTimeLabel(time) {
   if (!time) return null
-  const d = new Date(time)
-  const hours = d.getHours()
-  const minutes = d.getMinutes()
+
+  // `start_time` from Postgres is commonly a TIME string like "18:30:00".
+  // `new Date("18:30:00")` is Invalid Date in JS, producing NaN minutes.
+  let hours
+  let minutes
+
+  if (time instanceof Date) {
+    if (Number.isNaN(time.getTime())) return null
+    hours = time.getHours()
+    minutes = time.getMinutes()
+  } else if (typeof time === 'string') {
+    const trimmed = time.trim()
+    const m = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+    if (m) {
+      hours = Number.parseInt(m[1], 10)
+      minutes = Number.parseInt(m[2], 10)
+    } else {
+      const d = new Date(trimmed)
+      if (Number.isNaN(d.getTime())) return null
+      hours = d.getHours()
+      minutes = d.getMinutes()
+    }
+  } else {
+    // Some drivers may return TIME as a number or other object; best-effort parse.
+    const d = new Date(time)
+    if (Number.isNaN(d.getTime())) return null
+    hours = d.getHours()
+    minutes = d.getMinutes()
+  }
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null
+
   const ampm = hours >= 12 ? 'PM' : 'AM'
   const displayHours = hours % 12 || 12
-  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`
+  return `${displayHours}:${String(minutes).padStart(2, '0')} ${ampm}`
 }
 
 /**
