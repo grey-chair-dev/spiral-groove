@@ -203,6 +203,22 @@ function App() {
   const requireClientLogin =
     (import.meta.env.VITE_REQUIRE_CLIENT_LOGIN ?? 'false').toString().toLowerCase() === 'true';
 
+  const getNavScrollBehavior = (): ScrollBehavior => {
+    try {
+      const reduceMotion =
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const isMobile =
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(max-width: 767px)').matches
+      return reduceMotion || isMobile ? 'auto' : 'smooth'
+    } catch {
+      return 'auto'
+    }
+  }
+
   const scrollToTop = (behavior: ScrollBehavior = 'smooth') => {
     try {
       window.scrollTo({ top: 0, left: 0, behavior });
@@ -766,7 +782,7 @@ function App() {
 
     window.history.pushState(null, '', toPathFromState({ page: 'product', selectedProductId: product.id }));
     
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop(getNavScrollBehavior());
   };
 
   const addToCart = (product: Product, quantity: number = 1) => {
@@ -882,7 +898,7 @@ function App() {
     setCurrentPage('order-confirmation');
     window.history.pushState(null, '', toPathFromState({ page: 'order-confirmation' }));
     
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop(getNavScrollBehavior());
   };
 
   // Account/login features removed.
@@ -946,7 +962,7 @@ function App() {
     trackPageView(nextPath, getPageTitle(page));
 
     // Always scroll to the top for navigation requests, even if staying on the same route.
-    scrollToTop('smooth');
+    scrollToTop(getNavScrollBehavior());
   };
 
   const handleViewReceipt = (order: Order) => {
@@ -957,7 +973,7 @@ function App() {
       } catch {
         // ignore
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToTop(getNavScrollBehavior());
   };
 
   const handlePrintReceiptFromOrderConfirmation = () => {
@@ -965,7 +981,7 @@ function App() {
     setSelectedOrder(lastPlacedOrder);
     setCurrentPage('receipt');
     window.history.pushState(null, '', toPathFromState({ page: 'receipt' }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop(getNavScrollBehavior());
   };
   
   const handleRSVP = (event: Event) => {

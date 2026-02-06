@@ -412,7 +412,15 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      let behavior: ScrollBehavior = 'smooth'
+      try {
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+        const isMobile = window.matchMedia?.('(max-width: 767px)')?.matches
+        if (reduceMotion || isMobile) behavior = 'auto'
+      } catch {
+        behavior = 'auto'
+      }
+      window.scrollTo({ top: 0, behavior });
     }
   }
 
