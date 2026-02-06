@@ -7,7 +7,7 @@
  * Environment Variables:
  *   MAKE_ALERTS_WEBHOOK_URL - Make.com webhook URL for error alerts
  *   ALERT_ENABLED - Set to "true" to enable alerts (default: false in dev)
- *   ALERT_SLOW_QUERY_THRESHOLD_MS - Alert on queries slower than this (default: 500)
+ *   ALERT_SLOW_QUERY_THRESHOLD_MS - Alert on queries slower than this (default: 1000)
  *   ALERT_SLOW_API_THRESHOLD_MS - Alert on API responses slower than this (default: 2000)
  *   ALERT_ERROR_SPIKE_THRESHOLD - Alert if errors exceed this count in window (default: 10)
  *   ALERT_ERROR_SPIKE_WINDOW_MS - Time window for error spike detection (default: 5 minutes)
@@ -18,7 +18,7 @@
  */
 
 const DEFAULT_DEDUPE_TTL_MS = 5 * 60 * 1000 // 5 minutes
-const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_QUERY_THRESHOLD_MS || '500', 10)
+const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_QUERY_THRESHOLD_MS || '1000', 10)
 const SLOW_API_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_API_THRESHOLD_MS || '2000', 10)
 const ERROR_SPIKE_THRESHOLD = parseInt(process.env.ALERT_ERROR_SPIKE_THRESHOLD || '10', 10)
 const ERROR_SPIKE_WINDOW_MS = parseInt(process.env.ALERT_ERROR_SPIKE_WINDOW_MS || '300000', 10) // 5 minutes
