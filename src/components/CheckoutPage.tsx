@@ -51,11 +51,25 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       try {
         await loadSquareSdk();
         
-        const appId = import.meta.env.VITE_SQUARE_APPLICATION_ID;
-        const locationId = import.meta.env.VITE_SQUARE_LOCATION_ID;
+        let appId = import.meta.env.VITE_SQUARE_APPLICATION_ID as string | undefined
+        let locationId = import.meta.env.VITE_SQUARE_LOCATION_ID as string | undefined
+
+        // Runtime fallback (prevents "Square configuration missing" when VITE_* vars
+        // are not set at build time in Vercel).
+        if (!appId || !locationId) {
+          try {
+            const res = await fetch('/api/square-config', { headers: { accept: 'application/json' } })
+            const payload = await res.json().catch(() => null)
+            const square = payload?.square || {}
+            appId = appId || square.applicationId || undefined
+            locationId = locationId || square.locationId || undefined
+          } catch {
+            // ignore
+          }
+        }
 
         if (!appId || !locationId) {
-          setError('Square configuration missing');
+          setError('Square configuration missing (missing applicationId/locationId)');
           return;
         }
 
