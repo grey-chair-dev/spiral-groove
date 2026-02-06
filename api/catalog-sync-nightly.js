@@ -25,6 +25,10 @@ const SQUARE_BASE_URL =
 
 const MAX_PAGES = Math.max(1, parseInt(process.env.CATALOG_SYNC_MAX_PAGES || '500', 10))
 const BATCH_PAGES = Math.max(1, parseInt(process.env.CATALOG_SYNC_BATCH_PAGES || '10', 10))
+const ZERO_STOCK_ALERT_THRESHOLD_RATIO = Math.max(
+  0,
+  Math.min(1, Number(process.env.CATALOG_SYNC_ZERO_STOCK_ALERT_RATIO || '0.5') || 0.5),
+)
 
 async function ensureStateTable() {
   await query(`
@@ -498,6 +502,41 @@ async function syncCatalogPages({ cursorStart }) {
   return { pages, cursor, inserted, updated, total, inventoryUpdatedRows, imageUpdatedRows }
 }
 
+async function maybeAlertOnZeroStockRatio() {
+  // Alert if more than X% of products are stock_count=0 after a sync run.
+  // This catches inventory refresh failures that would otherwise silently leave the store "empty".
+  const r = await query(
+    `SELECT
+       count(*)::int AS total,
+       sum((stock_count = 0)::int)::int AS zeros
+     FROM products`,
+  )
+  const total = Number(r.rows?.[0]?.total || 0)
+  const zeros = Number(r.rows?.[0]?.zeros || 0)
+  const ratio = total > 0 ? zeros / total : 0
+
+  if (total > 0 && ratio > ZERO_STOCK_ALERT_THRESHOLD_RATIO) {
+    const today = utcDateStr()
+    void sendSlackAlert({
+      statusCode: 200,
+      error: `High zero-stock ratio detected: ${(ratio * 100).toFixed(1)}% (${zeros}/${total})`,
+      endpoint: '/api/catalog-sync-nightly',
+      method: 'POST_SYNC_CHECK',
+      context: {
+        alertCode: 'SYNC-INVENTORY-ZERO-STOCK-RATIO',
+        totalProducts: total,
+        zeroStockProducts: zeros,
+        ratio,
+        thresholdRatio: ZERO_STOCK_ALERT_THRESHOLD_RATIO,
+      },
+      dedupeKey: `sync:zero_stock_ratio:${today}`,
+      dedupeTtlMs: 24 * 60 * 60 * 1000,
+    })
+  }
+
+  return { total, zeros, ratio, thresholdRatio: ZERO_STOCK_ALERT_THRESHOLD_RATIO }
+}
+
 export async function webHandler(request) {
   const method = (request.method || 'GET').toUpperCase()
   const userAgent = request.headers.get('user-agent') || ''
@@ -552,6 +591,8 @@ export async function webHandler(request) {
     // Rebuild albums_cache so the frontend sees updated products
     const cacheResult = await populateAlbumsCache()
 
+    const inventoryHealth = await maybeAlertOnZeroStockRatio()
+
     const durationMs = Date.now() - startedAt
 
     return new Response(
@@ -569,6 +610,7 @@ export async function webHandler(request) {
           inventoryRowsUpdated: catalog.inventoryUpdatedRows,
           imageRowsUpdated: catalog.imageUpdatedRows,
         },
+        inventoryHealth,
         albumsCache: cacheResult,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
