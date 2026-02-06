@@ -68,7 +68,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         setSquarePayments(payments);
         isInitialized.current = true;
       } catch (err) {
-        console.error('Square initialization error:', err);
+        void err
         setError('Failed to load payment form');
       }
     };
@@ -84,7 +84,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     // If element is removed, cleanup
     if (!element) {
       if (cardElementRef.current) {
-        cardElementRef.current.destroy().catch(console.error);
+        cardElementRef.current.destroy().catch(() => {});
         setCardElement(null);
         cardElementRef.current = null;
       }
@@ -185,7 +185,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         cardElementRef.current = card;
         cardAttachedRef.current = true;
       } catch (err) {
-        console.error('Square card attachment error:', err);
+        void err
         setError('Failed to load payment form');
       }
     };
@@ -196,7 +196,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   // Cleanup on unmount or when auth wall shows
   useEffect(() => {
     if (showAuthWall && cardElementRef.current) {
-      cardElementRef.current.destroy().catch(console.error);
+      cardElementRef.current.destroy().catch(() => {});
       setCardElement(null);
       cardElementRef.current = null;
       cardAttachedRef.current = false;
@@ -204,7 +204,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     
     return () => {
       if (cardElementRef.current) {
-        cardElementRef.current.destroy().catch(console.error);
+        cardElementRef.current.destroy().catch(() => {});
         setCardElement(null);
         cardElementRef.current = null;
         cardAttachedRef.current = false;
@@ -296,7 +296,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
                     }),
                 }).catch((err) => {
-                    console.warn('[Checkout] Newsletter opt-in failed:', err);
+                    void err
                 });
             }
 
@@ -314,7 +314,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         }
 
     } catch (err: any) {
-        console.error('Checkout error:', err);
         setError(err.message || 'An error occurred during checkout');
     } finally {
         setIsProcessing(false);

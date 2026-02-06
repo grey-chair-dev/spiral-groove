@@ -72,19 +72,17 @@ export async function initializeSquarePayments(
 ): Promise<SquarePayments | null> {
   try {
     if (!applicationId || !locationId) {
-      console.error('[Square] Application ID and Location ID are required')
       return null
     }
 
     if (!window.Square) {
-      console.error('[Square] Square SDK not loaded. Add script tag to index.html')
       return null
     }
 
     const squarePayments = await window.Square.payments(applicationId, locationId)
     return squarePayments
   } catch (error) {
-    console.error('[Square] Failed to initialize payments:', error)
+    void error
     return null
   }
 }
@@ -123,7 +121,6 @@ export async function generatePaymentToken(
       }
     }
   } catch (error: any) {
-    console.error('[Square] Payment tokenization error:', error)
     return {
       success: false,
       error: error.message || 'An unexpected error occurred',
@@ -192,7 +189,6 @@ export async function processPayment(
       totals: result?.payment?.totals,
     }
   } catch (error: any) {
-    console.error('[Square] Payment processing error:', error)
     return {
       success: false,
       error: error.message || 'Failed to process payment',

@@ -15,7 +15,6 @@ type StaffPicksCachePayload = { ts: number; rows: StaffPickMetaRow[] }
 const STAFF_PICKS_CACHE_KEY = 'sg_staff_picks_v2'
 const STAFF_PICKS_CACHE_TTL_MS = 60 * 1000 // 1 minute
 
-const warnedMissingVariationIds = new Set<string>()
 
 function readCachedRows(): StaffPickMetaRow[] | null {
   try {
@@ -99,11 +98,7 @@ export function mergeStaffPicks(products: any[], rows: StaffPickMetaRow[]): Staf
     }
     
     if (!product) {
-      // Log for debugging but don't break - just skip this pick
-      if (!warnedMissingVariationIds.has(rawVarId)) {
-        warnedMissingVariationIds.add(rawVarId)
-        console.warn(`[StaffPicks] Could not find product for staff pick variation ID: ${rawVarId}`)
-      }
+      // Skip silently if the pick no longer resolves to a product.
       continue
     }
 

@@ -82,7 +82,6 @@ export const ContactPage: React.FC<ContactPageProps> = ({ viewMode }) => {
       setSubmitted(true);
       setFormData({ name: '', email: '', phone: '', subject: 'General Inquiry', message: '', sendCopy: false });
     } catch (err) {
-      console.error('[ContactPage] Failed to submit inquiry:', err);
       setSubmitError(err instanceof Error ? err.message : 'Could not send your message. Please try again.');
     } finally {
       setIsSubmitting(false);

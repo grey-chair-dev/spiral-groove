@@ -116,7 +116,6 @@ export async function fetchProducts(appId?: string): Promise<Product[]> {
     if (response.status === 304) {
       const cachedProducts = cachedPayload?.products
       if (cachedProducts && cachedProducts.length > 0) {
-        console.log('[Products] 304 Not Modified; using cached products', { count: cachedProducts.length })
         return sanitizeBatch(cachedProducts)
       }
     }
@@ -138,26 +137,18 @@ export async function fetchProducts(appId?: string): Promise<Product[]> {
           // If not JSON, use the text as error message
           errorMsg = responseText || errorMsg
           const parseError = e instanceof Error ? e.message : String(e)
-          console.warn('[Products] Response is not valid JSON:', responseText.substring(0, 200), parseError)
+          void parseError
     }
       } else {
-        console.error('[Products] Empty response body from API')
+        // ignore
       }
       
-      console.error('[Products] API Error Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorMsg,
-        details: errorDetails,
-        responseText: responseText ? responseText.substring(0, 200) : '(empty)'
-      })
       const detailsMsg = (errorDetails as any)?.message
       throw new Error(`${errorMsg}${detailsMsg ? `: ${detailsMsg}` : ''}`)
     }
     
     // Parse JSON from response text
     if (!responseText || !responseText.trim()) {
-      console.error('[Products] Empty response body')
       throw new Error('Empty response from API')
     }
     
@@ -166,17 +157,11 @@ export async function fetchProducts(appId?: string): Promise<Product[]> {
       data = JSON.parse(responseText)
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e)
-      console.error('[Products] Failed to parse JSON response:', responseText.substring(0, 200))
+      void responseText
       throw new Error(`Invalid JSON response from API: ${errorMsg}`)
     }
     
     const products = Array.isArray(data) ? data : Array.isArray(data?.products) ? data.products : []
-    
-    if (products.length === 0) {
-      console.warn('[Products] No products found in Neon database')
-    } else {
-      console.log(`[Products] Loaded ${products.length} products from Neon`)
-    }
     
     const sanitized = sanitizeBatch(products)
     if (sanitized.length > 0) {
@@ -185,10 +170,9 @@ export async function fetchProducts(appId?: string): Promise<Product[]> {
     }
     return sanitized
   } catch (error) {
-    console.error('[Products] Failed to fetch products from Neon database:', error)
+    void error
     const cached = readCachedProducts()
     if (cached && cached.length > 0) {
-      console.warn('[Products] Using cached products (last-known-good) due to fetch error')
       return cached
     }
     // No cache available
@@ -262,7 +246,7 @@ export async function fetchProductsPage(args?: { limit?: number; cursor?: string
 
     return { products: sanitized, nextCursor }
   } catch (error) {
-    console.error('[Products] Failed to fetch products page:', error)
+    void error
     // If this is the first page and we have a cache, return it.
     if (!cursor) {
       const cached = readCachedProducts()

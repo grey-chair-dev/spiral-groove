@@ -63,7 +63,6 @@ export const Newsletter: React.FC<NewsletterProps> = ({ onSuccess }) => {
         setMessage({ type: 'error', text: data.error || 'Failed to subscribe. Please try again.' });
       }
     } catch (error) {
-      console.error('Newsletter subscription error:', error);
       setMessage({ type: 'error', text: 'Network error. Please try again later.' });
     } finally {
       setIsSubmitting(false);

@@ -89,7 +89,6 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
       }
       setSubmitted(true);
     } catch (err: any) {
-      console.error('[EventsPage] Failed to submit inquiry:', err);
       setSubmitError('Could not send your inquiry. Please try again.');
     } finally {
       setIsSubmitting(false);

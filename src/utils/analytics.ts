@@ -30,10 +30,6 @@ export function initAnalytics() {
       ;(window.dataLayer ||= []).push(args)
     }
   }
-
-  if (import.meta.env.DEV) {
-    console.log('[Analytics] Google Analytics 4 initialized:', GA4_MEASUREMENT_ID)
-  }
 }
 
 /**

@@ -33,7 +33,6 @@ export function ForgotPasswordPage({ onBack, onSignIn }: ForgotPasswordPageProps
         setError(data.error || 'Failed to send reset link. Please try again.')
       }
     } catch (err) {
-      console.error('Forgot password error:', err)
       setError('Network error. Please try again later.')
     } finally {
       setIsSubmitting(false)

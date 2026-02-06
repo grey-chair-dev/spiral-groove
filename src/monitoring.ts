@@ -67,7 +67,7 @@ export async function reportClientError(error: unknown, context = 'client'): Pro
     screenshot = await captureScreenshotSafe()
   } catch (err) {
     // Screenshot capture is optional, don't block error reporting
-    console.warn('[Monitoring] Screenshot capture failed:', err)
+    void err
   }
 
   const payload: ErrorPayload = {
@@ -117,12 +117,12 @@ export function trackMetric(
   
   if (name.includes('page_load') && value > SLOW_PAGE_LOAD_THRESHOLD_MS) {
     // Track slow page loads
-    console.warn(`[Monitoring] Slow page load detected: ${value}ms`)
+    // intentionally no console logging
   }
   
   if (name.includes('api_call') && value > SLOW_API_CALL_THRESHOLD_MS) {
     // Track slow API calls
-    console.warn(`[Monitoring] Slow API call detected: ${value}ms`)
+    // intentionally no console logging
   }
 }
 
@@ -145,7 +145,7 @@ export function trackWebVitals() {
           
           // Alert on slow LCP (>2.5s is considered poor)
           if (value > 2500) {
-            console.warn(`[Monitoring] Poor LCP: ${Math.round(value)}ms`)
+            // intentionally no console logging
           }
         }
       }
@@ -168,7 +168,7 @@ export function trackWebVitals() {
           
           // Alert on slow FID (>100ms is considered poor)
           if (delay > 100) {
-            console.warn(`[Monitoring] Poor FID: ${Math.round(delay)}ms`)
+            // intentionally no console logging
           }
         }
       }
@@ -193,7 +193,7 @@ export function trackWebVitals() {
       
       // Alert on poor CLS (>0.25 is considered poor)
       if (clsValue > 0.25) {
-        console.warn(`[Monitoring] Poor CLS: ${clsValue.toFixed(3)}`)
+        // intentionally no console logging
       }
     })
     observer.observe({ entryTypes: ['layout-shift'] })
@@ -217,7 +217,7 @@ function postJson(url: string, payload: unknown) {
     body,
     keepalive: true,
   }).catch((error) => {
-    console.error('[monitoring] Failed to send payload', error)
+    void error
   })
 }
 

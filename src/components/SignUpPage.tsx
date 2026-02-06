@@ -57,7 +57,6 @@ export function SignUpPage({
         setSignupError(data.error || 'Failed to create account. Please try again.')
       }
     } catch (err) {
-      console.error('Signup error:', err)
       setSignupError('Network error. Please try again later.')
     }
   }

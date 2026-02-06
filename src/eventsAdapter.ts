@@ -139,10 +139,8 @@ export async function fetchEvents(): Promise<Event[]> {
     writeCachedEvents(mapped)
     return mapped
   } catch (e) {
-    console.error('[Events] Failed to fetch events:', e)
     const cached = readCachedEvents()
     if (cached && cached.length > 0) {
-      console.warn('[Events] Using cached events (last-known-good) due to fetch error')
       return cached
     }
     return []

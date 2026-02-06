@@ -96,7 +96,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
             setError(true);
         }
     } catch (err) {
-        console.error('Order lookup failed:', err);
+        void err
         setError(true);
     } finally {
         setLoading(false);

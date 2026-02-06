@@ -26,7 +26,7 @@ export async function captureScreenshot(): Promise<string | null> {
     
     return canvas.toDataURL('image/png', 0.8) // 80% quality
   } catch (error) {
-    console.error('[Screenshot] Failed to capture:', error)
+    void error
     return null
   }
 }
@@ -39,7 +39,7 @@ export async function captureScreenshotSafe(): Promise<string | null> {
   try {
     return await captureScreenshot()
   } catch (error) {
-    console.warn('[Screenshot] Capture failed:', error)
+    void error
     return null
   }
 }

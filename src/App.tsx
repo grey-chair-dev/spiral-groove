@@ -684,7 +684,6 @@ function App() {
         
         if (apiProducts.length === 0) {
           // Launch safety: never fall back to demo/mock inventory in production.
-          console.warn('[App] No products from API. Inventory will be empty.');
           setProducts([]);
           setProductsError('Inventory is temporarily unavailable. Please check back soon.');
         } else {
@@ -699,10 +698,8 @@ function App() {
             })
             .map(mapApiProductToAppProduct);
           setProducts(mappedProducts);
-          console.log(`[App] Loaded ${mappedProducts.length} products from API`);
         }
       } catch (err: any) {
-        console.error('[App] Failed to load products:', err);
         setProductsError(err.message || 'Failed to load products');
         // Launch safety: never fall back to demo/mock inventory.
         setProducts([]);
@@ -723,7 +720,6 @@ function App() {
         if (!mounted) return;
         setEvents(apiEvents);
       } catch (err) {
-        console.error('[App] Failed to load events:', err);
         if (!mounted) return;
         setEvents([]);
       }
@@ -744,7 +740,6 @@ function App() {
         setStaffPickRows(rows);
       } catch (err) {
         // Non-fatal: UI falls back to static constants.
-        console.warn('[App] Failed to load staff picks:', err);
         if (!mounted) return;
         setStaffPickRows([]);
       }

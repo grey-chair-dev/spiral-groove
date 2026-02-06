@@ -73,7 +73,6 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({ order, viewMode, onBac
       
       pdf.save(`SpiralGroove_Receipt_${order.id.replace('#', '')}.pdf`);
     } catch (error) {
-      console.error('Error generating PDF:', error);
       alert('Could not generate PDF. Please try the Print -> Save as PDF option.');
     } finally {
       setIsGeneratingPdf(false);

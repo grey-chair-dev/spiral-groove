@@ -74,7 +74,6 @@ const NewsletterForm: React.FC = () => {
         setMessage({ type: 'error', text: data.error || 'Failed to subscribe' });
       }
     } catch (error) {
-      console.error('Newsletter subscription error:', error);
       setMessage({ type: 'error', text: 'Network error' });
     } finally {
       setIsSubmitting(false);
