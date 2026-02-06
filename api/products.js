@@ -23,13 +23,15 @@ import { withWebHandler } from './_vercelNodeAdapter.js'
 let lastProducts = null
 let lastFetchedAt = 0
 let lastEtag = null
+let lastBodyJson = null
 const CACHE_TTL_MS = 30_000
 const STALE_TTL_MS = 10 * 60 * 1000
 const EDGE_CACHE_CONTROL = 'public, s-maxage=60, stale-while-revalidate=600'
 const MAX_LIMIT = 5000
 // Version check for ETag. We keep this cheap and only run it if the client sends If-None-Match.
 // albums_cache is rebuilt in one shot and uses a uniform synced_at per rebuild.
-const VERSION_SQL = `SELECT synced_at FROM albums_cache LIMIT 1`
+const VERSION_SQL = `SELECT synced_at FROM albums_cache ORDER BY synced_at DESC LIMIT 1`
+const PRODUCTS_CACHE_SQL = `SELECT etag, body_json FROM products_api_cache WHERE id = 1`
 
 /**
  * Maps a database row from albums_cache to the Product type
@@ -128,6 +130,78 @@ export async function webHandler(request) {
   }
 
   try {
+    // Fast path: for the default full-catalog request, prefer serving the precomputed payload.
+    // This avoids scanning/mapping ~15k rows on every request in serverless.
+    if (!isPagedRequest) {
+      // Serve hot cache if it's fresh
+      if (typeof lastBodyJson === 'string' && Date.now() - lastFetchedAt < CACHE_TTL_MS) {
+        if (ifNoneMatch && lastEtag && ifNoneMatch === lastEtag) {
+          return new Response(null, {
+            status: 304,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Cache-Control': EDGE_CACHE_CONTROL,
+              ETag: lastEtag,
+              'X-Products-Not-Modified': '1',
+              'X-Products-Cache': 'HIT',
+            },
+          })
+        }
+
+        return new Response(lastBodyJson, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': EDGE_CACHE_CONTROL,
+            ...(lastEtag ? { ETag: lastEtag } : {}),
+            'X-Products-Cache': 'HIT',
+            'X-Products-Source': 'products_api_cache:memory',
+          },
+        })
+      }
+
+      // Try DB precomputed payload (best-effort fallback to live query if missing)
+      try {
+        const cached = await query(PRODUCTS_CACHE_SQL)
+        const dbEtag = cached.rows?.[0]?.etag ? `"${String(cached.rows[0].etag)}"` : null
+        const bodyJson = cached.rows?.[0]?.body_json ? String(cached.rows[0].body_json) : null
+
+        if (dbEtag && ifNoneMatch && ifNoneMatch === dbEtag) {
+          return new Response(null, {
+            status: 304,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Cache-Control': EDGE_CACHE_CONTROL,
+              ETag: dbEtag,
+              'X-Products-Not-Modified': '1',
+              'X-Products-Source': 'products_api_cache',
+            },
+          })
+        }
+
+        if (dbEtag && bodyJson) {
+          // refresh memory cache
+          lastBodyJson = bodyJson
+          lastFetchedAt = Date.now()
+          lastEtag = dbEtag
+
+          return new Response(bodyJson, {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'Cache-Control': EDGE_CACHE_CONTROL,
+              ETag: dbEtag,
+              'X-Products-Source': 'products_api_cache',
+            },
+          })
+        }
+      } catch {
+        // ignore; fall through to live query path
+      }
+    }
+
     // If the client sent If-None-Match, do a cheap version check and return 304 when possible.
     // Only applies to the default "full catalog" request.
     if (!isPagedRequest && ifNoneMatch) {
@@ -211,11 +285,12 @@ export async function webHandler(request) {
     }
 
     const products = rows.map(mapRowToProduct)
-    console.log('[Products API] Fetched products from albums_cache table', { count: products.length })
+    // Avoid noisy logs in production
 
     // Only cache the default full-catalog response
     if (!isPagedRequest) {
       lastProducts = products
+      lastBodyJson = JSON.stringify({ products })
       lastFetchedAt = Date.now()
       const syncedAt = rows?.[0]?.synced_at ? String(rows[0].synced_at) : ''
       lastEtag = `"albums_cache:${syncedAt}"`

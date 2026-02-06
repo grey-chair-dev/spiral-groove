@@ -96,6 +96,18 @@ export async function ensureAlbumsCacheSchema() {
     CREATE INDEX IF NOT EXISTS idx_albums_cache_synced_at_desc
     ON albums_cache (synced_at DESC)
   `)
+
+  // Precomputed payload for /api/products (full catalog). This avoids a large row-by-row fetch on every request.
+  // It's rebuilt when `populateAlbumsCache()` runs.
+  await query(`
+    CREATE TABLE IF NOT EXISTS products_api_cache (
+      id INT PRIMARY KEY DEFAULT 1,
+      etag TEXT NOT NULL,
+      synced_at TIMESTAMPTZ NOT NULL,
+      body_json TEXT NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
 }
 
 /**
@@ -215,6 +227,72 @@ export async function populateAlbumsCache() {
   } catch (e) {
     // Best-effort: don't fail the cache build if maintenance statements are unsupported/blocked
     console.warn('[Albums Cache] Post-population REINDEX/ANALYZE failed (continuing)', {
+      message: e?.message || String(e),
+    })
+  }
+
+  // Build a precomputed JSON response for /api/products so the API can serve a single-row lookup
+  // instead of scanning/mapping ~15k rows on every request.
+  try {
+    const v = await query(`SELECT synced_at FROM albums_cache ORDER BY synced_at DESC LIMIT 1`)
+    const syncedAtRaw = v.rows?.[0]?.synced_at ?? null
+    const syncedAt =
+      syncedAtRaw instanceof Date
+        ? syncedAtRaw.toISOString()
+        : syncedAtRaw
+          ? String(syncedAtRaw)
+          : ''
+    const etag = `albums_cache:${syncedAt}`
+
+    const payload = await query(
+      `
+      SELECT jsonb_build_object(
+        'products',
+        COALESCE(
+          jsonb_agg(
+            jsonb_build_object(
+              'id', id,
+              'name', COALESCE(name, ''),
+              'description', COALESCE(description, ''),
+              'price', COALESCE(price_dollars, 0),
+              'category', COALESCE(category, 'Uncategorized'),
+              'categories', to_jsonb(COALESCE(all_categories, ARRAY[]::text[])),
+              'stockCount', COALESCE(stock_count, 0),
+              'imageUrl', COALESCE(image_url, ''),
+              'rating', 0,
+              'reviewCount', 0,
+              'soldCount', 0,
+              'lastSoldAt', NULL,
+              'lastStockedAt', NULL,
+              'lastAdjustmentAt', NULL,
+              'createdAt', created_at
+            )
+            ORDER BY created_at DESC NULLS LAST, id ASC
+          ),
+          '[]'::jsonb
+        )
+      )::text AS body_json
+      FROM albums_cache
+      `
+    )
+
+    const bodyJson = payload.rows?.[0]?.body_json ? String(payload.rows[0].body_json) : '{"products":[]}'
+
+    await query(
+      `
+      INSERT INTO products_api_cache (id, etag, synced_at, body_json, updated_at)
+      VALUES (1, $1::text, $2::timestamptz, $3::text, CURRENT_TIMESTAMP)
+      ON CONFLICT (id) DO UPDATE SET
+        etag = EXCLUDED.etag,
+        synced_at = EXCLUDED.synced_at,
+        body_json = EXCLUDED.body_json,
+        updated_at = CURRENT_TIMESTAMP
+      `,
+      [etag, syncedAt || new Date().toISOString(), bodyJson]
+    )
+  } catch (e) {
+    // Best-effort: don't fail the cache build if this step fails.
+    console.warn('[Albums Cache] products_api_cache build failed (continuing)', {
       message: e?.message || String(e),
     })
   }
