@@ -791,14 +791,40 @@ export async function webHandler(request) {
   } catch (error) {
     console.error('[Payment API] Error:', error)
     
-    let errorMessage = 'Payment processing failed.'
+    const squareCode = error instanceof ApiError ? error.errors?.[0]?.code : undefined
+    const squareDetail = error instanceof ApiError ? error.errors?.[0]?.detail : undefined
+
+    // Default user-facing message (safe + actionable)
+    let errorMessage = 'Payment failed. Please try another card or try again in a moment.'
     let statusCode = 500
 
     if (error instanceof ApiError) {
       statusCode = error.statusCode
-      const detail = error.errors?.[0]?.detail
-      const code = error.errors?.[0]?.code
-      if (detail) errorMessage = detail
+
+      // Prefer a friendly message over raw Square detail (which can be terse/technical).
+      // Keep detail as a fallback.
+      const code = squareCode
+      const detail = squareDetail
+
+      const friendlyByCode = (c) => {
+        if (!c) return null
+        const codeStr = String(c).toUpperCase()
+        if (codeStr.includes('CARD_DECLINED')) return 'Your card was declined. Please try another card.'
+        if (codeStr.includes('VERIFY_CVV') || codeStr.includes('CVV')) return 'The card security code (CVV) looks incorrect. Please try again.'
+        if (codeStr.includes('VERIFY_AVS') || codeStr.includes('AVS')) return 'The billing address could not be verified. Please check and try again.'
+        if (codeStr.includes('INSUFFICIENT_FUNDS')) return 'Insufficient funds. Please try another card.'
+        if (codeStr.includes('INVALID_CARD') || codeStr.includes('INVALID')) return 'The card details appear invalid. Please check and try again.'
+        if (codeStr.includes('EXPIRATION')) return 'The card expiration date looks invalid. Please check and try again.'
+        if (codeStr.includes('PAYMENT_METHOD')) return 'This payment method could not be used. Please try another card.'
+        return null
+      }
+
+      const friendly = friendlyByCode(code)
+      if (friendly) {
+        errorMessage = friendly
+      } else if (detail) {
+        errorMessage = detail
+      }
       
       console.error('[Payment API] Square API Error:', {
         statusCode,
@@ -827,7 +853,13 @@ export async function webHandler(request) {
       JSON.stringify({ 
         success: false, 
         error: errorMessage,
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development'
+          ? {
+              message: error?.message,
+              squareErrorCode: squareCode,
+              squareErrorDetail: squareDetail,
+            }
+          : undefined
       }, jsonReplacer),
       { 
         status: statusCode,

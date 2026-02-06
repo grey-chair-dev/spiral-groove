@@ -113,16 +113,23 @@ export async function generatePaymentToken(
         },
       }
     } else {
-      const errorMessage = tokenResult.errors?.[0]?.detail || 'Failed to tokenize card'
+      const errorMessage =
+        tokenResult.errors && tokenResult.errors.length > 0
+          ? tokenResult.errors
+              .map((e) => (e?.detail || '').trim())
+              .filter(Boolean)
+              .slice(0, 3)
+              .join(' · ')
+          : ''
       return {
         success: false,
-        error: errorMessage,
+        error: errorMessage || 'Card details could not be verified. Please check and try again.',
       }
     }
   } catch (error: any) {
     return {
       success: false,
-      error: error.message || 'An unexpected error occurred',
+      error: error.message || 'Card details could not be verified. Please try again.',
     }
   }
 }
@@ -168,10 +175,15 @@ export async function processPayment(
     })
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Payment processing failed' }))
+      const errorData = await response.json().catch(() => ({ error: 'Payment processing failed' }))
+      const msg =
+        errorData?.error ||
+        errorData?.message ||
+        errorData?.details?.message ||
+        `Payment failed: ${response.status} ${response.statusText}`
       return {
         success: false,
-        error: errorData.message || `Payment failed: ${response.statusText}`,
+        error: msg,
       }
     }
 
