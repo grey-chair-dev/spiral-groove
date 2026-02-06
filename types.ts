@@ -47,7 +47,7 @@ export interface Event {
 export interface UserPreferences {
   newsletter: boolean;
   notifications: boolean;
-  communicationMethod: 'email' | 'phone';
+  communicationMethod: 'email';
 }
 
 export interface User {
