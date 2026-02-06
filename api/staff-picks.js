@@ -27,14 +27,18 @@ export async function webHandler(request) {
 
     const result = await query(
       `SELECT
-         id,
-         square_item_id,
-         square_variation_id,
-         name,
-         quote,
-         created_at
-       FROM staff_picks
-       ORDER BY created_at DESC
+         sp.id,
+         sp.square_item_id,
+         sp.square_variation_id,
+         sp.name,
+         sp.quote,
+         sp.created_at
+       FROM staff_picks sp
+       -- Only return picks that can be resolved to a product in the current catalog cache.
+       -- Prevents "dangling" picks that spam console warnings client-side.
+       JOIN albums_cache ac
+         ON ac.square_variation_id = sp.square_variation_id
+       ORDER BY sp.created_at DESC
        LIMIT $1`,
       [limit],
     )
