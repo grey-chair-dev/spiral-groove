@@ -79,9 +79,20 @@ function getSafeImageUrl(url: string | null | undefined): string {
     .trim()
   if (!u) return ''
   // Minimal normalization for protocol-relative URLs.
-  // Important: return the original URL so the browser can try to load it directly.
-  // We'll fall back to /api/image-proxy in the UI onError handler for hosts that block hotlinking.
-  return u.startsWith('//') ? `https:${u}` : u
+  const normalized = u.startsWith('//') ? `https:${u}` : u
+
+  // Instagram CDN URLs are not stable for hotlinking; proxy + cache them under our domain.
+  try {
+    const parsed = new URL(normalized)
+    const host = (parsed.hostname || '').toLowerCase()
+    if (host.includes('cdninstagram.com') || host.endsWith('.cdninstagram.com') || host.endsWith('.fbcdn.net')) {
+      return `/api/image-proxy?url=${encodeURIComponent(parsed.toString())}`
+    }
+  } catch {
+    // ignore parse errors; fall back to raw string
+  }
+
+  return normalized
 }
 
 export async function fetchEvents(): Promise<Event[]> {

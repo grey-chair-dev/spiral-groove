@@ -6,8 +6,33 @@
  * so <img> tags don't spam the console with failed requests.
  */
 import { withWebHandler } from './_vercelNodeAdapter.js'
+import { query } from './db.js'
 
 export const config = { runtime: 'nodejs' }
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024 // 8MB
+const CACHE_TTL_DAYS = 30
+let didEnsureCacheSchema = false
+
+async function ensureCacheSchema() {
+  if (didEnsureCacheSchema) return
+  try {
+    await query(`
+      CREATE TABLE IF NOT EXISTS image_cache (
+        url TEXT PRIMARY KEY,
+        content_type TEXT NOT NULL,
+        body BYTEA NOT NULL,
+        fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `)
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_image_cache_fetched_at_desc
+      ON image_cache (fetched_at DESC)
+    `)
+  } finally {
+    didEnsureCacheSchema = true
+  }
+}
 
 function svgPlaceholder(label = 'Image unavailable') {
   const safe = String(label).replace(/[<>&"]/g, '')
@@ -73,6 +98,37 @@ export async function webHandler(request) {
   }
 
   try {
+    await ensureCacheSchema()
+
+    // Serve from cache if present and fresh enough
+    try {
+      const cached = await query(
+        `SELECT content_type, body, fetched_at
+         FROM image_cache
+         WHERE url = $1
+         LIMIT 1`,
+        [target.toString()]
+      )
+      const row = cached?.rows?.[0]
+      if (row?.body && row?.content_type) {
+        const fetchedAt = row.fetched_at ? new Date(row.fetched_at).getTime() : 0
+        const ageMs = fetchedAt ? Date.now() - fetchedAt : Number.POSITIVE_INFINITY
+        const isFresh = ageMs < CACHE_TTL_DAYS * 24 * 60 * 60 * 1000
+        if (isFresh) {
+          return new Response(row.body, {
+            status: 200,
+            headers: {
+              'Content-Type': row.content_type,
+              'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+              'X-Image-Proxy': 'HIT',
+            },
+          })
+        }
+      }
+    } catch {
+      // ignore cache errors
+    }
+
     const upstream = await fetch(target.toString(), {
       headers: {
         'User-Agent':
@@ -96,15 +152,32 @@ export async function webHandler(request) {
     }
 
     const contentType = upstream.headers.get('content-type') || 'application/octet-stream'
-    // Cache real images longer.
-    const cacheControl = upstream.headers.get('cache-control') || 'public, s-maxage=86400, stale-while-revalidate=604800'
+    const buf = Buffer.from(await upstream.arrayBuffer())
+    if (buf.length > MAX_IMAGE_BYTES) {
+      return placeholderResponse('Too large', { 'X-Image-Proxy-Error': 'too_large' })
+    }
 
-    return new Response(upstream.body, {
+    // Cache in Neon (best-effort)
+    try {
+      await query(
+        `INSERT INTO image_cache (url, content_type, body, fetched_at)
+         VALUES ($1, $2, $3, NOW())
+         ON CONFLICT (url) DO UPDATE
+         SET content_type = EXCLUDED.content_type,
+             body = EXCLUDED.body,
+             fetched_at = NOW()`,
+        [target.toString(), contentType, buf]
+      )
+    } catch {
+      // ignore cache write errors
+    }
+
+    return new Response(buf, {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': cacheControl,
-        'X-Image-Proxy': 'OK',
+        'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+        'X-Image-Proxy': 'MISS',
       },
     })
   } catch {
