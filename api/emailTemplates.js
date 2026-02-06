@@ -726,70 +726,61 @@ export function generateWeeklyNewsletterEmail(data) {
     <h3 style="margin: 28px 0 14px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 24px; letter-spacing: 0.02em;">
       🆕 New Arrivals
     </h3>
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 18px;">
-      <tr>
-        ${newRecords.slice(0, 6).map(record => {
-          const recordName = escapeHtml(record.name || 'Record')
-          // Extract artist from name if possible (format: "Artist - Album" or just "Album")
-          const nameParts = recordName.split(' - ')
-          const artist = nameParts.length > 1 ? escapeHtml(nameParts[0]) : ''
-          const title = nameParts.length > 1 ? escapeHtml(nameParts.slice(1).join(' - ')) : recordName
-          const recordPrice = record.price ? `$${Number(record.price).toFixed(2)}` : ''
-          const recordImage = getAbsoluteImageUrl(record.image_url)
-          const recordUrl = `${baseUrl}/catalog${record.id ? `?product=${record.id}` : ''}`
-          const recordCategory = escapeHtml(record.category || '')
-          const isNewCategory = recordCategory.toLowerCase().includes('new')
-          
-          return `
-            <td style="width: 16.66%; padding: 0 6px; vertical-align: top;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
-                <tr>
-                  <td style="background-color: ${BRAND.cream};">
-                    <a href="${recordUrl}" style="text-decoration: none; display: block;">
-                      <!-- Image Container (square, matches website retro mode: no border-radius, 2px black border) -->
-                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 16px;">
-                        <tr>
-                          <td style="position: relative; padding: 0; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black};">
-                            <img src="${recordImage}" alt="${title}" width="100%" style="display: block; width: 100%; height: auto; border: 0; outline: none; text-decoration: none;" />
-                            ${recordCategory ? `
-                              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="position: absolute; top: 8px; ${isNewCategory ? 'left: 8px;' : 'right: 8px;'}">
-                                <tr>
-                                  <td style="background-color: ${isNewCategory ? BRAND.orange : BRAND.cream}; color: ${BRAND.black}; padding: 4px 8px; border: 2px solid ${BRAND.black}; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.2; font-family: 'Inter', system-ui, sans-serif;">
-                                    ${recordCategory}
-                                  </td>
-                                </tr>
-                              </table>
-                            ` : ''}
-                          </td>
-                        </tr>
-                      </table>
-                      <!-- Product Info (matches website structure) -->
-                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
-                        <tr>
-                          <td style="padding: 0 0 8px 0;">
-                            <h3 style="margin: 0 0 4px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700; line-height: 1.3; font-family: 'Inter', system-ui, sans-serif;">
-                              ${title}
-                            </h3>
-                            ${artist ? `<p style="margin: 0 0 8px 0; color: ${BRAND.black}; opacity: 0.6; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'Inter', system-ui, sans-serif;">${artist}</p>` : ''}
-                            <!-- Footer with Price (matches website) -->
-                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-top: 8px; padding-top: 12px; border-top: 1px solid rgba(35, 31, 32, 0.1);">
-                              <tr>
-                                <td style="padding-top: 12px; border-top: 1px solid rgba(35, 31, 32, 0.1);">
-                                  ${recordPrice ? `<span style="color: ${BRAND.black}; font-size: 18px; font-weight: 900; font-family: 'Inter', system-ui, sans-serif; letter-spacing: 0.02em;">${recordPrice}</span>` : ''}
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-                      </table>
-                    </a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          `
-        }).join('')}
-      </tr>
+    <!-- Gmail mobile renders 6-column grids poorly. Use a consistent 2-column table layout. -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 18px; border-collapse: collapse;">
+      ${(() => {
+        const items = newRecords.slice(0, 12)
+        const rows = []
+        for (let i = 0; i < items.length; i += 2) {
+          const pair = items.slice(i, i + 2)
+          const cellsHtml = pair.map((record) => {
+            const recordName = escapeHtml(record.name || 'Record')
+            const nameParts = recordName.split(' - ')
+            const artist = nameParts.length > 1 ? escapeHtml(nameParts[0]) : ''
+            const title = nameParts.length > 1 ? escapeHtml(nameParts.slice(1).join(' - ')) : recordName
+            const recordPrice = record.price ? `$${Number(record.price).toFixed(2)}` : ''
+            const recordImage = getAbsoluteImageUrl(record.image_url)
+            const recordUrl = `${baseUrl}/catalog${record.id ? `?product=${record.id}` : ''}`
+            const recordCategory = escapeHtml(record.category || '')
+
+            return `
+              <td style="width: 50%; padding: 0 6px 12px 6px; vertical-align: top;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="background-color: ${BRAND.cream};">
+                      <a href="${recordUrl}" style="text-decoration: none; display: block;">
+                        ${recordCategory ? `
+                          <div style="margin: 0 0 8px 0; display: inline-block; background-color: ${BRAND.cream}; color: ${BRAND.black}; padding: 4px 8px; border: 2px solid ${BRAND.black}; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.2; font-family: 'Inter', system-ui, sans-serif;">
+                            ${recordCategory}
+                          </div>
+                        ` : ''}
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 12px; border-collapse: collapse;">
+                          <tr>
+                            <td style="padding: 0; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black};">
+                              <img src="${recordImage}" alt="${title}" width="100%" style="display: block; width: 100%; height: auto; border: 0; outline: none; text-decoration: none;" />
+                            </td>
+                          </tr>
+                        </table>
+                        <h3 style="margin: 0 0 4px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700; line-height: 1.3; font-family: 'Inter', system-ui, sans-serif;">
+                          ${title}
+                        </h3>
+                        ${artist ? `<p style="margin: 0 0 8px 0; color: ${BRAND.black}; opacity: 0.6; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'Inter', system-ui, sans-serif;">${artist}</p>` : ''}
+                        ${recordPrice ? `<div style="margin-top: 8px; padding-top: 10px; border-top: 1px solid rgba(35, 31, 32, 0.1);"><span style="color: ${BRAND.black}; font-size: 18px; font-weight: 900; font-family: 'Inter', system-ui, sans-serif; letter-spacing: 0.02em;">${recordPrice}</span></div>` : ''}
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            `
+          }).join('')
+
+          // If odd number of items, add an empty cell to keep layout stable.
+          const paddedCells = pair.length === 1 ? `${cellsHtml}<td style="width: 50%; padding: 0 6px 12px 6px;"></td>` : cellsHtml
+
+          rows.push(`<tr>${paddedCells}</tr>`)
+        }
+        return rows.join('')
+      })()}
     </table>
     ${renderButton({ href: `${baseUrl}/catalog`, label: 'Browse all new arrivals', tone: 'orange' })}
   ` : ''
