@@ -14,16 +14,6 @@ const EVENT_IMG_FALLBACK =
   <text x="300" y="315" text-anchor="middle" font-family="ui-sans-serif, system-ui" font-size="22" fill="#111827">Event</text>
 </svg>`)
 
-function shouldTryProxy(src: string): boolean {
-  try {
-    const u = new URL(src)
-    const host = (u.hostname || '').toLowerCase()
-    return host.includes('cdninstagram.com') || host.endsWith('.cdninstagram.com') || host.endsWith('.fbcdn.net')
-  } catch {
-    return false
-  }
-}
-
 interface EventsPageProps {
   viewMode: ViewMode;
   onRSVP: (event: Event) => void;
@@ -272,12 +262,6 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
                                     referrerPolicy="no-referrer"
                                     onError={(e) => {
                                       const img = e.currentTarget
-                                      const currentSrc = img.currentSrc || img.src || ''
-                                      if (img.dataset.proxyTried !== '1' && shouldTryProxy(currentSrc)) {
-                                        img.dataset.proxyTried = '1'
-                                        img.src = `/api/image-proxy?url=${encodeURIComponent(currentSrc)}`
-                                        return
-                                      }
                                       if (img.dataset.fallbackApplied === '1') return
                                       img.dataset.fallbackApplied = '1'
                                       img.src = EVENT_IMG_FALLBACK
@@ -501,12 +485,6 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
                                 referrerPolicy="no-referrer"
                                 onError={(e) => {
                                   const img = e.currentTarget
-                                  const currentSrc = img.currentSrc || img.src || ''
-                                  if (img.dataset.proxyTried !== '1' && shouldTryProxy(currentSrc)) {
-                                    img.dataset.proxyTried = '1'
-                                    img.src = `/api/image-proxy?url=${encodeURIComponent(currentSrc)}`
-                                    return
-                                  }
                                   if (img.dataset.fallbackApplied === '1') return
                                   img.dataset.fallbackApplied = '1'
                                   img.src = EVENT_IMG_FALLBACK
