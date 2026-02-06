@@ -265,7 +265,9 @@ upsert AS (
     reporting_category   = COALESCE(EXCLUDED.reporting_category, products.reporting_category),
     all_categories       = COALESCE(EXCLUDED.all_categories, products.all_categories),
     square_image_id      = EXCLUDED.square_image_id,
-    stock_count          = EXCLUDED.stock_count,
+    -- Never clobber inventory counts during catalog upserts.
+    -- Inventory is refreshed separately via /v2/inventory/counts/batch-retrieve.
+    stock_count          = products.stock_count,
     updated_at           = EXCLUDED.updated_at,
     synced_at            = EXCLUDED.synced_at
   RETURNING (xmax = 0) AS inserted
@@ -362,6 +364,76 @@ async function syncCategories() {
   return processed
 }
 
+function extractVariationIdsFromItems(objects) {
+  const out = []
+  const seen = new Set()
+  for (const obj of objects || []) {
+    try {
+      if (!obj || obj.type !== 'ITEM') continue
+      const variations = obj.item_data?.variations || []
+      for (const v of variations) {
+        if (!v || v.type !== 'ITEM_VARIATION') continue
+        const id = v.id
+        if (typeof id !== 'string' || !id) continue
+        if (seen.has(id)) continue
+        seen.add(id)
+        out.push(id)
+      }
+    } catch {
+      // ignore bad objects
+    }
+  }
+  return out
+}
+
+async function refreshInventoryCountsForVariations(variationIds) {
+  const ids = (variationIds || []).filter(Boolean)
+  if (!ids.length) return 0
+
+  let totalUpdated = 0
+  const CHUNK = 1000
+
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const chunk = ids.slice(i, i + CHUNK)
+    const inv = await squareFetchJson('/v2/inventory/counts/batch-retrieve', {
+      method: 'POST',
+      body: {
+        catalog_object_ids: chunk,
+        location_ids: [SQUARE_LOCATION_ID],
+        states: ['IN_STOCK'],
+      },
+    })
+
+    const counts = inv.counts || []
+    const qtyById = new Map()
+    const calcById = new Map()
+    for (const c of counts) {
+      if (!c || typeof c !== 'object') continue
+      const vid = c.catalog_object_id
+      if (typeof vid !== 'string' || !vid) continue
+      const qRaw = c.quantity
+      const qty = Number.isFinite(Number(qRaw)) ? Math.max(0, parseInt(String(qRaw), 10)) : 0
+      qtyById.set(vid, qty)
+      const calc = c.calculated_at
+      if (typeof calc === 'string' && calc) calcById.set(vid, calc)
+    }
+
+    // Expand to include missing ids as 0 in-stock.
+    const expanded = chunk.map((vid) => ({
+      catalog_object_type: 'ITEM_VARIATION',
+      catalog_object_id: vid,
+      location_id: SQUARE_LOCATION_ID,
+      quantity: String(qtyById.get(vid) ?? 0),
+      calculated_at: calcById.get(vid) ?? null,
+    }))
+
+    const upd = await query(UPDATE_INVENTORY_SQL, [JSON.stringify(expanded), SQUARE_LOCATION_ID])
+    totalUpdated += Number(upd.rowCount || 0)
+  }
+
+  return totalUpdated
+}
+
 async function syncCatalogPages({ cursorStart }) {
   let cursor = cursorStart || null
   let pages = 0
@@ -404,6 +476,14 @@ async function syncCatalogPages({ cursorStart }) {
       imageUpdatedRows += Number(upd.rowCount || 0)
     }
 
+    // Inventory refresh for variations included in this batch.
+    // This prevents "mostly zero stock" because we update the entire catalog over the run
+    // (and we explicitly set missing IN_STOCK counts to 0).
+    const variationIds = extractVariationIdsFromItems(batchObjects)
+    if (variationIds.length) {
+      inventoryUpdatedRows += await refreshInventoryCountsForVariations(variationIds)
+    }
+
     pages += batchPages
 
     // Persist cursor after successful batch
@@ -414,23 +494,6 @@ async function syncCatalogPages({ cursorStart }) {
 
   // Denormalize category IDs -> names once per run (this is expensive; don't repeat per batch).
   await query(DENORM_CATEGORIES_SQL)
-
-  // Inventory refresh for last 1000 variations once per run (expensive + triggers Square call).
-  const idsRes = await query(SELECT_RECENT_VARIATION_IDS_SQL)
-  const ids = (idsRes.rows || []).map(r => r.square_variation_id).filter(Boolean)
-  if (ids.length) {
-    const inv = await squareFetchJson('/v2/inventory/counts/batch-retrieve', {
-      method: 'POST',
-      body: {
-        catalog_object_ids: ids,
-        location_ids: [SQUARE_LOCATION_ID],
-        states: ['IN_STOCK'],
-      },
-    })
-    const counts = inv.counts || []
-    const upd = await query(UPDATE_INVENTORY_SQL, [JSON.stringify(counts), SQUARE_LOCATION_ID])
-    inventoryUpdatedRows += Number(upd.rowCount || 0)
-  }
 
   return { pages, cursor, inserted, updated, total, inventoryUpdatedRows, imageUpdatedRows }
 }
