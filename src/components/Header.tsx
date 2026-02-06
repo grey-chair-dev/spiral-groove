@@ -267,7 +267,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Sticky Header - Follows page as we scroll */}
       <div
         ref={headerRef}
-        className={`fixed top-0 left-0 right-0 z-[120] w-full transition-all duration-300
+        className={`fixed top-0 left-0 right-0 z-[120] w-full transition-all duration-300 touch-manipulation
           ${isRetro ? 'bg-black' : 'bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/90'}
           ${scrolled 
               ? (isRetro ? 'border-b-2 border-brand-black shadow-retro-sm' : 'shadow-md border-b border-gray-100') 
@@ -323,7 +323,7 @@ export const Header: React.FC<HeaderProps> = ({
                                 setShowSearchDropdown(true);
                             }
                         }}
-                        className={`w-full pl-4 pr-10 h-10 text-sm font-medium transition-all focus:outline-none
+                        className={`w-full pl-4 pr-10 h-10 text-base md:text-sm font-medium transition-all focus:outline-none
                           ${isRetro 
                             ? 'bg-white border-2 border-brand-black text-brand-black placeholder-brand-black/40 shadow-pop-sm focus:border-brand-orange' 
                             : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-brand-orange focus:ring-1 focus:ring-brand-orange rounded-lg'}
