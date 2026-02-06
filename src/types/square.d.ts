@@ -18,7 +18,6 @@ declare global {
 
 export type SquarePayments = {
   card: () => Promise<SquareCard>
-  applePay: (paymentRequest: SquarePaymentRequest) => Promise<SquareApplePay>
   googlePay: (paymentRequest: SquarePaymentRequest) => Promise<SquareGooglePay>
   paymentRequest: (options: SquarePaymentRequestOptions) => SquarePaymentRequest
   // Note: paymentRequest is a method on the payments instance
@@ -27,12 +26,6 @@ export type SquarePayments = {
 export type SquareCard = {
   attach: (elementId: string) => Promise<void>
   tokenize: () => Promise<SquareTokenResult>
-  destroy: () => Promise<void>
-}
-
-export type SquareApplePay = {
-  attach: (elementId: string) => Promise<void>
-  addEventListener: (event: 'tokenization', handler: (e: SquareTokenizationEvent) => void) => void
   destroy: () => Promise<void>
 }
 

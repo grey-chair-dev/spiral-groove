@@ -221,7 +221,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                                 <div className="w-8 h-5 border border-black/40 rounded bg-white"></div>
                                 <div className="w-8 h-5 border border-black/40 rounded bg-white"></div>
                             </div>
-                            <p className="text-xs font-medium opacity-60">We accept all major cards & Apple Pay</p>
+                            <p className="text-xs font-medium opacity-60">We accept all major cards</p>
                         </div>
                     </div>
                 </div>

@@ -5,7 +5,7 @@ import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { ArrowLeft, Lock, CreditCard, Store, MapPin } from 'lucide-react';
 import { loadSquareSdk } from '../utils/loadSquareSdk';
-import { initializeSquarePayments, generatePaymentToken, processPayment, SquarePayments, SquareCard, SquareApplePay } from '../services/squarePayment';
+import { initializeSquarePayments, generatePaymentToken, processPayment, SquarePayments, SquareCard } from '../services/squarePayment';
 
 interface CheckoutPageProps {
   cartItems: CartItem[];
@@ -24,19 +24,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [squarePayments, setSquarePayments] = useState<SquarePayments | null>(null);
   const [cardElement, setCardElement] = useState<SquareCard | null>(null);
-  const [applePayAvailable, setApplePayAvailable] = useState(false)
-  const [applePayInitError, setApplePayInitError] = useState<string | null>(null)
   // Ref to track card element for cleanup without closure staleness
   const cardElementRef = useRef<SquareCard | null>(null);
-  const applePayRef = useRef<SquareApplePay | null>(null)
-  const applePayAttachedRef = useRef(false)
   const [error, setError] = useState<string | null>(null);
   const cardContainerRef = useRef<HTMLDivElement>(null);
   const isInitialized = useRef(false);
   const cardAttachedRef = useRef(false);
   // Use a unique ID to prevent conflicts with React re-renders/strict mode
   const containerId = useRef(`card-container-${Math.random().toString(36).substr(2, 9)}`);
-  const formRef = useRef<HTMLFormElement | null>(null)
 
   // Sync ref with state
   useEffect(() => {
@@ -226,155 +221,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const tax = subtotal * 0.07;
   const total = subtotal + tax;
 
-  // Apple Pay (Square Web Payments) - best effort enablement.
-  useEffect(() => {
-    let cancelled = false
-
-    const initApplePay = async () => {
-      setApplePayInitError(null)
-      setApplePayAvailable(false)
-      applePayAttachedRef.current = false
-      applePayRef.current = null
-
-      if (!squarePayments || isCartEmpty || total <= 0) return
-
-      // Apple Pay requires a secure context (https) in real browsers.
-      if (typeof window !== 'undefined' && window.isSecureContext === false) return
-
-      try {
-        const paymentRequest = squarePayments.paymentRequest({
-          countryCode: 'US',
-          currencyCode: 'USD',
-          total: { amount: total.toFixed(2), label: 'Spiral Groove Records' },
-        })
-
-        const applePay = await squarePayments.applePay(paymentRequest)
-        if (cancelled) return
-
-        if (typeof (applePay as any)?.canMakePayment === 'function') {
-          const can = await (applePay as any).canMakePayment()
-          if (!can) return
-        }
-
-        applePayRef.current = applePay
-        setApplePayAvailable(true)
-      } catch (e: any) {
-        if (cancelled) return
-        void e
-        setApplePayInitError('Apple Pay is unavailable on this device/browser.')
-      }
-    }
-
-    initApplePay()
-    return () => {
-      cancelled = true
-    }
-  }, [squarePayments, isCartEmpty, total])
-
-  // Attach Apple Pay button and handle tokenization -> backend payment
-  useEffect(() => {
-    if (!applePayAvailable) return
-    const applePay = applePayRef.current as any
-    if (!applePay || applePayAttachedRef.current) return
-
-    const onTokenization = async (e: any) => {
-      try {
-        const tokenResult = e?.detail?.tokenResult
-        if (!tokenResult || tokenResult.status !== 'OK' || !tokenResult.token) {
-          const msg =
-            tokenResult?.errors?.[0]?.detail ||
-            tokenResult?.errors?.[0]?.message ||
-            'Apple Pay tokenization failed'
-          throw new Error(msg)
-        }
-
-        setError(null)
-        setIsProcessing(true)
-
-        const form = formRef.current || (document.getElementById('checkout-form') as HTMLFormElement | null)
-        if (!form) throw new Error('Checkout form not ready')
-        const fd = new FormData(form)
-        const fullNameRaw = (fd.get('fullName') as string) || ''
-        const firstName = fullNameRaw.split(' ')[0] || ''
-        const lastName = fullNameRaw.split(' ').slice(1).join(' ') || ''
-        const email = (fd.get('email') as string) || ''
-        const phone = (fd.get('phone') as string) || ''
-        const newsletterOptIn = Boolean(fd.get('newsletterOptIn'))
-
-        const pickupForm = { firstName, lastName, email, phone }
-
-        const result = await processPayment(
-          { token: tokenResult.token },
-          Math.round(total * 100),
-          {
-            pickupForm,
-            cartItems: cartItems.map(item => ({
-              id: item.product.id,
-              name: item.product.title,
-              quantity: item.quantity,
-              price: item.product.salePrice || item.product.price
-            }))
-          }
-        )
-
-        if (!result.success) throw new Error(result.error || 'Payment failed')
-
-        const squareTotalCents = result?.totals?.totalCents
-        const squareTaxCents = result?.totals?.taxCents
-        const squareTotal = typeof squareTotalCents === 'number' ? (squareTotalCents / 100) : null
-        const squareTax = typeof squareTaxCents === 'number' ? (squareTaxCents / 100) : null
-        const finalTotal = squareTotal != null ? squareTotal : total
-        const finalTax = squareTax != null ? squareTax : tax
-        const finalSubtotal = finalTotal - finalTax
-
-        if (newsletterOptIn && email) {
-          fetch('/api/newsletter', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: String(email).trim(),
-              firstName: firstName.trim() || null,
-              lastName: lastName.trim() || null,
-              source: 'checkout_opt_in',
-              pageUrl: typeof window !== 'undefined' ? window.location.href : '',
-              userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
-            }),
-          }).catch(() => {})
-        }
-
-        onPlaceOrder({
-          ...pickupForm,
-          deliveryMethod: 'pickup',
-          subtotal: finalSubtotal,
-          tax: finalTax,
-          total: finalTotal,
-          shippingCost: 0,
-          orderNumber: result.orderId
-        })
-      } catch (err: any) {
-        setError(err.message || 'Apple Pay failed. Please try a card instead.')
-      } finally {
-        setIsProcessing(false)
-      }
-    }
-
-    const attach = async () => {
-      try {
-        if (typeof applePay.addEventListener === 'function') {
-          applePay.addEventListener('tokenization', onTokenization)
-        }
-        if (typeof applePay.attach === 'function') {
-          await applePay.attach('#apple-pay-button')
-          applePayAttachedRef.current = true
-        }
-      } catch (e) {
-        void e
-      }
-    }
-
-    attach()
-  }, [applePayAvailable, cartItems, onPlaceOrder, tax, total])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -516,7 +362,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 
                 {/* Left Column: Forms */}
                 <div className="lg:col-span-7">
-                   <form id="checkout-form" ref={formRef} onSubmit={handleSubmit} className="space-y-8">
+                   <form id="checkout-form" onSubmit={handleSubmit} className="space-y-8">
                        
                        {/* 1. Contact Info */}
                        <div className={`p-6 md:p-8 relative
@@ -648,17 +494,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                          : 'bg-white border border-gray-200 rounded-lg'}
                                    `}
                                ></div>
-                               {applePayAvailable ? (
-                                 <div>
-                                   <div className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-600">
-                                     Apple Pay
-                                   </div>
-                                   <div id="apple-pay-button" className="mt-3 min-h-[44px]" />
-                                 </div>
-                               ) : null}
-                               {applePayInitError ? (
-                                 <div className="text-xs text-gray-500">{applePayInitError}</div>
-                               ) : null}
                                {/* Error Message Display */}
                                {error && (
                                    <div className="text-red-600 text-sm font-bold bg-red-50 p-3 rounded border border-red-200">
@@ -725,7 +560,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                             size="lg" 
                             disabled={isProcessing || isCartEmpty || total <= 0}
                             onClick={(e) => {
-                                const form = formRef.current || (document.getElementById('checkout-form') as HTMLFormElement | null);
+                                const form = document.getElementById('checkout-form') as HTMLFormElement;
                                 if (form) form.requestSubmit();
                             }}
                             className={isRetro ? 'shadow-pop hover:shadow-pop-hover' : 'shadow-md'}
