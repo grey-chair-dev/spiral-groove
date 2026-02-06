@@ -145,7 +145,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
+  const desktopSearchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -214,9 +215,10 @@ export const Header: React.FC<HeaderProps> = ({
   // Close search dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setShowSearchDropdown(false);
-      }
+      const target = event.target as Node
+      const inMobile = mobileSearchContainerRef.current?.contains(target)
+      const inDesktop = desktopSearchContainerRef.current?.contains(target)
+      if (!inMobile && !inDesktop) setShowSearchDropdown(false)
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -240,16 +242,20 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const submitSearch = () => {
+    const q = searchQuery.trim()
+    if (!q) return
+    onNavigate('search', q)
+    setShowSearchDropdown(false)
+    setIsMobileMenuOpen(false)
+    setSearchQuery('') // Optional: clear search after submit
+    window.scrollTo(0, 0)
+  }
+
   const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-        onNavigate('search', searchQuery);
-        setShowSearchDropdown(false);
-        setIsMobileMenuOpen(false);
-        setSearchQuery(''); // Optional: clear search after submit
-        window.scrollTo(0, 0);
-    }
-  };
+    e.preventDefault()
+    submitSearch()
+  }
 
   const isRetro = viewMode === 'retro';
   
@@ -305,7 +311,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                   
                   {/* Mobile Search Bar - Under Logo */}
-                  <div className="md:hidden w-full max-w-xs mt-3" ref={searchContainerRef}>
+                  <div className="md:hidden w-full max-w-xs mt-3" ref={mobileSearchContainerRef}>
                     <form className="w-full relative group" onSubmit={handleSearchSubmit}>
                       <input 
                         type="text" 
@@ -366,7 +372,8 @@ export const Header: React.FC<HeaderProps> = ({
                                 ))}
                             </ul>
                             <button
-                                onClick={handleSearchSubmit}
+                                type="button"
+                                onClick={submitSearch}
                                 className={`w-full py-3 text-center text-xs font-bold uppercase tracking-wider border-t transition-colors
                                     ${isRetro ? 'bg-brand-mustard text-brand-black hover:bg-brand-orange border-brand-black' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-100'}
                                 `}
@@ -381,7 +388,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               {/* Search Bar (Desktop) */}
-              <div className="hidden md:flex flex-1 max-w-lg mx-auto px-6" ref={searchContainerRef}>
+              <div className="hidden md:flex flex-1 max-w-lg mx-auto px-6" ref={desktopSearchContainerRef}>
                     <form className="w-full relative group" onSubmit={handleSearchSubmit}>
                       <input 
                         type="text" 
@@ -449,7 +456,8 @@ export const Header: React.FC<HeaderProps> = ({
                                 ))}
                             </ul>
                             <button
-                                onClick={handleSearchSubmit}
+                                type="button"
+                                onClick={submitSearch}
                                 className={`w-full py-3 text-center text-xs font-bold uppercase tracking-wider border-t transition-colors
                                     ${isRetro ? 'bg-brand-mustard text-brand-black hover:bg-brand-orange border-brand-black' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-100'}
                                 `}
