@@ -17,6 +17,7 @@ import {
   generateReviewRequestEmail,
   generateWeeklyNewsletterEmail,
   generateAlertEmail,
+  generateSaleAlertEmail,
 } from './emailTemplates.js'
 
 const DEFAULT_DEDUPE_TTL_MS = 5 * 60 * 1000
@@ -90,6 +91,9 @@ export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedup
           // If html is already provided in data, use it (for batch alerts), otherwise generate
           html = data.html || generateAlertEmail(data)
           break
+        case 'sale_alert':
+          html = generateSaleAlertEmail({ ...data })
+          break
         default:
           console.warn(`[Email Webhook] Unknown email type: ${type}, generating basic HTML`)
           html = `<html><body><h1>${subject || getDefaultSubject(type)}</h1><p>Email type: ${type}</p></body></html>`
@@ -159,6 +163,7 @@ function getDefaultSubject(type) {
     order_status_update: 'Order Status Update - Spiral Groove Records',
     review_request: 'How was your visit? Leave a quick review',
     alert: 'API Error Alert - Spiral Groove Records',
+    sale_alert: 'New order - Spiral Groove Records',
   }
   return subjects[type] || 'Message from Spiral Groove Records'
 }

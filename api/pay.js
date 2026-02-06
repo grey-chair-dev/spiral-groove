@@ -736,6 +736,38 @@ export async function webHandler(request) {
             // Don't fail the request if email fails
           }
         }
+
+        // Send internal sale alert email (best-effort)
+        try {
+          const { sendEmail } = await import('./sendEmail.js')
+          const salesTo = process.env.SALES_ALERT_EMAIL || 'adam@spiralgrooverecords.com'
+
+          await sendEmail({
+            type: 'sale_alert',
+            to: salesTo,
+            subject: orderNumber ? `New order ${orderNumber} - Spiral Groove Records` : 'New order - Spiral Groove Records',
+            data: {
+              orderNumber,
+              squareOrderId: payment.orderId || orderId,
+              squarePaymentId: payment.id,
+              total: payment.amountMoney?.amount ? Number(payment.amountMoney.amount) / 100 : null,
+              currency: payment.amountMoney?.currency || 'USD',
+              customerEmail: pickupForm?.email || null,
+              customerName: `${pickupForm?.firstName || ''} ${pickupForm?.lastName || ''}`.trim() || null,
+              items: Array.isArray(canonicalCartItems)
+                ? canonicalCartItems.map((it) => ({
+                    name: it?.name || 'Item',
+                    quantity: Number(it?.quantity) || 1,
+                    price: Number((it?.priceCents || 0) / 100) || 0,
+                  }))
+                : [],
+            },
+            dedupeKey: orderNumber ? `sale_alert:${orderNumber}` : `sale_alert:${payment.id}`,
+            dedupeTtlMs: 60 * 1000,
+          })
+        } catch (e) {
+          console.error('[Payment API] Failed to send sale alert email (continuing)', e?.message || e)
+        }
       } catch (dbError) {
         console.error('[Payment API] Failed to save order to Neon:', dbError)
         // Don't fail the request, just log it. The Square payment succeeded.

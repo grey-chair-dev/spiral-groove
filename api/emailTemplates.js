@@ -27,6 +27,23 @@ function getBaseUrl() {
   return normalized.replace(/\/+$/, '')
 }
 
+function getSquareDashboardBaseUrl() {
+  const env = (process.env.SQUARE_ENVIRONMENT || process.env.SQUARE_ENV || '').toLowerCase()
+  return env === 'sandbox' ? 'https://squareupsandbox.com' : 'https://squareup.com'
+}
+
+function getSquareOrderDashboardUrl(squareOrderId) {
+  const id = String(squareOrderId || '').trim()
+  if (!id) return null
+  return `${getSquareDashboardBaseUrl()}/dashboard/sales/orders/${encodeURIComponent(id)}`
+}
+
+function getSquarePaymentDashboardUrl(squarePaymentId) {
+  const id = String(squarePaymentId || '').trim()
+  if (!id) return null
+  return `${getSquareDashboardBaseUrl()}/dashboard/sales/transactions/${encodeURIComponent(id)}`
+}
+
 function getEmailLogoUrl(baseUrl) {
   const override = process.env.EMAIL_LOGO_URL || ''
   if (override) return override
@@ -936,6 +953,108 @@ export function generateWeeklyNewsletterEmail(data) {
   return renderLayout({
     title: 'This Week at Spiral Groove Records',
     preheader: 'Upcoming events, new arrivals, and picks just for you.',
+    bodyHtml,
+  })
+}
+
+/**
+ * Internal sale alert email HTML
+ */
+export function generateSaleAlertEmail(data) {
+  const baseUrl = getBaseUrl()
+  const {
+    orderNumber,
+    squareOrderId,
+    squarePaymentId,
+    total,
+    currency = 'USD',
+    customerEmail,
+    customerName,
+    items = [],
+  } = data || {}
+
+  const squareOrderUrl = getSquareOrderDashboardUrl(squareOrderId)
+  const squarePaymentUrl = getSquarePaymentDashboardUrl(squarePaymentId)
+
+  const currencySymbol = currency === 'USD' ? '$' : ''
+  const formattedTotal =
+    total != null && total !== '' && Number.isFinite(Number(total))
+      ? `${currencySymbol}${Number(total).toFixed(2)}`
+      : null
+
+  const safeOrderNumber = escapeHtml(orderNumber || '')
+  const safeCustomer = escapeHtml(customerName || '')
+  const safeCustomerEmail = escapeHtml(customerEmail || '')
+
+  const itemsHtml =
+    Array.isArray(items) && items.length > 0
+      ? `
+        <h3 style="margin: 18px 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 22px; letter-spacing: 0.02em;">
+          Items
+        </h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; overflow: hidden;">
+          <thead>
+            <tr style="background-color: ${BRAND.black};">
+              <th style="padding: 12px 10px; text-align: left; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Item</th>
+              <th style="padding: 12px 10px; text-align: center; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Qty</th>
+              <th style="padding: 12px 10px; text-align: right; color: ${BRAND.cream}; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items
+              .map((item) => {
+                const name = escapeHtml(item?.name || 'Item')
+                const qty = escapeHtml(item?.quantity || 1)
+                const price = typeof item?.price === 'number' ? item.price : Number(item?.price || 0)
+                return `
+                  <tr>
+                    <td style="padding: 10px 12px; border-bottom: 1px solid #E5E5E5; color: #231F20; font-weight: 600;">${name}</td>
+                    <td style="padding: 10px 12px; border-bottom: 1px solid #E5E5E5; text-align: center; color: #231F20; font-weight: 600;">${qty}</td>
+                    <td style="padding: 10px 12px; border-bottom: 1px solid #E5E5E5; text-align: right; color: #231F20; font-weight: 700;">${currencySymbol}${price.toFixed(2)}</td>
+                  </tr>
+                `
+              })
+              .join('')}
+          </tbody>
+        </table>
+      `
+      : ''
+
+  const bodyHtml = `
+    <h2 style="margin: 0 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.1; text-align:center; letter-spacing: 0.02em;">
+      New order 🎉
+    </h2>
+    <p style="margin: 0 0 18px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600; text-align:center;">
+      ${safeCustomer ? `${safeCustomer} • ` : ''}${safeCustomerEmail}
+    </p>
+
+    <div style="margin: 18px 0 0 0; padding: 18px; background-color: ${BRAND.black}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.orange};">
+      <p style="margin: 0 0 8px 0; color: ${BRAND.cream}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
+        Order number
+      </p>
+      <p style="margin: 0; color: ${BRAND.teal}; font-size: 22px; font-weight: 900; letter-spacing: 0.06em;">
+        ${safeOrderNumber || '—'}
+      </p>
+      ${formattedTotal ? `<p style="margin: 10px 0 0 0; color: ${BRAND.cream}; font-size: 14px; font-weight: 700;">Total: <span style="color:${BRAND.mustard}; font-weight: 900;">${escapeHtml(formattedTotal)}</span></p>` : ''}
+    </div>
+
+    ${itemsHtml}
+
+    ${squareOrderUrl ? renderButton({ href: squareOrderUrl, label: 'View in Square (Order)', tone: 'teal' }) : ''}
+    ${!squareOrderUrl && squarePaymentUrl ? renderButton({ href: squarePaymentUrl, label: 'View in Square (Payment)', tone: 'teal' }) : ''}
+
+    <div style="margin-top: 12px;">
+      ${renderButton({
+        href: `${baseUrl}/order-status?order=${encodeURIComponent(orderNumber || '')}&email=${encodeURIComponent(customerEmail || '')}`,
+        label: 'View order status page',
+        tone: 'orange',
+      })}
+    </div>
+  `.trim()
+
+  return renderLayout({
+    title: `New order ${orderNumber || ''}`.trim(),
+    preheader: `New order ${orderNumber || ''}`.trim(),
     bodyHtml,
   })
 }
