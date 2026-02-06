@@ -46,11 +46,20 @@ function shouldSend(dedupeKey, ttlMs) {
  */
 export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedupeTtlMs = DEFAULT_DEDUPE_TTL_MS, force = false }) {
   try {
-    // Get webhook URL
-    const webhookUrl = process.env.MAKE_EMAIL_WEBHOOK_URL
+    // Pick webhook URL.
+    // - Default: unified email webhook
+    // - sale_alert: route through the same Make webhook used for contact inquiries (per request)
+    const contactWebhookUrl =
+      process.env.MAKE_CONTACT_US_WEBHOOK_URL || process.env.MAKE_CONTACT_INQUIRY_WEBHOOK_URL
+    const webhookUrl =
+      type === 'sale_alert' && contactWebhookUrl ? contactWebhookUrl : process.env.MAKE_EMAIL_WEBHOOK_URL
     if (!webhookUrl) {
-      console.warn('[Email Webhook] No MAKE_EMAIL_WEBHOOK_URL configured')
-      return { attempted: false, ok: false, reason: 'missing_MAKE_EMAIL_WEBHOOK_URL' }
+      console.warn('[Email Webhook] Missing webhook URL for email send', {
+        type,
+        hasMakeEmailWebhookUrl: !!process.env.MAKE_EMAIL_WEBHOOK_URL,
+        hasContactInquiryWebhookUrl: !!contactWebhookUrl,
+      })
+      return { attempted: false, ok: false, reason: 'missing_webhook_url' }
     }
 
     // Deduplication check (skip if force=true)
