@@ -680,7 +680,9 @@ upsert AS (
     reporting_category = COALESCE(EXCLUDED.reporting_category, {products_table}.reporting_category),
     all_categories  = COALESCE(EXCLUDED.all_categories, {products_table}.all_categories),
     square_image_id = EXCLUDED.square_image_id,
-    stock_count     = EXCLUDED.stock_count,
+    -- Never clobber inventory counts during catalog upserts.
+    -- Inventory is refreshed via /v2/inventory/counts/batch-retrieve.
+    stock_count     = {products_table}.stock_count,
     updated_at      = EXCLUDED.updated_at,
     synced_at       = EXCLUDED.synced_at
   RETURNING (xmax = 0) AS inserted
@@ -915,23 +917,19 @@ def _sync_one_page(
         pass
 
     # Inventory counts refresh for recent variations
-    variation_ids: List[str] = []
-    try:
-        ids_sql = SELECT_RECENT_VARIATION_IDS_SQL_TEMPLATE.format(products_table=cfg.products_table)
-        with conn.cursor() as cur:
-            cur.execute(ids_sql)
-            variation_ids = [r[0] for r in (cur.fetchall() or []) if r and r[0]]
-    except Exception:
-        variation_ids = []
+    variation_ids = _extract_variation_ids_from_items(objects)
+    if not variation_ids:
+        # Fallback: mirror original blueprint behavior (last 1000 rows by synced_at)
+        try:
+            ids_sql = SELECT_RECENT_VARIATION_IDS_SQL_TEMPLATE.format(products_table=cfg.products_table)
+            with conn.cursor() as cur:
+                cur.execute(ids_sql)
+                variation_ids = [r[0] for r in (cur.fetchall() or []) if r and r[0]]
+        except Exception:
+            variation_ids = []
 
     if variation_ids:
-        inv_payload = sq.batch_inventory_counts(catalog_object_ids=variation_ids)
-        counts = inv_payload.get("counts") or []
-
-        inv_sql = UPDATE_INVENTORY_SQL_TEMPLATE.format(products_table=cfg.products_table)
-        with conn.cursor() as cur:
-            cur.execute(inv_sql, (json.dumps(counts), cfg.square_location_id))
-            inventory_updated = cur.rowcount or 0
+        inventory_updated = _refresh_inventory_counts_for_variations(cfg, sq, conn, variation_ids)
 
     # Images refresh from related_objects
     if related_objects:
@@ -1023,24 +1021,21 @@ def _apply_catalog_batch(
     except Exception:
         pass
 
-    # Inventory refresh for recent variations (same as blueprint: last 1000 by synced_at)
-    variation_ids: List[str] = []
-    try:
-        ids_sql = SELECT_RECENT_VARIATION_IDS_SQL_TEMPLATE.format(products_table=cfg.products_table)
-        with conn.cursor() as cur:
-            cur.execute(ids_sql)
-            variation_ids = [r[0] for r in (cur.fetchall() or []) if r and r[0]]
-    except Exception:
-        variation_ids = []
+    # Inventory refresh for variations included in this batch.
+    # This keeps stock_count accurate across the full catalog sync (not just last 1000 rows).
+    variation_ids = _extract_variation_ids_from_items(objects)
+    if not variation_ids:
+        # Fallback: mirror original blueprint behavior (last 1000 rows by synced_at)
+        try:
+            ids_sql = SELECT_RECENT_VARIATION_IDS_SQL_TEMPLATE.format(products_table=cfg.products_table)
+            with conn.cursor() as cur:
+                cur.execute(ids_sql)
+                variation_ids = [r[0] for r in (cur.fetchall() or []) if r and r[0]]
+        except Exception:
+            variation_ids = []
 
     if variation_ids:
-        inv_payload = sq.batch_inventory_counts(catalog_object_ids=variation_ids)
-        counts = inv_payload.get("counts") or []
-
-        inv_sql = UPDATE_INVENTORY_SQL_TEMPLATE.format(products_table=cfg.products_table)
-        with conn.cursor() as cur:
-            cur.execute(inv_sql, (json.dumps(counts), cfg.square_location_id))
-            inventory_updated = cur.rowcount or 0
+        inventory_updated = _refresh_inventory_counts_for_variations(cfg, sq, conn, variation_ids)
 
     # Images refresh from related_objects
     if related_objects:
@@ -1099,6 +1094,94 @@ def _sync_categories(cfg: Config, sq: SquareClient, conn: Any) -> int:
             break
 
     return processed
+
+
+def _extract_variation_ids_from_items(objects: List[dict]) -> List[str]:
+    """
+    Extract ITEM_VARIATION ids from Square catalog ITEM objects.
+    Returns de-duplicated ids in stable order.
+    """
+    out: List[str] = []
+    seen = set()
+    for obj in objects or []:
+        try:
+            if (obj or {}).get("type") != "ITEM":
+                continue
+            item_data = (obj or {}).get("item_data") or {}
+            variations = item_data.get("variations") or []
+            for v in variations:
+                if not isinstance(v, dict):
+                    continue
+                if v.get("type") != "ITEM_VARIATION":
+                    continue
+                vid = v.get("id")
+                if not isinstance(vid, str) or not vid.strip():
+                    continue
+                if vid in seen:
+                    continue
+                seen.add(vid)
+                out.append(vid)
+        except Exception:
+            continue
+    return out
+
+
+def _refresh_inventory_counts_for_variations(cfg: Config, sq: SquareClient, conn: Any, variation_ids: List[str]) -> int:
+    """
+    Refresh stock_count for the given Square variation ids.
+    Uses IN_STOCK counts; ids not present in the response are treated as 0 in-stock.
+    """
+    if cfg.dry_run:
+        return 0
+
+    if not variation_ids:
+        return 0
+
+    inv_sql = UPDATE_INVENTORY_SQL_TEMPLATE.format(products_table=cfg.products_table)
+    total_updated = 0
+
+    # Square supports up to 1000 catalog_object_ids per request.
+    CHUNK = 1000
+    for i in range(0, len(variation_ids), CHUNK):
+        chunk = variation_ids[i : i + CHUNK]
+        inv_payload = sq.batch_inventory_counts(catalog_object_ids=chunk)
+        counts = inv_payload.get("counts") or []
+
+        # Build a payload that explicitly includes all requested ids (missing => 0).
+        qty_by_id: Dict[str, int] = {}
+        calc_by_id: Dict[str, Optional[str]] = {}
+        for c in counts:
+            if not isinstance(c, dict):
+                continue
+            vid = c.get("catalog_object_id")
+            if not isinstance(vid, str) or not vid.strip():
+                continue
+            qraw = c.get("quantity")
+            try:
+                qty = int(qraw) if qraw is not None and str(qraw).strip() != "" else 0
+            except Exception:
+                qty = 0
+            qty_by_id[vid] = max(0, qty)
+            calc = c.get("calculated_at")
+            calc_by_id[vid] = calc if isinstance(calc, str) and calc.strip() else None
+
+        expanded: List[dict] = []
+        for vid in chunk:
+            expanded.append(
+                {
+                    "catalog_object_type": "ITEM_VARIATION",
+                    "catalog_object_id": vid,
+                    "location_id": cfg.square_location_id,
+                    "quantity": str(qty_by_id.get(vid, 0)),
+                    "calculated_at": calc_by_id.get(vid),
+                }
+            )
+
+        with conn.cursor() as cur:
+            cur.execute(inv_sql, (json.dumps(expanded), cfg.square_location_id))
+            total_updated += cur.rowcount or 0
+
+    return total_updated
 
 
 def main(argv: Optional[List[str]] = None) -> int:
