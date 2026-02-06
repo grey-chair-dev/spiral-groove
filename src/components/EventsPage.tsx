@@ -5,15 +5,6 @@ import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { Mic2, Calendar, Mail, MapPin, Clock } from 'lucide-react';
 
-const EVENT_IMG_FALLBACK =
-  'data:image/svg+xml;charset=utf-8,' +
-  encodeURIComponent(`<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
-  <rect width="600" height="600" fill="#F3F4F6"/>
-  <rect x="40" y="40" width="520" height="520" fill="none" stroke="#111827" stroke-width="6"/>
-  <text x="300" y="315" text-anchor="middle" font-family="ui-sans-serif, system-ui" font-size="22" fill="#111827">Event</text>
-</svg>`)
-
 interface EventsPageProps {
   viewMode: ViewMode;
   onRSVP: (event: Event) => void;
@@ -248,27 +239,6 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
 
                         {/* Main Ticket Content */}
                         <div className="flex-1 flex flex-col md:flex-row gap-6 p-6">
-                            {/* Image */}
-                            {event.imageUrl ? (
-                              <div className={`w-full md:w-48 h-48 md:h-auto flex-shrink-0 overflow-hidden relative
-                                  ${isRetro ? 'border-2 border-brand-black grayscale group-hover:grayscale-0 transition-all' : 'rounded-lg'}
-                              `}>
-                                  <img
-                                    src={event.imageUrl}
-                                    alt={event.title}
-                                    className="w-full h-full object-cover"
-                                    loading="lazy"
-                                    referrerPolicy="no-referrer"
-                                    onError={(e) => {
-                                      const img = e.currentTarget
-                                      if (img.dataset.fallbackApplied === '1') return
-                                      img.dataset.fallbackApplied = '1'
-                                      img.src = EVENT_IMG_FALLBACK
-                                    }}
-                                  />
-                              </div>
-                            ) : null}
-
                             {/* Info */}
                             <div className="flex-1 flex flex-col justify-center">
                                 <div className="mb-2">
@@ -473,24 +443,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
              <h2 className={`font-display text-3xl mb-8 ${isRetro ? 'text-brand-black' : 'text-black'}`}>Archive</h2>
              <div className="space-y-6">
                 {archivePageItems.map(event => (
-                    <div key={event.id} className="flex gap-4 group opacity-70 hover:opacity-100 transition-opacity">
-                        {event.imageUrl ? (
-                          <div className={`w-24 h-24 flex-shrink-0 overflow-hidden ${isRetro ? 'border-2 border-brand-black grayscale' : 'rounded-lg'}`}>
-                              <img
-                                src={event.imageUrl}
-                                alt={event.title}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                                onError={(e) => {
-                                  const img = e.currentTarget
-                                  if (img.dataset.fallbackApplied === '1') return
-                                  img.dataset.fallbackApplied = '1'
-                                  img.src = EVENT_IMG_FALLBACK
-                                }}
-                              />
-                          </div>
-                        ) : null}
+                    <div key={event.id} className="group opacity-70 hover:opacity-100 transition-opacity">
                         <div className="flex-1">
                             <span className="text-xs font-bold uppercase tracking-widest text-gray-500">{event.date}</span>
                             <div className="flex items-start justify-between gap-3">

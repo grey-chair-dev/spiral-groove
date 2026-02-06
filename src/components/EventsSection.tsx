@@ -5,15 +5,6 @@ import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { MapPin, ArrowRight } from 'lucide-react';
 
-const EVENT_IMG_FALLBACK =
-  'data:image/svg+xml;charset=utf-8,' +
-  encodeURIComponent(`<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
-  <rect width="300" height="300" fill="#F3F4F6"/>
-  <rect x="18" y="18" width="264" height="264" fill="none" stroke="#111827" stroke-width="4"/>
-  <text x="150" y="158" text-anchor="middle" font-family="ui-sans-serif, system-ui" font-size="14" fill="#111827">Event</text>
-</svg>`)
-
 interface EventsSectionProps {
   events: Event[];
   viewMode: ViewMode;
@@ -77,27 +68,6 @@ export const EventsSection: React.FC<EventsSectionProps> = ({ events, viewMode, 
                      <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">{event.description}</p>
                    </div>
 
-                   {event.imageUrl ? (
-                     <div
-                       className={`w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 overflow-hidden
-                         ${viewMode === 'retro' ? 'border-2 border-brand-black grayscale group-hover:grayscale-0 transition-all' : 'rounded-xl border border-gray-100'}
-                       `}
-                     >
-                       <img
-                         src={event.imageUrl}
-                         alt={event.title}
-                         className="w-full h-full object-cover"
-                         loading="lazy"
-                         referrerPolicy="no-referrer"
-                         onError={(e) => {
-                           const img = e.currentTarget
-                           if (img.dataset.fallbackApplied === '1') return
-                           img.dataset.fallbackApplied = '1'
-                           img.src = EVENT_IMG_FALLBACK
-                         }}
-                       />
-                     </div>
-                   ) : null}
                  </div>
                  <div className="mb-6" />
                  
