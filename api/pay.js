@@ -480,6 +480,7 @@ export async function webHandler(request) {
     // 1. Create Order
     let orderId = null
     let amountMoney = null
+    let squareOrderForTotals = null
     
     try {
       // Construct canonical Square line items using server-side prices + variation IDs
@@ -506,6 +507,12 @@ export async function webHandler(request) {
         order: {
           locationId: locationId,
           lineItems: lineItems,
+          // Ensure Square computes taxes/discounts based on catalog + location settings.
+          // Without this, Square may not apply configured taxes automatically.
+          pricingOptions: {
+            autoApplyTaxes: true,
+            autoApplyDiscounts: true,
+          },
         },
       }
 
@@ -537,6 +544,7 @@ export async function webHandler(request) {
 
       if (orderResult.order) {
         orderId = orderResult.order.id
+        squareOrderForTotals = orderResult.order
         amountMoney = orderResult.order.totalMoney
         console.log('[Payment API] Order created:', {
           orderId,
@@ -611,6 +619,14 @@ export async function webHandler(request) {
         // can render without depending on other tables/joins.
         const pickupDetailsPayload = {
           ...(pickupForm || {}),
+          // Persist Square-calculated totals so receipts/reporting use the actual charged/taxed values.
+          totals: {
+            totalCents: squareOrderForTotals?.totalMoney?.amount != null ? Number(squareOrderForTotals.totalMoney.amount) : null,
+            taxCents: squareOrderForTotals?.totalTaxMoney?.amount != null ? Number(squareOrderForTotals.totalTaxMoney.amount) : null,
+            discountCents: squareOrderForTotals?.totalDiscountMoney?.amount != null ? Number(squareOrderForTotals.totalDiscountMoney.amount) : null,
+            serviceChargeCents: squareOrderForTotals?.totalServiceChargeMoney?.amount != null ? Number(squareOrderForTotals.totalServiceChargeMoney.amount) : null,
+            currency: squareOrderForTotals?.totalMoney?.currency || 'USD',
+          },
           items: Array.isArray(canonicalCartItems)
             ? canonicalCartItems.map((it) => ({
                 id: it?.id ?? null,
@@ -737,6 +753,12 @@ export async function webHandler(request) {
             amountMoney: {
               amount: payment.amountMoney?.amount,
               currency: payment.amountMoney?.currency
+            },
+            // Expose Square-calculated breakdown so frontend confirmation/receipt can show the real tax.
+            totals: {
+              totalCents: squareOrderForTotals?.totalMoney?.amount != null ? Number(squareOrderForTotals.totalMoney.amount) : null,
+              taxCents: squareOrderForTotals?.totalTaxMoney?.amount != null ? Number(squareOrderForTotals.totalTaxMoney.amount) : null,
+              currency: squareOrderForTotals?.totalMoney?.currency || payment.amountMoney?.currency || 'USD',
             },
             // Return our generated order number so frontend can use it
             localOrderNumber: orderNumber

@@ -18,58 +18,6 @@ let lastFetchedAt = 0
 const CACHE_TTL_MS = 30_000
 const STALE_TTL_MS = 10 * 60 * 1000
 
-// Best-effort schema guard so prod doesn't 500 if the events table (or columns) are missing.
-let didEnsureEventsSchema = false
-
-async function ensureEventsSchema() {
-  if (didEnsureEventsSchema) return
-  try {
-    await query(`
-      CREATE TABLE IF NOT EXISTS events (
-        id BIGSERIAL PRIMARY KEY,
-        is_event BOOLEAN DEFAULT TRUE,
-        event_type TEXT,
-        event_name TEXT,
-        artist TEXT,
-        venue TEXT,
-        event_date DATE,
-        start_time TIME,
-        end_time TIME,
-        event_description TEXT,
-        confidence NUMERIC,
-        event_image_url TEXT,
-        event_permalink TEXT,
-        fingerprint TEXT,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
-
-    // Add columns idempotently for existing tables.
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_event BOOLEAN DEFAULT TRUE`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_type TEXT`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_name TEXT`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS artist TEXT`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS venue TEXT`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_date DATE`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS start_time TIME`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TIME`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_description TEXT`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS confidence NUMERIC`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_image_url TEXT`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_permalink TEXT`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS fingerprint TEXT`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`)
-    await query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`)
-
-    didEnsureEventsSchema = true
-  } catch (e) {
-    // Don't fail the request if migrations are blocked; we still handle missing table below.
-    console.warn('[Events API] Unable to ensure events schema:', e?.message || e)
-    didEnsureEventsSchema = true
-  }
-}
-
 /**
  * @param {Request} request
  * @returns {Promise<Response>}
@@ -103,9 +51,6 @@ export async function webHandler(request) {
       (url.searchParams.get('includePast') || '') === '1'
     const pastDaysRaw = url.searchParams.get('pastDays')
     const pastDays = pastDaysRaw != null ? Math.max(1, Math.min(3650, Number(pastDaysRaw))) : 365
-
-    // Best-effort schema check/migration
-    await ensureEventsSchema()
 
     // Serve hot cache if it's fresh
     if (Array.isArray(lastEvents) && Date.now() - lastFetchedAt < CACHE_TTL_MS) {

@@ -38,24 +38,34 @@ const PRODUCTS_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 type ProductsCachePayload = {
   ts: number
   products: Product[]
+  etag?: string
 }
 
-function readCachedProducts(): Product[] | null {
+export type ProductsPage = {
+  products: Product[]
+  nextCursor?: string | null
+}
+
+function readCachedProductsPayload(): ProductsCachePayload | null {
   try {
     const raw = localStorage.getItem(PRODUCTS_CACHE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as ProductsCachePayload
     if (!parsed?.ts || !Array.isArray(parsed.products)) return null
     if (Date.now() - parsed.ts > PRODUCTS_CACHE_MAX_AGE_MS) return null
-    return parsed.products
+    return parsed
   } catch {
     return null
   }
 }
 
-function writeCachedProducts(products: Product[]) {
+function readCachedProducts(): Product[] | null {
+  return readCachedProductsPayload()?.products ?? null
+}
+
+function writeCachedProducts(products: Product[], etag?: string | null) {
   try {
-    const payload: ProductsCachePayload = { ts: Date.now(), products }
+    const payload: ProductsCachePayload = { ts: Date.now(), products, ...(etag ? { etag } : {}) }
     localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(payload))
   } catch {
     // ignore (private mode / quota)
@@ -94,11 +104,22 @@ export async function fetchProducts(appId?: string): Promise<Product[]> {
   try {
     // @ts-ignore - Vite environment variables
     const apiUrl = import.meta.env.VITE_PRODUCTS_API_URL || '/api/products'
+    const cachedPayload = readCachedProductsPayload()
+    const cachedEtag = cachedPayload?.etag
     const response = await fetchWithRetry(
       apiUrl,
-      { headers: { accept: 'application/json' } },
+      { headers: { accept: 'application/json', ...(cachedEtag ? { 'if-none-match': cachedEtag } : {}) } },
       3
     )
+
+    // Fast path: not modified, use local cache
+    if (response.status === 304) {
+      const cachedProducts = cachedPayload?.products
+      if (cachedProducts && cachedProducts.length > 0) {
+        console.log('[Products] 304 Not Modified; using cached products', { count: cachedProducts.length })
+        return sanitizeBatch(cachedProducts)
+      }
+    }
 
     // Get response text first to handle empty responses
     const responseText = await response.text()
@@ -159,7 +180,8 @@ export async function fetchProducts(appId?: string): Promise<Product[]> {
     
     const sanitized = sanitizeBatch(products)
     if (sanitized.length > 0) {
-      writeCachedProducts(sanitized)
+      const etag = response.headers.get('etag')
+      writeCachedProducts(sanitized, etag)
     }
     return sanitized
   } catch (error) {
@@ -171,6 +193,82 @@ export async function fetchProducts(appId?: string): Promise<Product[]> {
     }
     // No cache available
     return []
+  }
+}
+
+function buildApiUrl(raw: string, params: Record<string, string | null | undefined>): string {
+  // Supports either absolute URLs or relative paths.
+  const url = new URL(raw, typeof window !== 'undefined' ? window.location.origin : 'https://local.test')
+  for (const [k, v] of Object.entries(params)) {
+    if (v == null || v === '') url.searchParams.delete(k)
+    else url.searchParams.set(k, v)
+  }
+  return url.toString()
+}
+
+/**
+ * Fetch one page from /api/products using keyset pagination.
+ */
+export async function fetchProductsPage(args?: { limit?: number; cursor?: string | null }): Promise<ProductsPage> {
+  const limit = args?.limit
+  const cursor = args?.cursor
+  try {
+    // @ts-ignore - Vite environment variables
+    const apiUrl = import.meta.env.VITE_PRODUCTS_API_URL || '/api/products'
+    const url = buildApiUrl(apiUrl, {
+      limit: typeof limit === 'number' ? String(limit) : null,
+      cursor: cursor || null,
+    })
+
+    const response = await fetchWithRetry(url, { headers: { accept: 'application/json' } }, 3)
+    const responseText = await response.text()
+
+    if (!response.ok) {
+      let errorMsg = `Failed to fetch products: ${response.status} ${response.statusText}`
+      if (responseText && responseText.trim()) {
+        try {
+          const data = JSON.parse(responseText)
+          errorMsg = data.error || data.message || errorMsg
+        } catch {
+          errorMsg = responseText || errorMsg
+        }
+      }
+      throw new Error(errorMsg)
+    }
+
+    if (!responseText || !responseText.trim()) {
+      throw new Error('Empty response from API')
+    }
+
+    let data: any
+    try {
+      data = JSON.parse(responseText)
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e)
+      throw new Error(`Invalid JSON response from API: ${errorMsg}`)
+    }
+
+    const productsRaw = Array.isArray(data) ? data : Array.isArray(data?.products) ? data.products : []
+    const nextCursor = typeof data?.nextCursor === 'string' ? data.nextCursor : null
+    const sanitized = sanitizeBatch(productsRaw)
+
+    // Best-effort local cache merge so subsequent loads can start from cached data.
+    if (sanitized.length > 0) {
+      const existing = readCachedProducts() || []
+      const seen = new Set(existing.map(p => p.id))
+      const merged = existing.concat(sanitized.filter(p => !seen.has(p.id)))
+      writeCachedProducts(merged)
+    }
+
+    return { products: sanitized, nextCursor }
+  } catch (error) {
+    console.error('[Products] Failed to fetch products page:', error)
+    // If this is the first page and we have a cache, return it.
+    if (!cursor) {
+      const cached = readCachedProducts()
+      if (cached && cached.length > 0) return { products: cached, nextCursor: null }
+    }
+    return { products: [], nextCursor: null }
   }
 }
 

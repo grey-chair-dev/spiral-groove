@@ -28,4 +28,7 @@ GA4_REALTIME_VERIFICATION.md
 ANALYTICS_TESTING.md
 REMAINING_TASKS.md
 .env*.local
+QA_TEST_RESULTS.md__pycache__/
+*.pyc
+scripts/catalog_sync_state.json
 QA_TEST_RESULTS.md

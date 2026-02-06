@@ -148,7 +148,7 @@ export async function processPayment(
     cartItems?: any[]
     orderNumber?: string
   }
-): Promise<{ success: boolean; orderId?: string; error?: string }> {
+): Promise<{ success: boolean; orderId?: string; error?: string; totals?: { totalCents?: number|null; taxCents?: number|null; currency?: string } }> {
   try {
     // Use the secure payment endpoint (per API-109)
     // Vite only exposes variables with VITE_ prefix to frontend
@@ -189,6 +189,7 @@ export async function processPayment(
     return {
       success: true,
       orderId,
+      totals: result?.payment?.totals,
     }
   } catch (error: any) {
     console.error('[Square] Payment processing error:', error)

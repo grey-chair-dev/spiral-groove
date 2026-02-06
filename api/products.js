@@ -22,12 +22,18 @@ import { withWebHandler } from './_vercelNodeAdapter.js'
 // - STALE: if Neon errors, serve last-known-good cache for a longer window
 let lastProducts = null
 let lastFetchedAt = 0
+let lastEtag = null
 const CACHE_TTL_MS = 30_000
 const STALE_TTL_MS = 10 * 60 * 1000
+const EDGE_CACHE_CONTROL = 'public, s-maxage=60, stale-while-revalidate=600'
+const MAX_LIMIT = 5000
+// Version check for ETag. We keep this cheap and only run it if the client sends If-None-Match.
+// albums_cache is rebuilt in one shot and uses a uniform synced_at per rebuild.
+const VERSION_SQL = `SELECT synced_at FROM albums_cache LIMIT 1`
 
 /**
- * Maps a database row from products to the Product type
- * @param {Object} row - Database row from products table
+ * Maps a database row from albums_cache to the Product type
+ * @param {Object} row - Database row from albums_cache table
  * @returns {Object} Product object
  */
 function mapRowToProduct(row) {
@@ -43,7 +49,7 @@ function mapRowToProduct(row) {
     categories: Array.isArray(row.all_categories) ? row.all_categories : [],
     stockCount: Number(row.stock_count || 0),
     imageUrl: String(row.image_url || ''),
-    // `products` doesn't track review/sales metadata; keep API shape stable.
+    // `albums_cache` doesn't track review/sales metadata; keep API shape stable.
     rating: 0,
     reviewCount: 0,
     soldCount: 0,
@@ -54,6 +60,33 @@ function mapRowToProduct(row) {
   }
 }
 
+function parseLimit(raw) {
+  if (raw == null || raw === '') return null
+  const n = Number.parseInt(String(raw), 10)
+  if (!Number.isFinite(n) || n <= 0) return null
+  return Math.min(MAX_LIMIT, n)
+}
+
+function decodeCursor(raw) {
+  if (!raw) return null
+  try {
+    const txt = Buffer.from(String(raw), 'base64url').toString('utf8')
+    const parsed = JSON.parse(txt)
+    if (!parsed || typeof parsed !== 'object') return null
+    const createdAt = typeof parsed.createdAt === 'string' ? parsed.createdAt : null
+    const id = typeof parsed.id === 'string' ? parsed.id : null
+    if (!createdAt || !id) return null
+    return { createdAt, id }
+  } catch {
+    return null
+  }
+}
+
+function encodeCursor({ createdAt, id }) {
+  const txt = JSON.stringify({ createdAt, id })
+  return Buffer.from(txt, 'utf8').toString('base64url')
+}
+
 /**
  * @param {Request} request
  * @returns {Promise<Response>}
@@ -61,6 +94,13 @@ function mapRowToProduct(row) {
 export async function webHandler(request) {
   const startTime = Date.now()
   const requestId = crypto.randomUUID()
+  const url = new URL(request.url)
+  const limit = parseLimit(url.searchParams.get('limit'))
+  const cursor = decodeCursor(url.searchParams.get('cursor'))
+  const isPagedRequest = Boolean(limit || cursor)
+  const effectiveLimit = cursor && !limit ? 500 : limit
+  const ifNoneMatch = request.headers.get('if-none-match') || ''
+  let computedEtag = null
   
   // Only allow GET requests
   if (request.method !== 'GET') {
@@ -88,8 +128,29 @@ export async function webHandler(request) {
   }
 
   try {
-    // Serve hot cache if it's fresh
-    if (Array.isArray(lastProducts) && Date.now() - lastFetchedAt < CACHE_TTL_MS) {
+    // If the client sent If-None-Match, do a cheap version check and return 304 when possible.
+    // Only applies to the default "full catalog" request.
+    if (!isPagedRequest && ifNoneMatch) {
+      const v = await query(VERSION_SQL)
+      const maxSyncedAt = v.rows?.[0]?.synced_at ? String(v.rows[0].synced_at) : ''
+      const etag = `"albums_cache:${maxSyncedAt}"`
+      computedEtag = etag
+
+      if (ifNoneMatch && ifNoneMatch === etag) {
+        return new Response(null, {
+          status: 304,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': EDGE_CACHE_CONTROL,
+            ETag: etag,
+            'X-Products-Not-Modified': '1',
+          },
+        })
+      }
+    }
+
+    // Serve hot cache if it's fresh (only for the default "full catalog" request)
+    if (!isPagedRequest && Array.isArray(lastProducts) && Date.now() - lastFetchedAt < CACHE_TTL_MS) {
       return new Response(
         JSON.stringify({ products: lastProducts }),
         {
@@ -97,7 +158,8 @@ export async function webHandler(request) {
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-            'Cache-Control': 'no-store',
+            'Cache-Control': EDGE_CACHE_CONTROL,
+            ...(lastEtag ? { ETag: lastEtag } : {}),
             'X-Products-Cache': 'HIT',
           }
         }
@@ -109,11 +171,13 @@ export async function webHandler(request) {
       throw new Error('SGR_DATABASE_URL (preferred), SPR_DATABASE_URL (legacy), or DATABASE_URL environment variable is not set')
     }
 
-    // Full catalog from `products` table.
-    // Keep the API response stable: `id` remains "variation-<square_variation_id>".
+    // Full catalog from `albums_cache` table.
+    // Prefer selecting `id` directly (already "variation-<square_variation_id>") so we can use
+    // the existing idx_albums_cache_created_desc (created_at DESC, id ASC) without extra sorting.
+    const pageLimit = effectiveLimit ? effectiveLimit + 1 : null // +1 to detect next page
     const result = await query(
       `SELECT
-        ('variation-' || square_variation_id) AS id,
+        id,
         name,
         description,
         price_dollars,
@@ -121,30 +185,58 @@ export async function webHandler(request) {
         all_categories,
         stock_count,
         image_url,
-        created_at
-      FROM products
-      ORDER BY created_at DESC NULLS LAST, square_variation_id ASC`
+        created_at,
+        synced_at
+      FROM albums_cache
+      WHERE
+        ($1::timestamptz IS NULL)
+        OR (created_at < $1::timestamptz)
+        OR (created_at = $1::timestamptz AND id > $2::text)
+      ORDER BY created_at DESC NULLS LAST, id ASC
+      ${pageLimit ? 'LIMIT $3::int' : ''}`,
+      pageLimit
+        ? [cursor?.createdAt ?? null, cursor?.id ?? '', pageLimit]
+        : [cursor?.createdAt ?? null, cursor?.id ?? '']
     )
 
-    const products = result.rows.map(mapRowToProduct)
-    console.log('[Products API] Fetched products from products table', { count: products.length })
+    let rows = result.rows || []
+    let nextCursor = null
+    if (pageLimit && effectiveLimit && rows.length > effectiveLimit) {
+      // drop the lookahead row and emit cursor for the next page
+      rows = rows.slice(0, effectiveLimit)
+      const last = rows[rows.length - 1]
+      if (last?.created_at && last?.id) {
+        nextCursor = encodeCursor({ createdAt: String(last.created_at), id: String(last.id) })
+      }
+    }
 
-    lastProducts = products
-    lastFetchedAt = Date.now()
+    const products = rows.map(mapRowToProduct)
+    console.log('[Products API] Fetched products from albums_cache table', { count: products.length })
 
-    return new Response(JSON.stringify({ products }), {
+    // Only cache the default full-catalog response
+    if (!isPagedRequest) {
+      lastProducts = products
+      lastFetchedAt = Date.now()
+      const syncedAt = rows?.[0]?.synced_at ? String(rows[0].synced_at) : ''
+      lastEtag = `"albums_cache:${syncedAt}"`
+      computedEtag = lastEtag
+    }
+
+    return new Response(JSON.stringify(nextCursor ? { products, nextCursor } : { products }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'X-Products-Source': 'products',
+        'Cache-Control': EDGE_CACHE_CONTROL,
+        ...(computedEtag ? { ETag: computedEtag } : {}),
+        'X-Products-Source': 'albums_cache',
       },
     })
   } catch (error) {
     // If Neon is temporarily down but we have a recent cache, serve it instead of hard failing.
-    if (Array.isArray(lastProducts) && Date.now() - lastFetchedAt < STALE_TTL_MS) {
+    if (!isPagedRequest && Array.isArray(lastProducts) && Date.now() - lastFetchedAt < STALE_TTL_MS) {
       console.warn('[Products API] Neon error; serving STALE cache', { ageMs: Date.now() - lastFetchedAt })
       return new Response(
         JSON.stringify({ products: lastProducts, stale: true }),
@@ -153,7 +245,7 @@ export async function webHandler(request) {
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-            'Cache-Control': 'no-store',
+            'Cache-Control': EDGE_CACHE_CONTROL,
             'X-Products-Cache': 'STALE',
           }
         }

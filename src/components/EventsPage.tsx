@@ -5,6 +5,25 @@ import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { Mic2, Calendar, Mail, MapPin, Clock } from 'lucide-react';
 
+const EVENT_IMG_FALLBACK =
+  'data:image/svg+xml;charset=utf-8,' +
+  encodeURIComponent(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <rect width="600" height="600" fill="#F3F4F6"/>
+  <rect x="40" y="40" width="520" height="520" fill="none" stroke="#111827" stroke-width="6"/>
+  <text x="300" y="315" text-anchor="middle" font-family="ui-sans-serif, system-ui" font-size="22" fill="#111827">Event</text>
+</svg>`)
+
+function shouldTryProxy(src: string): boolean {
+  try {
+    const u = new URL(src)
+    const host = (u.hostname || '').toLowerCase()
+    return host.includes('cdninstagram.com') || host.endsWith('.cdninstagram.com') || host.endsWith('.fbcdn.net')
+  } catch {
+    return false
+  }
+}
+
 interface EventsPageProps {
   viewMode: ViewMode;
   onRSVP: (event: Event) => void;
@@ -250,6 +269,19 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
                                     alt={event.title}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => {
+                                      const img = e.currentTarget
+                                      const currentSrc = img.currentSrc || img.src || ''
+                                      if (img.dataset.proxyTried !== '1' && shouldTryProxy(currentSrc)) {
+                                        img.dataset.proxyTried = '1'
+                                        img.src = `/api/image-proxy?url=${encodeURIComponent(currentSrc)}`
+                                        return
+                                      }
+                                      if (img.dataset.fallbackApplied === '1') return
+                                      img.dataset.fallbackApplied = '1'
+                                      img.src = EVENT_IMG_FALLBACK
+                                    }}
                                   />
                               </div>
                             ) : null}
@@ -466,6 +498,19 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
                                 alt={event.title}
                                 className="w-full h-full object-cover"
                                 loading="lazy"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  const img = e.currentTarget
+                                  const currentSrc = img.currentSrc || img.src || ''
+                                  if (img.dataset.proxyTried !== '1' && shouldTryProxy(currentSrc)) {
+                                    img.dataset.proxyTried = '1'
+                                    img.src = `/api/image-proxy?url=${encodeURIComponent(currentSrc)}`
+                                    return
+                                  }
+                                  if (img.dataset.fallbackApplied === '1') return
+                                  img.dataset.fallbackApplied = '1'
+                                  img.src = EVENT_IMG_FALLBACK
+                                }}
                               />
                           </div>
                         ) : null}

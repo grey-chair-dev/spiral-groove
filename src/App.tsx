@@ -211,6 +211,20 @@ function App() {
     }
   };
 
+  // On hard refresh, browsers often restore scroll position. For this app we want refresh to start at top.
+  useEffect(() => {
+    try {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
+    } catch {
+      // ignore
+    }
+    // Use 'auto' so it doesn't animate during initial load.
+    scrollToTop('auto');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const initialRoute = parseRouteFromLocation({
     pathname: window.location.pathname,
     search: window.location.search,
@@ -664,6 +678,8 @@ function App() {
       try {
         setProductsLoading(true);
         setProductsError(null);
+
+        // Old behavior: fetch the full catalog in one request.
         const apiProducts = await fetchApiProducts();
         
         if (apiProducts.length === 0) {
@@ -1033,20 +1049,36 @@ function App() {
                         <p className="text-gray-500 text-sm mt-2">Please try again in a moment.</p>
                     </div>
                 ) : (() => {
-                    // Filter to only show products added in the last 2 days on home page
-                    // This ensures we only show truly new products, not all products
-                    const twoDaysAgo = new Date();
-                    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-                    
-                    const recentProducts = products.filter(product => {
-                        if (!product.createdAt) return false;
-                        const createdAt = new Date(product.createdAt);
-                        return createdAt >= twoDaysAgo;
-                    });
+                    // Home page "Just Landed":
+                    // - Prefer truly recent products (last 2 days)
+                    // - If fewer than 12, fill remaining slots with most-recent by createdAt (non-duplicates)
+                    const twoDaysAgo = new Date()
+                    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+
+                    const sortedByCreatedDesc = [...products].sort((a, b) => {
+                        const aT = a.createdAt ? new Date(a.createdAt).getTime() : 0
+                        const bT = b.createdAt ? new Date(b.createdAt).getTime() : 0
+                        return bT - aT
+                    })
+
+                    const recentProducts = sortedByCreatedDesc.filter(product => {
+                        if (!product.createdAt) return false
+                        const createdAt = new Date(product.createdAt)
+                        return createdAt >= twoDaysAgo
+                    })
+
+                    const needed = Math.max(0, 12 - recentProducts.length)
+                    const recentIds = new Set(recentProducts.map(p => p.id))
+                    const fillProducts =
+                        needed > 0
+                            ? sortedByCreatedDesc.filter(p => !recentIds.has(p.id)).slice(0, needed)
+                            : []
+
+                    const homeProducts = [...recentProducts, ...fillProducts]
                     
                     return (
                         <ProductGrid 
-                            products={recentProducts} 
+                            products={homeProducts} 
                             onProductClick={handleProductClick}
                             onQuickAdd={addToCart} 
                             viewMode={effectiveViewMode}

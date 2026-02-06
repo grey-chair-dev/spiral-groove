@@ -5,6 +5,25 @@ import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { MapPin, ArrowRight } from 'lucide-react';
 
+const EVENT_IMG_FALLBACK =
+  'data:image/svg+xml;charset=utf-8,' +
+  encodeURIComponent(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <rect width="300" height="300" fill="#F3F4F6"/>
+  <rect x="18" y="18" width="264" height="264" fill="none" stroke="#111827" stroke-width="4"/>
+  <text x="150" y="158" text-anchor="middle" font-family="ui-sans-serif, system-ui" font-size="14" fill="#111827">Event</text>
+</svg>`)
+
+function shouldTryProxy(src: string): boolean {
+  try {
+    const u = new URL(src)
+    const host = (u.hostname || '').toLowerCase()
+    return host.includes('cdninstagram.com') || host.endsWith('.cdninstagram.com') || host.endsWith('.fbcdn.net')
+  } catch {
+    return false
+  }
+}
+
 interface EventsSectionProps {
   events: Event[];
   viewMode: ViewMode;
@@ -79,6 +98,19 @@ export const EventsSection: React.FC<EventsSectionProps> = ({ events, viewMode, 
                          alt={event.title}
                          className="w-full h-full object-cover"
                          loading="lazy"
+                         referrerPolicy="no-referrer"
+                         onError={(e) => {
+                           const img = e.currentTarget
+                           const currentSrc = img.currentSrc || img.src || ''
+                           if (img.dataset.proxyTried !== '1' && shouldTryProxy(currentSrc)) {
+                             img.dataset.proxyTried = '1'
+                             img.src = `/api/image-proxy?url=${encodeURIComponent(currentSrc)}`
+                             return
+                           }
+                           if (img.dataset.fallbackApplied === '1') return
+                           img.dataset.fallbackApplied = '1'
+                           img.src = EVENT_IMG_FALLBACK
+                         }}
                        />
                      </div>
                    ) : null}

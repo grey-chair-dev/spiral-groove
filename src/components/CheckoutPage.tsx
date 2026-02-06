@@ -274,6 +274,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         );
 
         if (result.success) {
+            const squareTotalCents = result?.totals?.totalCents
+            const squareTaxCents = result?.totals?.taxCents
+            const squareTotal = typeof squareTotalCents === 'number' ? (squareTotalCents / 100) : null
+            const squareTax = typeof squareTaxCents === 'number' ? (squareTaxCents / 100) : null
+            const finalTotal = squareTotal != null ? squareTotal : total
+            const finalTax = squareTax != null ? squareTax : tax
+            const finalSubtotal = finalTotal - finalTax
+
             // Optional newsletter signup (non-blocking): use the same backend endpoint as the newsletter form.
             if (newsletterOptIn && email) {
                 fetch('/api/newsletter', {
@@ -295,9 +303,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             onPlaceOrder({
                 ...pickupForm,
                 deliveryMethod: 'pickup',
-                subtotal,
-                tax,
-                total,
+                subtotal: finalSubtotal,
+                tax: finalTax,
+                total: finalTotal,
                 shippingCost: 0,
                 orderNumber: result.orderId // Pass back the real order ID/Number
             });

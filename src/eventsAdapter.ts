@@ -78,10 +78,10 @@ function getSafeImageUrl(url: string | null | undefined): string {
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .trim()
   if (!u) return ''
-  // "Just use the image": return the provided URL directly (no proxy, no fallback).
   // Minimal normalization for protocol-relative URLs.
-  if (u.startsWith('//')) return `https:${u}`
-  return u
+  // Important: return the original URL so the browser can try to load it directly.
+  // We'll fall back to /api/image-proxy in the UI onError handler for hosts that block hotlinking.
+  return u.startsWith('//') ? `https:${u}` : u
 }
 
 export async function fetchEvents(): Promise<Event[]> {

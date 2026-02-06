@@ -3,7 +3,7 @@ import React, { useLayoutEffect, useState, useEffect, useRef, useMemo } from 're
 import { ShoppingCart, Menu, X, Search, ChevronDown } from 'lucide-react';
 import { ViewMode, Page, Product } from '../../types';
 import { ProductCategory, RecordFormat } from '../types/productEnums';
-import { getAvailableGenres, getAvailableVinylFormats } from '../utils/productCategories';
+import { getAvailableAlbumCategories, getAvailableGenres, getAvailableVinylFormats } from '../utils/productCategories';
 
 interface HeaderProps {
   viewMode: ViewMode;
@@ -35,36 +35,56 @@ interface NavItem {
 const getNavItems = (products: Product[] = []): NavItem[] => {
   const availableGenres = getAvailableGenres(products);
   const availableFormats = getAvailableVinylFormats(products);
+  const availableAlbumCategories = getAvailableAlbumCategories(products);
   
   const albumLinks: { label: string; page: 'catalog'; filter: string }[] = [];
+  const isGenreToken = (token: string) => {
+    return (Object.values(ProductCategory) as string[]).includes(token);
+  };
+  const filterForToken = (token: string) => {
+    // Use ProductGrid's combined-filter format so links remain queryable even if filter lists change.
+    // - g=... => genre filter
+    // - f=... => format filter
+    // - c=... => legacy category/token filter
+    return isGenreToken(token) ? `g=${token}` : `c=${token}`;
+  };
   
-  // Add formats that exist
-  if (availableFormats.includes('New Vinyl')) {
-    albumLinks.push({ label: 'New Vinyl (33s)', page: 'catalog', filter: 'New Vinyl' });
-  }
+  // Keep these easy to access at the top of "Shop"
+  const prioritizedAlbumTokens = ['New Vinyl', 'Used Vinyl'];
+  prioritizedAlbumTokens.forEach((token) => {
+    if (availableAlbumCategories.includes(token) && !albumLinks.some((l) => l.label === token)) {
+      albumLinks.push({ label: token, page: 'catalog', filter: filterForToken(token) });
+    }
+  });
+
   if (products.some(p => {
     const category = p.categories?.[0] || '';
     return category === '45' || category.includes('45') || 
            (p.format || '').toLowerCase().includes('7"') || 
            (p.format || '').toLowerCase().includes('45');
   })) {
-    albumLinks.push({ label: '45s / 7"', page: 'catalog', filter: RecordFormat.SEVEN_INCH });
+    albumLinks.push({ label: '45s / 7"', page: 'catalog', filter: `f=${RecordFormat.SEVEN_INCH}` });
   }
-  if (availableFormats.includes('Box Set')) {
-    albumLinks.push({ label: 'Box Sets', page: 'catalog', filter: 'Box Set' });
-  }
-  if (availableFormats.includes('Record Store Day')) {
-    albumLinks.push({ label: 'Record Store Day', page: 'catalog', filter: 'Record Store Day' });
-  }
-  if (availableFormats.includes('Compilations')) {
-    albumLinks.push({ label: 'Compilations', page: 'catalog', filter: 'Compilations' });
+
+  // Album categories (derived from actual catalog categories)
+  availableAlbumCategories
+    .forEach((c) => {
+      // Avoid duplicates with special-case links above (like "45s / 7"").
+      if (!albumLinks.some((l) => l.filter === c || l.label === c)) {
+        albumLinks.push({ label: c, page: 'catalog', filter: filterForToken(c) });
+      }
+    });
+
+  // If nothing matched, fall back to All (keeps dropdown non-empty)
+  if (albumLinks.length === 0) {
+    albumLinks.push({ label: 'All Albums', page: 'catalog', filter: 'All' });
   }
   
   const genreLinks = availableGenres
     .map((genre): { label: string; page: 'catalog'; filter: string } => ({
       label: genre,
       page: 'catalog',
-      filter: genre,
+      filter: `g=${genre}`,
     }))
     .concat([{ label: 'Browse all genres', page: 'catalog', filter: 'All' }]);
   
@@ -76,12 +96,6 @@ const getNavItems = (products: Product[] = []): NavItem[] => {
       filter: 'All',
       hasDropdown: true,
       columns: [
-        {
-          title: '', // Removed "Albums" title
-          links: albumLinks.length > 0 ? albumLinks : [
-            { label: 'All Albums', page: 'catalog', filter: 'All' }
-          ]
-        },
         {
           title: 'By Genre',
           links: genreLinks
@@ -552,7 +566,7 @@ export const Header: React.FC<HeaderProps> = ({
                                `}>
                                   <div className="max-w-[1400px] mx-auto px-8 py-10">
                                      {item.columns ? (
-                                       <div className="grid grid-cols-4 gap-12">
+                                       <div className={item.columns.length <= 1 ? "grid grid-cols-2 gap-12" : "grid grid-cols-4 gap-12"}>
                                           {item.columns.map((col, idx) => (
                                              <div key={idx}>
                                                 {col.title && (
@@ -562,7 +576,7 @@ export const Header: React.FC<HeaderProps> = ({
                                                      {col.title}
                                                   </h4>
                                                 )}
-                                                <ul className="space-y-3">
+                                                <ul className={idx === 0 ? 'grid grid-cols-2 gap-x-10 gap-y-3' : 'space-y-3'}>
                                                    {col.links.map((link) => (
                                                       <li key={link.label}>
                                                          <a 
@@ -690,7 +704,7 @@ export const Header: React.FC<HeaderProps> = ({
                                       <h5 className={`text-xs font-bold uppercase mb-3
                                          ${isRetro ? 'text-brand-orange' : 'text-black'}
                                       `}>{col.title}</h5>
-                                      <ul className="space-y-3">
+                                      <ul className={idx === 0 ? 'grid grid-cols-2 gap-x-6 gap-y-3' : 'space-y-3'}>
                                         {col.links.map(link => (
                                           <li key={link.label}>
                                             <a 

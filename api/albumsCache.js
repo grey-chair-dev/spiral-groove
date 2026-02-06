@@ -82,6 +82,12 @@ export async function ensureAlbumsCacheSchema() {
     ON albums_cache (square_variation_id) 
     WHERE square_variation_id IS NOT NULL
   `)
+
+  // Fast version check for /api/products ETag (MAX(synced_at))
+  await query(`
+    CREATE INDEX IF NOT EXISTS idx_albums_cache_synced_at_desc
+    ON albums_cache (synced_at DESC)
+  `)
 }
 
 /**
@@ -115,10 +121,10 @@ export async function populateAlbumsCache() {
     'Reel To Reel', 'Vinyl Styl', 'ABL'
   ]
   
-  // Calculate one month ago for stock filtering
-  const oneMonthAgo = new Date()
-  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-  const oneMonthAgoISO = oneMonthAgo.toISOString()
+  // Hide brand-new out-of-stock items (created within the last week)
+  const oneWeekAgo = new Date()
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+  const oneWeekAgoISO = oneWeekAgo.toISOString()
   
   console.log('[Albums Cache] Starting population...')
   
@@ -155,7 +161,7 @@ export async function populateAlbumsCache() {
       square_variation_id,
       name,
       description,
-      price_cents,
+      COALESCE(price_cents, 0) AS price_cents,
       category,
       all_categories,
       stock_count,
@@ -183,16 +189,27 @@ export async function populateAlbumsCache() {
       AND (category IS NULL OR category != ALL($2::text[]))
       AND NOT ('DVD' = ANY(all_categories) OR 'DVDs' = ANY(all_categories) OR 'DVD''s' = ANY(all_categories))
       AND NOT ('Videogames' = ANY(all_categories))
-      -- Stock filtering: show products with stock OR recently stocked
+      -- Stock filtering:
+      -- - include all in-stock items
+      -- - include out-of-stock only if NOT brand-new (created_at older than 1 week)
       AND (
         stock_count > 0
-        OR
-        (
-          stock_count = 0 
-          AND created_at >= $3::timestamptz
-        )
+        OR (stock_count = 0 AND created_at < $3::timestamptz)
       )
-  `, [albumCategories, excludeCategories, oneMonthAgoISO])
+  `, [albumCategories, excludeCategories, oneWeekAgoISO])
+
+  // Post-population maintenance:
+  // - REINDEX: ensure btree indexes are rebuilt after large churn (safe to do nightly)
+  // - ANALYZE: refresh planner stats for faster ORDER BY / filters
+  try {
+    await query('REINDEX TABLE albums_cache')
+    await query('ANALYZE albums_cache')
+  } catch (e) {
+    // Best-effort: don't fail the cache build if maintenance statements are unsupported/blocked
+    console.warn('[Albums Cache] Post-population REINDEX/ANALYZE failed (continuing)', {
+      message: e?.message || String(e),
+    })
+  }
   
   const durationMs = Date.now() - startTime
   const albumCount = result.rowCount || 0

@@ -61,6 +61,55 @@ export function getPool() {
 }
 
 /**
+ * Collect query timings for all db queries executed inside `fn`.
+ *
+ * This works by temporarily wrapping the underlying pool.query() method.
+ * It does NOT change behavior of `query()` outside this scope.
+ *
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<{ result: T, timings: Array<{ sql: string, durationMs: number, rowCount?: number|null, ok: boolean, error?: string }> }>}
+ */
+export async function withQueryTimings(fn) {
+  const p = getPool()
+  const original = p.query.bind(p)
+  const timings = []
+
+  /** @type {import('pg').Pool['query']} */
+  async function wrappedQuery(text, params) {
+    const start = Date.now()
+    try {
+      const res = await original(text, params)
+      const durationMs = Date.now() - start
+      timings.push({
+        sql: String(text || '').substring(0, 500),
+        durationMs,
+        rowCount: typeof res?.rowCount === 'number' ? res.rowCount : null,
+        ok: true,
+      })
+      return res
+    } catch (e) {
+      const durationMs = Date.now() - start
+      timings.push({
+        sql: String(text || '').substring(0, 500),
+        durationMs,
+        ok: false,
+        error: e?.message || String(e),
+      })
+      throw e
+    }
+  }
+
+  try {
+    p.query = wrappedQuery
+    const result = await fn()
+    return { result, timings }
+  } finally {
+    p.query = original
+  }
+}
+
+/**
  * Execute a query with error handling
  * @param {string} text - SQL query text
  * @param {any[]} params - Query parameters

@@ -36,7 +36,7 @@ async function validateStaffPicks() {
         id,
         square_variation_id,
         name
-      FROM products_cache
+      FROM albums_cache
       WHERE square_variation_id = ANY($1::text[])
     `, [variationIds])
 
