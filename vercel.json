@@ -3,7 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "redirects": [
-    { "source": "/favicon.ico", "destination": "/logo-black.png", "permanent": true }
+    { "source": "/favicon.ico", "destination": "/favicon.svg", "permanent": true }
   ],
   "crons": [
     {

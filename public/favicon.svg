@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Spiral Groove Records">
+  <defs>
+    <radialGradient id="vinyl" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="55%" stop-color="#0f0f10"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <radialGradient id="label" cx="40%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#00C2CB"/>
+      <stop offset="100%" stop-color="#0B7C84"/>
+    </radialGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="35%" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer vinyl -->
+  <circle cx="64" cy="64" r="58" fill="url(#vinyl)"/>
+
+  <!-- Grooves -->
+  <g fill="none" stroke="#2a2a2b" stroke-width="2" opacity="0.55">
+    <circle cx="64" cy="64" r="50"/>
+    <circle cx="64" cy="64" r="44"/>
+    <circle cx="64" cy="64" r="38"/>
+    <circle cx="64" cy="64" r="32"/>
+  </g>
+
+  <!-- Center label -->
+  <circle cx="64" cy="64" r="20" fill="url(#label)" stroke="#231F20" stroke-width="3"/>
+
+  <!-- Center hole -->
+  <circle cx="64" cy="64" r="4.5" fill="#0b0b0c"/>
+
+  <!-- Little highlight -->
+  <path d="M22 44 C 35 22, 68 16, 94 28 C 78 28, 54 36, 42 54 C 34 66, 30 80, 32 96 C 18 78, 14 60, 22 44 Z"
+        fill="url(#shine)"/>
+</svg>
+
