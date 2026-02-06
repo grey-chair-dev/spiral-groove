@@ -986,6 +986,9 @@ export function generateSaleAlertEmail(data) {
   const safeCustomer = escapeHtml(customerName || '')
   const safeCustomerEmail = escapeHtml(customerEmail || '')
 
+  const safeSquareOrderId = escapeHtml(squareOrderId || '')
+  const safeSquarePaymentId = escapeHtml(squarePaymentId || '')
+
   const itemsHtml =
     Array.isArray(items) && items.length > 0
       ? `
@@ -1020,23 +1023,55 @@ export function generateSaleAlertEmail(data) {
       `
       : ''
 
+  // Match the "internal templates" look (same structure as generateAlertEmail):
+  // a labeled details card with a simple table, then action buttons.
+  const detailsHtml = `
+    <div style="margin: 18px 0; padding: 18px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: ${BRAND.gray600};">
+        Order Details
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Order #:</td>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 800;">${safeOrderNumber || '—'}</td>
+        </tr>
+        ${formattedTotal ? `
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Total:</td>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 800;">${escapeHtml(formattedTotal)}</td>
+        </tr>
+        ` : ''}
+        ${(safeCustomer || safeCustomerEmail) ? `
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Customer:</td>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 600;">${safeCustomer ? `${safeCustomer} • ` : ''}${safeCustomerEmail}</td>
+        </tr>
+        ` : ''}
+        ${safeSquareOrderId ? `
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Square Order ID:</td>
+          <td style="padding: 6px 0; color: ${BRAND.gray600}; font-size: 12px; font-weight: 600; font-family: monospace;">${safeSquareOrderId}</td>
+        </tr>
+        ` : ''}
+        ${safeSquarePaymentId ? `
+        <tr>
+          <td style="padding: 6px 0; color: ${BRAND.black}; font-size: 14px; font-weight: 700;">Square Payment ID:</td>
+          <td style="padding: 6px 0; color: ${BRAND.gray600}; font-size: 12px; font-weight: 600; font-family: monospace;">${safeSquarePaymentId}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+  `
+
   const bodyHtml = `
     <h2 style="margin: 0 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.1; text-align:center; letter-spacing: 0.02em;">
       New order 🎉
     </h2>
-    <p style="margin: 0 0 18px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600; text-align:center;">
+    <p style="margin: 0 0 10px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600; text-align:center;">
       ${safeCustomer ? `${safeCustomer} • ` : ''}${safeCustomerEmail}
     </p>
 
-    <div style="margin: 18px 0 0 0; padding: 18px; background-color: ${BRAND.black}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.orange};">
-      <p style="margin: 0 0 8px 0; color: ${BRAND.cream}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
-        Order number
-      </p>
-      <p style="margin: 0; color: ${BRAND.teal}; font-size: 22px; font-weight: 900; letter-spacing: 0.06em;">
-        ${safeOrderNumber || '—'}
-      </p>
-      ${formattedTotal ? `<p style="margin: 10px 0 0 0; color: ${BRAND.cream}; font-size: 14px; font-weight: 700;">Total: <span style="color:${BRAND.mustard}; font-weight: 900;">${escapeHtml(formattedTotal)}</span></p>` : ''}
-    </div>
+    ${detailsHtml}
 
     ${itemsHtml}
 
