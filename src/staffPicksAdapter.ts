@@ -52,6 +52,9 @@ export async function fetchStaffPickMeta(limit: number = 12): Promise<StaffPickM
 }
 
 export function mergeStaffPicks(products: any[], rows: StaffPickMetaRow[]): StaffPick[] {
+  // Avoid noisy warnings during initial app boot when staff picks may load before products.
+  if (!Array.isArray(products) || products.length === 0) return []
+
   // Create maps for both ID and square_variation_id lookups
   const byId = new Map<string, any>()
   const bySquareVariationId = new Map<string, any>()
@@ -70,6 +73,8 @@ export function mergeStaffPicks(products: any[], rows: StaffPickMetaRow[]): Staf
       }
     }
   }
+
+  if (byId.size === 0) return []
 
   const picks: StaffPick[] = []
 
