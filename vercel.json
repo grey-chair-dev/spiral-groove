@@ -2,6 +2,9 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    { "source": "/favicon.ico", "destination": "/logo-black.png", "permanent": true }
+  ],
   "crons": [
     {
       "path": "/api/weekly-newsletter-bulk",
@@ -14,7 +17,6 @@
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/favicon.ico", "destination": "/logo-black.png" },
     { "source": "/robots.txt", "destination": "/api/robots.js" },
     {
       "source": "/((?!assets/|images/|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
