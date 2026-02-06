@@ -22,17 +22,25 @@ export const SearchPage: React.FC<SearchPageProps> = ({
     onHomeClick,
     onNavigate
 }) => {
-    // Perform search
-    const filteredProducts = products.filter(product => {
-        const lowerQuery = searchQuery.toLowerCase();
-        return (
-            product.title.toLowerCase().includes(lowerQuery) ||
-            product.artist.toLowerCase().includes(lowerQuery) ||
-            product.tags?.some(tag => tag.toLowerCase().includes(lowerQuery)) ||
-            product.genre.toLowerCase().includes(lowerQuery) ||
-            product.format.toLowerCase().includes(lowerQuery)
-        );
-    });
+    const q = (searchQuery || '').trim().toLowerCase()
+
+    // Perform search.
+    // NOTE: For 1-character queries, avoid matching format/genre/tags because most items have
+    // format like "Vinyl" (contains "y"), which makes the search look broken (everything matches).
+    const filteredProducts = products.filter((product) => {
+        if (!q) return false
+
+        const inTitle = product.title.toLowerCase().includes(q)
+        const inArtist = product.artist.toLowerCase().includes(q)
+        if (inTitle || inArtist) return true
+
+        if (q.length < 2) return false
+
+        const inTags = product.tags?.some((tag) => tag.toLowerCase().includes(q)) ?? false
+        const inGenre = product.genre.toLowerCase().includes(q)
+        const inFormat = product.format.toLowerCase().includes(q)
+        return inTags || inGenre || inFormat
+    })
 
     const isRetro = viewMode === 'retro';
 
