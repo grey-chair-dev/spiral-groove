@@ -91,32 +91,43 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {ownerImages.map((img) => {
-                  const isCommunityPhoto = img.src === '/images/IMG_9246.jpeg';
-                  return (
-                    <figure
-                      key={img.src}
-                      className={`group relative overflow-hidden
-                        ${isRetro ? 'border-2 border-brand-black bg-white shadow-retro' : 'rounded-2xl border border-gray-100 shadow-sm'}
-                      `}
-                    >
-                      <div className="aspect-[4/3]">
-                        <img
-                          src={img.src}
-                          alt={img.alt}
-                          className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]
-                            ${isRetro ? 'grayscale-[10%]' : ''}
-                            ${isCommunityPhoto ? 'object-[70%_20%]' : ''}
-                          `}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
-                    </figure>
-                  );
-                })}
-                 </div>
+              {/* Wall: polaroids pinned with tape */}
+              <div className="rounded-2xl bg-stone-200/80 p-6 md:p-10 border-2 border-stone-300/80 shadow-inner">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 justify-items-center">
+                  {ownerImages.map((img, idx) => {
+                    const isCommunityPhoto = img.src === '/images/IMG_9246.jpeg';
+                    const tilts = ['-rotate-2', 'rotate-1', 'rotate-2', '-rotate-1'];
+                    const tilt = tilts[idx % tilts.length];
+                    return (
+                      <figure
+                        key={img.src}
+                        className={`group relative w-full pt-3 px-3 pb-10 bg-white border-2 border-brand-black
+                          ${isCommunityPhoto ? 'max-w-sm md:max-w-[340px]' : 'max-w-sm'}
+                          ${tilt} hover:rotate-0 transition-transform duration-300
+                          shadow-[0_4px_20px_rgba(0,0,0,0.15),0_1px_3px_rgba(0,0,0,0.1)]
+                          hover:shadow-[0_12px_40px_rgba(0,0,0,0.2),0_4px_12px_rgba(0,0,0,0.12)]
+                        `}
+                      >
+                        {/* Tape strips */}
+                        <div className="absolute -top-0.5 left-6 w-14 h-5 bg-white/75 -rotate-45 shadow-sm border border-white/50 z-10" aria-hidden />
+                        <div className="absolute -top-0.5 right-6 w-14 h-5 bg-white/75 rotate-45 shadow-sm border border-white/50 z-10" aria-hidden />
+                        <div className={`overflow-hidden ${isCommunityPhoto ? 'aspect-[3/4]' : 'aspect-[4/3]'}`}>
+                          <img
+                            src={img.src}
+                            alt={img.alt}
+                            className={`w-full h-full transition-transform duration-700 ease-out group-hover:scale-[1.02]
+                              ${isRetro ? 'grayscale-[10%]' : ''}
+                              ${isCommunityPhoto ? 'object-contain' : 'object-cover group-hover:scale-[1.03]'}
+                            `}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </div>
+                      </figure>
+                    );
+                  })}
+                </div>
+              </div>
                  
               <div className={`mt-6 text-center text-sm font-medium ${isRetro ? 'text-brand-black/70' : 'text-gray-500'}`}>
                 Want to sell a collection? <button className="underline hover:opacity-70" onClick={() => (window.location.href = '/contact')}>Contact us</button>.
@@ -136,40 +147,46 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {galleryImages.map((img, idx) => {
-                  const isFeatured = idx === 0;
-                  const isMural = img.src === '/images/IMG_2493.jpeg';
-                  return (
-                    <figure
-                      key={img.src}
-                      className={`group relative overflow-hidden transition-transform
-                        ${isFeatured ? 'sm:col-span-2 lg:col-span-2' : ''}
-                        ${isRetro ? 'border-2 border-brand-black bg-white shadow-retro' : 'rounded-2xl border border-gray-100 shadow-sm'}
-                      `}
-                    >
-                      <div className={isFeatured ? 'aspect-[16/9]' : 'aspect-[4/3]'}>
-                        <img
-                          src={img.src}
-                          alt={img.alt}
-                          className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]
-                            ${isRetro ? 'grayscale-[15%] contrast-[1.05]' : 'saturate-[1.08] contrast-[1.05]'}
-                            ${isMural ? 'object-[center_25%]' : ''}
-                          `}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
-
-                      {/* Subtle overlay to help busy images read cleaner */}
-                      <div
-                        className={`pointer-events-none absolute inset-0
-                          ${isMural ? 'bg-gradient-to-t from-black/25 via-black/0 to-black/0' : ''}
+              {/* Wall: polaroids pinned with tape */}
+              <div className="rounded-2xl bg-stone-200/80 p-6 md:p-10 border-2 border-stone-300/80 shadow-inner">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 md:gap-12 justify-items-center">
+                  {galleryImages.map((img, idx) => {
+                    const isFeatured = idx === 0;
+                    const isMural = img.src === '/images/IMG_2493.jpeg';
+                    const tilts = ['rotate-[-2deg]', 'rotate-[1.5deg]', 'rotate-[2deg]', '-rotate-1'];
+                    const tilt = tilts[idx % tilts.length];
+                    return (
+                      <figure
+                        key={img.src}
+                        className={`group relative w-full max-w-sm pt-3 px-3 pb-10 bg-white border-2 border-brand-black
+                          ${isFeatured ? 'sm:col-span-2 lg:col-span-2 sm:max-w-md lg:max-w-lg' : ''}
+                          ${tilt} hover:rotate-0 transition-transform duration-300
+                          shadow-[0_4px_20px_rgba(0,0,0,0.15),0_1px_3px_rgba(0,0,0,0.1)]
+                          hover:shadow-[0_12px_40px_rgba(0,0,0,0.2),0_4px_12px_rgba(0,0,0,0.12)]
                         `}
-                      />
-                    </figure>
-                  );
-                })}
+                      >
+                        {/* Tape strips */}
+                        <div className="absolute -top-0.5 left-6 w-14 h-5 bg-white/75 -rotate-45 shadow-sm border border-white/50 z-10" aria-hidden />
+                        <div className="absolute -top-0.5 right-6 w-14 h-5 bg-white/75 rotate-45 shadow-sm border border-white/50 z-10" aria-hidden />
+                        <div className={`relative overflow-hidden ${isFeatured ? 'aspect-[16/9]' : 'aspect-[4/3]'}`}>
+                          <img
+                            src={img.src}
+                            alt={img.alt}
+                            className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]
+                              ${isRetro ? 'grayscale-[15%] contrast-[1.05]' : 'saturate-[1.08] contrast-[1.05]'}
+                              ${isMural ? 'object-[center_25%]' : ''}
+                            `}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          {isMural && (
+                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-black/0 to-black/0" />
+                          )}
+                        </div>
+                      </figure>
+                    );
+                  })}
+                </div>
               </div>
            </div>
         </div>
