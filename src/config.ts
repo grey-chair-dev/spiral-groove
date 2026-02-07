@@ -109,8 +109,8 @@ export const siteConfig: SiteConfig = {
     hours: 'See in-store signage for current hours',
   },
   legal: {
-    privacyUrl: 'https://spiralgrooverecords.com/privacy',
-    termsUrl: 'https://spiralgrooverecords.com/terms',
+    privacyUrl: 'https://www.spiralgrooverecords.com/privacy',
+    termsUrl: 'https://www.spiralgrooverecords.com/terms',
   },
   social: {
     facebook: 'https://www.facebook.com/spiralgrooverecords',

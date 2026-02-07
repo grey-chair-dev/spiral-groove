@@ -35,7 +35,7 @@ Disallow: /
       `User-agent: *
 Allow: /
 
-Sitemap: https://spiralgrooverecords.com/sitemap.xml
+Sitemap: https://www.spiralgrooverecords.com/sitemap.xml
 `,
       {
         status: 200,

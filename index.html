@@ -9,7 +9,7 @@
       name="description"
       content="Curated vinyl records, hi-fi gear, and events in Milford, Ohio. Shop new arrivals, staff picks, and local pickup."
     />
-    <link rel="canonical" href="https://spiralgrooverecords.com/" />
+    <link rel="canonical" href="https://www.spiralgrooverecords.com/" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -19,8 +19,8 @@
       property="og:description"
       content="Curated vinyl records, hi-fi gear, and events in Milford, Ohio. Shop new arrivals, staff picks, and local pickup."
     />
-    <meta property="og:url" content="https://spiralgrooverecords.com/" />
-    <meta property="og:image" content="https://spiralgrooverecords.com/og.svg" />
+    <meta property="og:url" content="https://www.spiralgrooverecords.com/" />
+    <meta property="og:image" content="https://www.spiralgrooverecords.com/og.svg" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -29,14 +29,16 @@
       name="twitter:description"
       content="Curated vinyl records, hi-fi gear, and events in Milford, Ohio. Shop new arrivals, staff picks, and local pickup."
     />
-    <meta name="twitter:image" content="https://spiralgrooverecords.com/og.svg" />
+    <meta name="twitter:image" content="https://www.spiralgrooverecords.com/og.svg" />
 
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" id="robots-meta" />
     <script>
       // Set robots meta tag based on hostname
       (function() {
         const hostname = window.location.hostname;
-        const isStaging = hostname.includes('greychair.io') || hostname.includes('vercel.app') && !hostname.includes('spiralgrooverecords.com');
+        const isProdHost =
+          hostname === 'spiralgrooverecords.com' || hostname === 'www.spiralgrooverecords.com';
+        const isStaging = !isProdHost;
         const robotsMeta = document.getElementById('robots-meta');
         if (robotsMeta && isStaging) {
           robotsMeta.setAttribute('content', 'noindex,nofollow');

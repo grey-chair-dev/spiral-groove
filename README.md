@@ -19,10 +19,10 @@ npm run dev
 - **Shopping Cart** - View and manage cart items
 - **Checkout** - Multi-step checkout with Square payment integration
 - **Order Management** - Order confirmation, status lookup, order history
-- **User Accounts** - Sign up, login, user dashboard
 - **Newsletter** - Email signup with database storage
 - **Search** - Full-text product search
 - **About/Contact** - Store information and contact forms
+- **Legal** - Privacy, Terms, Accessibility
 
 ### API Routes
 - **`/api/newsletter`** - Newsletter signup endpoint
@@ -30,8 +30,7 @@ npm run dev
 - **`/api/orders`** - Order lookup and management
 - **`/api/orders/update`** - Order status updates (webhook)
 - **`/api/products`** - Product catalog API
-- **`/api/signup`** - User registration
-- **`/api/forgot-password`** - Password reset
+- **`/api/robots.js`** - Dynamic robots.txt (served via `/robots.txt`)
 
 ### Email System
 - **Unified Email Webhook** - All emails sent via `MAKE_EMAIL_WEBHOOK_URL`
@@ -92,7 +91,7 @@ Create a `.env.local` file with:
 
 ```env
 # Database
-DATABASE_URL=your_neon_postgresql_connection_string
+SGR_DATABASE_URL=your_neon_postgresql_connection_string
 
 # Square Payment
 VITE_SQUARE_APPLICATION_ID=your_square_app_id
@@ -186,12 +185,16 @@ Google Analytics 4 is integrated with comprehensive e-commerce tracking:
 The site is deployed on Vercel:
 
 - **Staging:** `spiralgrooverecords.greychair.io`
-- **Production:** `spiralgrooverecords.com` (when live)
+- **Production:** `www.spiralgrooverecords.com`
 
 ### Build Process
 1. Generate Tailwind CSS (`npm run build:css`)
 2. Build Vite app (`vite build`)
 3. Deploy to Vercel (automatic on push to main)
+
+### SEO
+- `robots.txt` is served dynamically via `api/robots.js` (staging is `noindex`, production is indexable).
+- `sitemap.xml` is served from `public/sitemap.xml`.
 
 ---
 

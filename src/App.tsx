@@ -29,7 +29,6 @@ const CartPage = lazy(() => import('./components/CartPage').then(module => ({ de
 const CheckoutPage = lazy(() => import('./components/CheckoutPage').then(module => ({ default: module.CheckoutPage })));
 const OrderConfirmationPage = lazy(() => import('./components/OrderConfirmationPage').then(module => ({ default: module.OrderConfirmationPage })));
 const SearchPage = lazy(() => import('./components/SearchPage').then(module => ({ default: module.SearchPage })));
-const ClientLoginPage = lazy(() => import('./components/ClientLoginPage').then(module => ({ default: module.ClientLoginPage })));
 const PrivacyPage = lazy(() => import('./components/PrivacyPage').then(module => ({ default: module.PrivacyPage })));
 const TermsPage = lazy(() => import('./components/TermsPage').then(module => ({ default: module.TermsPage })));
 const AccessibilityPage = lazy(() => import('./components/AccessibilityPage').then(module => ({ default: module.AccessibilityPage })));
@@ -200,9 +199,6 @@ function toPathFromState(args: {
 }
 
 function App() {
-  const requireClientLogin =
-    (import.meta.env.VITE_REQUIRE_CLIENT_LOGIN ?? 'false').toString().toLowerCase() === 'true';
-
   const getNavScrollBehavior = (): ScrollBehavior => {
     try {
       const reduceMotion =
@@ -288,17 +284,6 @@ function App() {
     return initialRoute.page === 'receipt' ? readReceiptOrderFromSession() : null;
   });
   const [searchQuery, setSearchQuery] = useState<string>(initialRoute.searchQuery ?? '');
-
-  const [clientAuthed, setClientAuthed] = useState<boolean>(() => {
-    try {
-      return (
-        localStorage.getItem('greychair_client_auth') === 'true' ||
-        sessionStorage.getItem('greychair_client_auth') === 'true'
-      );
-    } catch {
-      return false;
-    }
-  });
   
   // Products State
   const [products, setProducts] = useState<Product[]>([]);
@@ -603,22 +588,6 @@ function App() {
   // Initialize / sync page from URL (supports back/forward). Also migrates old hash URLs to real paths.
   useEffect(() => {
     const applyLocation = () => {
-      // Staging gate: force unauthenticated users onto base URL.
-      if (requireClientLogin && !clientAuthed) {
-        try {
-          const intended = window.location.pathname + window.location.search;
-          if (intended !== '/' && intended !== '') {
-            sessionStorage.setItem('greychair_client_intended', intended);
-          }
-        } catch {
-          // ignore
-        }
-        if (window.location.pathname !== '/') {
-          window.history.replaceState(null, '', '/');
-        }
-        // Still allow state update for consistency
-      }
-
       const route = parseRouteFromLocation({
         pathname: window.location.pathname,
         search: window.location.search,
@@ -661,25 +630,7 @@ function App() {
     applyLocation(); // On mount
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [products, requireClientLogin, clientAuthed]);
-
-  // If we just authenticated the client gate, go to the intended route (or stay on home).
-  useEffect(() => {
-    if (!requireClientLogin || !clientAuthed) return;
-    if (window.location.pathname !== '/') return;
-    let next = '/';
-    try {
-      const intended = sessionStorage.getItem('greychair_client_intended');
-      if (intended && intended !== '/' && intended.startsWith('/')) next = intended;
-      sessionStorage.removeItem('greychair_client_intended');
-    } catch {
-      // ignore
-    }
-    if (next !== window.location.pathname + window.location.search) {
-      window.history.replaceState(null, '', next);
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    }
-  }, [requireClientLogin, clientAuthed]);
+  }, [products]);
 
   // If we navigated directly to a product URL before products loaded, resolve once products arrive.
   useEffect(() => {
@@ -1011,17 +962,6 @@ function App() {
 
   // Calculate total items for badge
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-
-  if (requireClientLogin && !clientAuthed) {
-    return (
-      <ClientLoginPage
-        viewMode={effectiveViewMode}
-        onSuccess={() => {
-          setClientAuthed(true);
-        }}
-      />
-    );
-  }
 
   return (
     <div className={`min-h-screen transition-colors duration-500 overflow-x-hidden w-full ${effectiveViewMode === 'retro' ? 'bg-linen-cream selection:bg-brand-orange selection:text-white' : 'bg-white selection:bg-brand-black selection:text-white'}`}>
