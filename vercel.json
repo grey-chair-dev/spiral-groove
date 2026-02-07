@@ -143,6 +143,21 @@
           "value": "spiralgrooverecords.com"
         }
       ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "index,follow"
+        }
+      ],
+      "has": [
+        {
+          "type": "host",
+          "value": "www.spiralgrooverecords.com"
+        }
+      ]
     }
   ]
 }
