@@ -93,7 +93,7 @@ export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate
 
           <div className="space-y-6 text-lg md:text-xl leading-relaxed font-medium text-brand-black/80">
             <p>
-              The shop didn't start as Spiral Groove. It was originally Earworm Records. Around 2020, Adam and Trisha Mitzel took over the business and rebranded it with a renewed focus on community, vinyl culture, and in-person music experience.
+              Around 2020, the shop was rebranded as Spiral Groove with a renewed focus on community, vinyl culture, and in-person music experience.
             </p>
             <p>
               We're not just retail—we're a cultural hub. With thousands of records spanning decades and genres, live music events, and a space where newcomers and long-time collectors intersect, we cherish the experience of physical music in a world dominated by streaming.

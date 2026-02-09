@@ -63,7 +63,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
               {/* Main Content */}
               <div className="space-y-6 text-lg leading-relaxed text-gray-700 font-medium">
                  <p className="first-letter:text-5xl first-letter:font-display first-letter:float-left first-letter:mr-3 first-letter:mt-[-6px]">
-                    The shop didn't start as <em>Spiral Groove</em>. It was originally a local record store called <strong>Earworm Records</strong>. Around <strong>2020, Adam and Trisha Mitzel took over the business and rebranded it as Spiral Groove Records</strong>. That change didn't just swap the sign outside – it repositioned the store with a renewed focus on community, vinyl culture, and in-person music experience.
+                    Around <strong>2020, the shop was rebranded as Spiral Groove Records</strong>. That change didn't just swap the sign outside – it repositioned the store with a renewed focus on community, vinyl culture, and in-person music experience.
                  </p>
                  <p>
                     <strong>Adam Mitzel</strong> is the owner most associated with the shop today. He moved Spiral Groove to its current Main Street location in 2021. Adam grew up in the region and has strong roots in music culture—he was into punk rock and local music scenes long before opening the store. His personal favorites show up in the store's personality, but the inventory is broad on purpose.
