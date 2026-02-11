@@ -541,6 +541,7 @@ function App() {
       categories: apiProduct.categories, // Pass through original categories array
       isNewArrival: isNewArrival, // True if product was added in the last week
       inStock: apiProduct.stockCount > 0,
+      stockCount: apiProduct.stockCount ?? 0,
       soldCount: apiProduct.soldCount ?? 0,
       lastSoldAt: apiProduct.lastSoldAt ?? null,
       releaseDate: undefined,
@@ -737,39 +738,46 @@ function App() {
   };
 
   const addToCart = (product: Product, quantity: number = 1) => {
+    // Only items with stock can be purchased; block add-to-cart for out-of-stock items.
+    const stock = product.stockCount ?? 0;
+    if (stock <= 0) {
+      setToast({ show: true, message: 'This item is out of stock and can\'t be added to your cart.' });
+      return;
+    }
+    const cappedQty = Math.min(quantity, stock);
     setCartItems(prev => {
         const existing = prev.find(item => item.product.id === product.id);
         if (existing) {
-            const newQuantity = existing.quantity + quantity;
-            const updated = prev.map(item => 
-                item.product.id === product.id 
+            const newQuantity = Math.min(existing.quantity + cappedQty, stock);
+            const added = newQuantity - existing.quantity;
+            if (added <= 0) return prev;
+            const updated = prev.map(item =>
+                item.product.id === product.id
                     ? { ...item, quantity: newQuantity }
                     : item
             );
-            // Track add to cart
             trackAddToCart({
               id: product.id,
               name: product.title,
               price: product.salePrice || product.price,
-              quantity: quantity,
+              quantity: added,
               category: product.format || 'Unknown',
               brand: product.artist || 'Spiral Groove Records',
             });
             return updated;
         }
-        // Track add to cart
         trackAddToCart({
           id: product.id,
           name: product.title,
           price: product.salePrice || product.price,
-          quantity: quantity,
+          quantity: cappedQty,
           category: product.format || 'Unknown',
           brand: product.artist || 'Spiral Groove Records',
         });
-        return [...prev, { product, quantity: quantity }];
+        return [...prev, { product, quantity: cappedQty }];
     });
-    const message = quantity > 1 
-      ? `"${product.title}" (${quantity}) added to crate!`
+    const message = cappedQty > 1
+      ? `"${product.title}" (${cappedQty}) added to crate!`
       : `"${product.title}" added to crate!`;
     setToast({ show: true, message });
   };

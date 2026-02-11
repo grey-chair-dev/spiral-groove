@@ -15,6 +15,7 @@ export interface Product {
   description?: string;
   isNewArrival?: boolean;
   inStock?: boolean;
+  stockCount?: number;
   releaseDate?: string;
   soldCount?: number;
   lastSoldAt?: string | null;
