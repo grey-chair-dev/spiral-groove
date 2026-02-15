@@ -30,10 +30,11 @@ Disallow: /
       }
     )
   } else {
-    // Production: Allow indexing
+    // Production: Allow indexing except edit-reply (email-only, not in sitemap)
     return new Response(
       `User-agent: *
 Allow: /
+Disallow: /edit-reply
 
 Sitemap: https://www.spiralgrooverecords.com/sitemap.xml
 `,

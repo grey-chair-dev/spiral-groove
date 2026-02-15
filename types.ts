@@ -103,4 +103,5 @@ export type Page =
   | 'search'
   | 'privacy'
   | 'terms'
-  | 'accessibility';
+  | 'accessibility'
+  | 'edit-reply';

@@ -32,6 +32,7 @@ const SearchPage = lazy(() => import('./components/SearchPage').then(module => (
 const PrivacyPage = lazy(() => import('./components/PrivacyPage').then(module => ({ default: module.PrivacyPage })));
 const TermsPage = lazy(() => import('./components/TermsPage').then(module => ({ default: module.TermsPage })));
 const AccessibilityPage = lazy(() => import('./components/AccessibilityPage').then(module => ({ default: module.AccessibilityPage })));
+const EditReplyPage = lazy(() => import('./components/EditReplyPage').then(module => ({ default: module.EditReplyPage })));
 import { Product, ViewMode, Page, Order, Event, CartItem } from '../types';
 import { fetchProducts as fetchApiProducts, Product as ApiProduct } from './dataAdapter';
 import { getDefaultProductImage } from './utils/defaultProductImage';
@@ -57,6 +58,7 @@ const VALID_PAGES: Page[] = [
   'privacy',
   'terms',
   'accessibility',
+  'edit-reply',
 ];
 
 function parseRouteFromLocation(input: {
@@ -154,6 +156,8 @@ function parseRouteFromLocation(input: {
       return { page: 'terms' };
     case 'accessibility':
       return { page: 'accessibility' };
+    case 'edit-reply':
+      return { page: 'edit-reply' };
     default:
       return { page: 'home' };
   }
@@ -193,6 +197,8 @@ function toPathFromState(args: {
       return '/terms';
     case 'accessibility':
       return '/accessibility';
+    case 'edit-reply':
+      return '/edit-reply';
     default:
       return `/${page}`;
   }
@@ -570,6 +576,7 @@ function App() {
       'privacy': 'Privacy Policy - Spiral Groove Records',
       'terms': 'Terms of Service - Spiral Groove Records',
       'accessibility': 'Accessibility - Spiral Groove Records',
+      'edit-reply': 'Edit reply - Spiral Groove Records',
     };
     return titles[page] || 'Spiral Groove Records';
   };
@@ -1240,6 +1247,11 @@ function App() {
                     onNavigate={handleNavigate}
                 />
             </Suspense>
+        )}
+        {currentPage === 'edit-reply' && (
+          <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center">Loading…</div>}>
+            <EditReplyPage viewMode={effectiveViewMode} />
+          </Suspense>
         )}
         {currentPage === 'accessibility' && (
             <Suspense fallback={<div className="py-20 text-center"><p className="text-gray-500">Loading...</p></div>}>
