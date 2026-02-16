@@ -155,7 +155,7 @@ Google Analytics 4 is integrated with comprehensive e-commerce tracking:
 - **Measurement ID:** `G-7VV4DCV276`
 - **Events:** All user interactions tracked
 - **E-commerce:** Full purchase funnel tracking
-- **Reporting:** Monthly analytics reports (see `MONTHLY_ANALYTICS_REPORTING.md`)
+- **Reporting:** Monthly analytics reports; to include GA4 in the report, see **`docs/ga4-monthly-report.md`**
 
 ## 🔒 Security
 

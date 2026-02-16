@@ -1223,3 +1223,85 @@ export function generateAlertEmail(data) {
     bodyHtml,
   })
 }
+
+/**
+ * Monthly business owner report (internal HTML email; sent from projects@greychair.io).
+ * Uses the same simple template as the Google review notification email (no logo header).
+ * @param {Object} payload
+ * @param {string} payload.monthLabel - e.g. "January"
+ * @param {number} payload.year - e.g. 2025
+ * @param {Object} [payload.sales] - { orderCount, revenueCents }
+ * @param {Object} [payload.newsletter] - { totalSubscribers, newSignups }
+ * @param {Array} [payload.events] - list of events in month
+ * @param {Object} [payload.inventory] - e.g. { logCount, netChange }
+ * @param {Object|null} [payload.ga] - { sessions, users, pageViews, topPages } or null if not configured
+ * @returns {{ subject: string, html: string }}
+ */
+export function generateMonthlyReportEmail(payload) {
+  const { monthLabel = '', year = '', sales = {}, newsletter = {}, events = [], inventory = {}, ga = null } = payload
+  const subject = `Monthly report: ${monthLabel} ${year} – Spiral Groove Records`
+
+  // Same template structure as Google review email: simple body, gray section blocks, blue accent
+  const section = (title, content) => `
+  <div style="margin-bottom: 20px; padding: 16px; background: #f5f5f5; border-radius: 8px;">
+    <p style="margin: 0 0 8px; font-weight: 600;">${escapeHtml(title)}</p>
+    ${content}
+  </div>`
+
+  const salesContent = sales.orderCount != null
+    ? `
+    <p style="margin: 0 0 8px;"><strong>How many orders:</strong> ${Number(sales.orderCount)}</p>
+    <p style="margin: 0;"><strong>Money from those orders:</strong> $${((Number(sales.revenueCents || 0) / 100).toFixed(2))}</p>
+    `
+    : '<p style="margin: 0;">No orders this month.</p>'
+
+  const newsletterContent = newsletter.totalSubscribers != null
+    ? `
+    <p style="margin: 0 0 8px;"><strong>People on the email list:</strong> ${Number(newsletter.totalSubscribers)}</p>
+    ${newsletter.newSignups != null ? `<p style="margin: 0;"><strong>New people who signed up this month:</strong> ${Number(newsletter.newSignups)}</p>` : ''}
+    `
+    : '<p style="margin: 0;">No data.</p>'
+
+  const eventsContent = Array.isArray(events) && events.length > 0
+    ? `<ul style="margin: 0; padding-left: 20px;"><li style="margin: 0 0 4px;">${events.map(e => escapeHtml(e.name || e.event_name || e.date_iso || 'Event') + (e.date_label ? ' – ' + escapeHtml(e.date_label) : '')).join('</li><li style="margin: 0 0 4px;">')}</li></ul>`
+    : '<p style="margin: 0;">No events this month.</p>'
+
+  const invCount = inventory.logCount != null ? Number(inventory.logCount) : null
+  const invChange = inventory.netChange != null ? Number(inventory.netChange) : null
+  const invChangePlain = invChange != null && invChange !== 0 ? (invChange > 0 ? `+${invChange} items` : `${invChange} items`) : null
+  const inventoryContent = invCount != null || invChange != null
+    ? `
+    ${invCount != null ? `<p style="margin: 0 0 8px;"><strong>Stock changes recorded:</strong> ${invCount}</p>` : ''}
+    ${invChangePlain != null ? `<p style="margin: 0;"><strong>Overall (more or fewer items in stock):</strong> ${invChangePlain}</p>` : ''}
+    `
+    : '<p style="margin: 0;">No stock changes this month.</p>'
+
+  const gaContent = ga && (ga.sessions != null || ga.users != null || ga.pageViews != null)
+    ? `
+    <p style="margin: 0 0 8px;"><strong>Visits to the website:</strong> ${Number(ga.sessions || 0).toLocaleString()}</p>
+    <p style="margin: 0 0 8px;"><strong>Different people who visited:</strong> ${Number(ga.users || 0).toLocaleString()}</p>
+    <p style="margin: 0 0 8px;"><strong>Pages they looked at:</strong> ${Number(ga.pageViews || 0).toLocaleString()}</p>
+    ${Array.isArray(ga.topPages) && ga.topPages.length > 0 ? `<p style="margin: 12px 0 4px 0; font-weight: 600;">Most-viewed pages</p><ul style="margin: 0; padding-left: 20px;">${ga.topPages.slice(0, 10).map(p => `<li style="margin: 0 0 4px;">${escapeHtml(p.path || p.pagePath || '')} ${p.views != null ? '(' + Number(p.views).toLocaleString() + ' views)' : ''}</li>`).join('')}</ul>` : ''}
+    `
+    : '<p style="margin: 0;">Website traffic data is not set up for this report.</p>'
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(`Monthly report: ${monthLabel} ${year}`)}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 1.5; color: #333; max-width: 560px; margin: 0 auto; padding: 24px;">
+  <h1 style="font-size: 1.25rem; margin-bottom: 8px;">Monthly report: ${escapeHtml(monthLabel)} ${year}</h1>
+  <p style="margin: 0 0 20px; color: #666; font-size: 14px;">Here’s what happened last month, in plain terms.</p>
+
+  ${section('Orders & money', salesContent)}
+  ${section('Email list (newsletter)', newsletterContent)}
+  ${section('Events this month', eventsContent)}
+  ${section('Stock / inventory changes', inventoryContent)}
+  ${section('Website traffic', gaContent)}
+</body>
+</html>`
+  return { subject, html }
+}

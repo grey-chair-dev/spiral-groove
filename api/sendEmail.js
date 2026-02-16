@@ -18,6 +18,7 @@ import {
   generateWeeklyNewsletterEmail,
   generateAlertEmail,
   generateSaleAlertEmail,
+  generateMonthlyReportEmail,
 } from './emailTemplates.js'
 
 const DEFAULT_DEDUPE_TTL_MS = 5 * 60 * 1000
@@ -39,12 +40,13 @@ function shouldSend(dedupeKey, ttlMs) {
  * @param {string} params.type - Email type: 'newsletter', 'order_confirmation', 'signup', 'forgot_password', 'order_status_update'
  * @param {string} params.to - Recipient email address
  * @param {string} [params.subject] - Email subject line
+ * @param {string} [params.from] - Optional From address (e.g. for internal reports)
  * @param {Object} [params.data] - Additional data for the email (order details, user info, etc.)
  * @param {string} [params.dedupeKey] - Optional deduplication key
  * @param {number} [params.dedupeTtlMs] - Deduplication TTL in milliseconds
  * @returns {Promise<{ attempted: boolean, ok: boolean, status?: number, statusText?: string, reason?: string }>}
  */
-export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedupeTtlMs = DEFAULT_DEDUPE_TTL_MS, force = false }) {
+export async function sendEmail({ type, to, subject, from: fromParam, data = {}, dedupeKey, dedupeTtlMs = DEFAULT_DEDUPE_TTL_MS, force = false }) {
   try {
     // Pick webhook URL.
     // - Default: unified email webhook
@@ -103,6 +105,12 @@ export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedup
         case 'sale_alert':
           html = generateSaleAlertEmail({ ...data })
           break
+        case 'monthly_report': {
+          const { subject: reportSubject, html: reportHtml } = generateMonthlyReportEmail(data)
+          html = reportHtml
+          if (reportSubject) subject = reportSubject
+          break
+        }
         default:
           console.warn(`[Email Webhook] Unknown email type: ${type}, generating basic HTML`)
           html = `<html><body><h1>${subject || getDefaultSubject(type)}</h1><p>Email type: ${type}</p></body></html>`
@@ -111,6 +119,11 @@ export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedup
       console.error(`[Email Webhook] Error generating HTML for ${type}:`, error)
       html = `<html><body><h1>${subject || getDefaultSubject(type)}</h1><p>Email type: ${type}</p></body></html>`
     }
+
+    // From address: explicit param, or for monthly_report use internal sender
+    const fromAddress =
+      fromParam ??
+      (type === 'monthly_report' ? (process.env.MONTHLY_REPORT_FROM || 'projects@greychair.io') : undefined)
 
     // Build email payload with HTML
     const payload = {
@@ -121,6 +134,7 @@ export async function sendEmail({ type, to, subject, data = {}, dedupeKey, dedup
       html: html,
       timestamp: new Date().toISOString(),
       env: process.env.NODE_ENV || 'development',
+      ...(fromAddress ? { from: fromAddress } : {}),
       ...data,
     }
 
@@ -173,6 +187,7 @@ function getDefaultSubject(type) {
     review_request: 'How was your visit? Leave a quick review',
     alert: 'API Error Alert - Spiral Groove Records',
     sale_alert: 'New order - Spiral Groove Records',
+    monthly_report: 'Monthly report - Spiral Groove Records',
   }
   return subjects[type] || 'Message from Spiral Groove Records'
 }

@@ -16,6 +16,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google-analytics/data": "^4.1.0",
     "@google/genai": "^1.32.0",
     "@neondatabase/neon-auth": "^0.1.0-alpha.3",
     "@square/web-sdk": "^2.1.0",

@@ -28,6 +28,9 @@ GA4_REALTIME_VERIFICATION.md
 ANALYTICS_TESTING.md
 REMAINING_TASKS.md
 .env*.local
+
+# Google Cloud service account keys (never commit — use GA4_SERVICE_ACCOUNT_JSON in Vercel)
+docs/grey-chair-digital-*.json
 QA_TEST_RESULTS.md__pycache__/
 *.pyc
 scripts/catalog_sync_state.json
