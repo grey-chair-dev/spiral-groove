@@ -198,8 +198,6 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
               {[
                 { label: 'New Releases', page: 'catalog', filter: 'New Arrivals' },
                 { label: 'All Vinyl', page: 'catalog', filter: 'Vinyl' },
-                { label: 'Equipment', page: 'catalog', filter: 'Equipment' },
-                { label: 'Merch', page: 'catalog', filter: 'Merch' },
                 { label: 'Staff Picks', page: 'staff-picks' },
               ].map((item) => (
                 <li key={item.label}>

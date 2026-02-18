@@ -339,6 +339,7 @@ function App() {
   
   // Cart & Toast State
   const CART_STORAGE_KEY = 'sg_cart_v1';
+  const CART_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
   const readCartFromStorage = (): CartItem[] => {
     try {
@@ -346,9 +347,27 @@ function App() {
       const raw = window.localStorage.getItem(CART_STORAGE_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
+      // New format: { items: CartItem[], savedAt: number }
+      if (parsed && typeof parsed.savedAt === 'number') {
+        if (Date.now() - parsed.savedAt > CART_EXPIRY_MS) return [];
+        if (!Array.isArray(parsed.items)) return [];
+        const items = parsed.items;
+        return items
+          .filter((x: any) => x && typeof x === 'object')
+          .map((x: any) => ({
+            product: x.product,
+            quantity: Number(x.quantity) || 0,
+          }))
+          .filter(
+            (x: any) =>
+              x.product &&
+              typeof x.product === 'object' &&
+              typeof x.product.id === 'string' &&
+              x.quantity > 0
+          );
+      }
+      // Legacy format: array only (no expiry; treat as expired so we migrate to new format on next write)
       if (!Array.isArray(parsed)) return [];
-
-      // Basic runtime validation to avoid hard-crashing on bad/migrated data.
       return parsed
         .filter((x: any) => x && typeof x === 'object')
         .map((x: any) => ({
@@ -373,7 +392,10 @@ function App() {
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
-      window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+      window.localStorage.setItem(
+        CART_STORAGE_KEY,
+        JSON.stringify({ items: cartItems, savedAt: Date.now() })
+      );
     } catch {
       // ignore (private mode / quota)
     }
