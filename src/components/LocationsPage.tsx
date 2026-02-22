@@ -39,9 +39,9 @@ export const LocationsPage: React.FC<LocationsPageProps> = ({ viewMode }) => {
                         <div>
                             <h3 className="font-bold text-lg mb-1">Hours</h3>
                             <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm text-gray-600 font-medium">
-                                <span>Mon - Thu</span> <span>11am - 7pm</span>
-                                <span>Fri - Sat</span> <span>10am - 9pm</span>
-                                <span>Sunday</span> <span>11am - 5pm</span>
+                                <span>Mon - Thu</span> <span>12 - 8</span>
+                                <span>Fri & Sat</span> <span>12 - 9</span>
+                                <span>Sunday</span> <span>12 - 5</span>
                             </div>
                         </div>
                     </div>

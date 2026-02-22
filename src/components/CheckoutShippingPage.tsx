@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { moneyFormatter } from '../formatters'
+import { siteConfig } from '../config'
 
 type DeliveryMethod = 'delivery' | 'pickup'
 
@@ -307,10 +308,10 @@ export function CheckoutShippingPage({
                 <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
                   <p className="text-sm font-semibold text-white">Pickup Location</p>
                   <p className="mt-1 text-sm text-slate-300">
-                    118 Grove St, San Francisco, CA 94102
+                    {siteConfig.contact.location}
                   </p>
                   <p className="mt-2 text-xs text-slate-400">
-                    Hours: Open daily · 8a – 8p
+                    Hours: {siteConfig.contact.hours}
                   </p>
                   <p className="mt-1 text-xs text-slate-400">
                     We'll notify you when your order is ready for pickup.

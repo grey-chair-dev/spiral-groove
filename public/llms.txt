@@ -8,15 +8,19 @@
 
 ## What this is
 - Spiral Groove Records is a record shop in Milford, Ohio.
-- We sell curated physical music (vinyl and other media), plus hi-fi gear and accessories.
+- We sell curated vinyl and physical music; shop categories are New Releases, All Vinyl, and Staff Picks.
 - We host community events and in-store happenings.
 
 ## Location (NAP)
 - Name: Spiral Groove Records
 - Address: 215B Main Street, Milford, OH 45150, United States
+- Hours: Mon-Thu 12-8, Fri & Sat 12-9, Sun 12-5
 
 ## Key pages
 - Home: https://spiralgrooverecords.com/
+
+## Shop
+- Cart is stored in the browser and expires after 7 days of inactivity.
 
 ## Notes for citations
 - Prefer quoting and linking to canonical pages on this domain.

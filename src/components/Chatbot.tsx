@@ -14,13 +14,13 @@ const STORE_INFO = {
   phone: '(513) 600-8018',
   email: 'adam@spiralgrooverecords.com',
   hours: {
-    monday: '10:00 AM - 8:00 PM',
-    tuesday: '10:00 AM - 8:00 PM',
-    wednesday: '10:00 AM - 8:00 PM',
-    thursday: '10:00 AM - 8:00 PM',
-    friday: '10:00 AM - 8:00 PM',
-    saturday: '10:00 AM - 8:00 PM',
-    sunday: '12:00 PM - 6:00 PM',
+    monday: '12:00 PM - 8:00 PM',
+    tuesday: '12:00 PM - 8:00 PM',
+    wednesday: '12:00 PM - 8:00 PM',
+    thursday: '12:00 PM - 8:00 PM',
+    friday: '12:00 PM - 9:00 PM',
+    saturday: '12:00 PM - 9:00 PM',
+    sunday: '12:00 PM - 5:00 PM',
   },
 };
 
@@ -38,7 +38,7 @@ const getBotResponse = (message: string): string => {
   if (lowerMessage.includes('hour') || lowerMessage.includes('open') || lowerMessage.includes('close')) {
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
     const hours = STORE_INFO.hours[today as keyof typeof STORE_INFO.hours] || STORE_INFO.hours.monday;
-    return `We're open ${hours} today! Our regular hours are:\n\nMonday - Saturday: 10:00 AM - 8:00 PM\nSunday: 12:00 PM - 6:00 PM`;
+    return `We're open ${hours} today! Our regular hours are:\n\nMon-Thu: 12-8\nFri & Sat: 12-9\nSunday: 12-5`;
   }
 
   // Location/Address
