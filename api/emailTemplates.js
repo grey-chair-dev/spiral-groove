@@ -514,7 +514,7 @@ export function generateOrderStatusUpdateEmail(data) {
           icon: '📦',
           color: '#3AB795',
           actionText: 'Pickup Instructions',
-          actionMessage: 'Please bring a valid ID when you arrive. We\'re open Mon-Thu 12-8, Fri & Sat 12-9, Sun 12-5.',
+          actionMessage: 'Please bring a valid ID when you arrive. We\'re open Mon-Thu 12pm-8pm, Fri & Sat 12pm-9pm, Sun 12pm-5pm.',
         }
       case 'SHIPPED':
         return {
@@ -940,7 +940,7 @@ export function generateWeeklyNewsletterEmail(data) {
 
     <div style="margin-top: 28px; padding: 18px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
       <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
-        <strong>Store Hours:</strong> Mon-Thu 12-8, Fri & Sat 12-9, Sun 12-5<br>
+        <strong>Store Hours:</strong> Mon-Thu 12pm-8pm, Fri & Sat 12pm-9pm, Sun 12pm-5pm<br>
         <strong>Location:</strong> 215B Main Street, Milford, OH 45150
       </p>
     </div>

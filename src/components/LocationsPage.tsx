@@ -2,6 +2,7 @@
 import React from 'react';
 import { ViewMode } from '../../types';
 import { Section } from './ui/Section';
+import { OpenClosedSign } from './OpenClosedSign';
 import { MapPin, Clock, Coffee, Beer, Package, RefreshCw } from 'lucide-react';
 
 interface LocationsPageProps {
@@ -25,7 +26,8 @@ export const LocationsPage: React.FC<LocationsPageProps> = ({ viewMode }) => {
 
                 {/* Info Card */}
                 <div className={`mt-8 p-8 border-2 ${isRetro ? 'border-brand-black bg-white shadow-retro' : 'border-gray-200 rounded-xl bg-gray-50'}`}>
-                    <div className="flex items-start gap-4 mb-6">
+                    <div className="flex items-start justify-between gap-4 mb-6">
+                        <div className="flex items-start gap-4">
                         <MapPin className="text-brand-orange mt-1" size={24} />
                         <div>
                             <h3 className="font-bold text-lg mb-1">Spiral Groove Records</h3>
@@ -33,15 +35,17 @@ export const LocationsPage: React.FC<LocationsPageProps> = ({ viewMode }) => {
                             <p className="text-gray-600">Milford, OH 45150</p>
                             <a href="https://maps.app.goo.gl/3qbvhV6uKQ1rs2ko7" target="_blank" rel="noreferrer" className="text-xs font-bold text-brand-orange uppercase tracking-wider mt-2 inline-block hover:underline">Open in Maps</a>
                         </div>
+                        </div>
+                        <OpenClosedSign retro={isRetro} />
                     </div>
                     <div className="flex items-start gap-4">
                         <Clock className="text-brand-teal mt-1" size={24} />
                         <div>
                             <h3 className="font-bold text-lg mb-1">Hours</h3>
                             <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm text-gray-600 font-medium">
-                                <span>Mon - Thu</span> <span>12 - 8</span>
-                                <span>Fri & Sat</span> <span>12 - 9</span>
-                                <span>Sunday</span> <span>12 - 5</span>
+                                <span>Mon - Thu</span> <span>12pm - 8pm</span>
+                                <span>Fri & Sat</span> <span>12pm - 9pm</span>
+                                <span>Sunday</span> <span>12pm - 5pm</span>
                             </div>
                         </div>
                     </div>

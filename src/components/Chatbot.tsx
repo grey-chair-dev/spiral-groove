@@ -38,7 +38,7 @@ const getBotResponse = (message: string): string => {
   if (lowerMessage.includes('hour') || lowerMessage.includes('open') || lowerMessage.includes('close')) {
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
     const hours = STORE_INFO.hours[today as keyof typeof STORE_INFO.hours] || STORE_INFO.hours.monday;
-    return `We're open ${hours} today! Our regular hours are:\n\nMon-Thu: 12-8\nFri & Sat: 12-9\nSunday: 12-5`;
+    return `We're open ${hours} today! Our regular hours are:\n\nMon-Thu: 12pm-8pm\nFri & Sat: 12pm-9pm\nSunday: 12pm-5pm`;
   }
 
   // Location/Address

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { featureFlags, siteConfig } from '../config'
 import type { Product } from '../dataAdapter'
 import { moneyFormatter } from '../formatters'
+import { OpenClosedSign } from '../components/OpenClosedSign'
 
 type ConnectionMode = 'live' | 'snapshot' | 'mock' | 'offline'
 
@@ -174,14 +175,15 @@ export function HomePage({
       >
         {/* Mobile: Hours and CTA */}
         <div className="sm:hidden space-y-3 mb-4">
-          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-            <div>
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="min-w-0 flex-1">
               <p className="text-xs text-slate-400 uppercase tracking-[0.2em]">Store Hours</p>
               <p className="text-sm font-semibold text-white mt-1">{siteConfig.contact.hours}</p>
+              <OpenClosedSign compact className="mt-2" />
             </div>
             <button
               onClick={() => navigate('/catalog')}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-brand hover:bg-primary/80 min-h-[44px] whitespace-nowrap"
+              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-brand hover:bg-primary/80 min-h-[44px] whitespace-nowrap shrink-0"
             >
               {siteConfig.hero.primaryCta}
             </button>

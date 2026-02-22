@@ -325,5 +325,9 @@ html.neon-cursor-on * {
   .neon-cursor-ring.is-visible::before {
     animation: none;
   }
+
+  .neon-pulse {
+    animation: none;
+  }
 }
 
