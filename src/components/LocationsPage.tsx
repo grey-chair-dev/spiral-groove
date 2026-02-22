@@ -21,7 +21,7 @@ export const LocationsPage: React.FC<LocationsPageProps> = ({ viewMode }) => {
              <div>
                 <div>
                     <h1 className={`font-display text-5xl md:text-6xl mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Visit Us</h1>
-                    <p className="text-xl text-gray-600 font-medium">The mothership. Come say hi, grab a coffee, and dig.</p>
+                    <p className="text-xl text-gray-600 font-medium">Your Cincinnati-area record store in Ohio. The mothership in Milford—come say hi, grab a coffee, and dig.</p>
                 </div>
 
                 {/* Info Card */}

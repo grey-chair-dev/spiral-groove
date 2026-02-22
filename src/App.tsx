@@ -580,7 +580,7 @@ function App() {
   // Helper function to get page title for analytics
   const getPageTitle = (page: Page): string => {
     const titles: Record<Page, string> = {
-      'home': 'Home - Spiral Groove Records',
+      'home': 'Spiral Groove Records | Record Store Ohio & Cincinnati',
       'events': 'Events - Spiral Groove Records',
       'about': 'About - Spiral Groove Records',
       'locations': 'Locations - Spiral Groove Records',
