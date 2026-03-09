@@ -40,6 +40,16 @@ async function ensureStateTable() {
   `)
 }
 
+/** Create indexes on products used by sync (idempotent). Speeds UPDATE ... FROM image_mapping WHERE square_image_id = im.image_id. */
+async function ensureProductsIndexes() {
+  await query(`
+    CREATE INDEX IF NOT EXISTS idx_products_square_image_id
+    ON products (square_image_id)
+    WHERE square_image_id IS NOT NULL
+  `)
+  await query(`ANALYZE products`)
+}
+
 async function getState(key) {
   const r = await query(`SELECT value FROM catalog_sync_state WHERE key = $1 LIMIT 1`, [key])
   return r.rows?.[0]?.value ?? null
@@ -476,8 +486,13 @@ async function syncCatalogPages({ cursorStart }) {
     total += Number(row.total_upserted || 0)
 
     if (batchRelated.length) {
-      const upd = await query(UPDATE_IMAGES_SQL, [JSON.stringify(batchRelated)])
-      imageUpdatedRows += Number(upd.rowCount || 0)
+      // Chunk image updates so each query stays under ~1s (index on products.square_image_id + small batches)
+      const IMAGE_BATCH_SIZE = Math.max(1, Math.min(500, parseInt(process.env.CATALOG_SYNC_IMAGE_BATCH_SIZE || '120', 10)))
+      for (let i = 0; i < batchRelated.length; i += IMAGE_BATCH_SIZE) {
+        const chunk = batchRelated.slice(i, i + IMAGE_BATCH_SIZE)
+        const upd = await query(UPDATE_IMAGES_SQL, [JSON.stringify(chunk)])
+        imageUpdatedRows += Number(upd.rowCount || 0)
+      }
     }
 
     // Inventory refresh for variations included in this batch.
@@ -573,6 +588,7 @@ export async function webHandler(request) {
 
   try {
     await ensureStateTable()
+    await ensureProductsIndexes()
 
     // Daily reset
     const today = utcDateStr()

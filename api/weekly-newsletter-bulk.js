@@ -258,46 +258,45 @@ export async function webHandler(request) {
     console.log(`  ✗ Errors: ${errorCount}`)
     console.log(`  ⏱️  Duration: ${Math.round(durationMs / 1000)}s`)
     
-    // Send summary to Slack
-    try {
-      const { sendSlackAlert } = await import('./slackAlerts.js')
-      const durationSeconds = Math.round(durationMs / 1000)
-      const successRate = subscribers.length > 0 
-        ? Math.round((successCount / subscribers.length) * 100) 
-        : 0
-      
-      await sendSlackAlert({
-        statusCode: errorCount === 0 ? 200 : 207, // 207 = Multi-Status (partial success)
-        endpoint: '/api/weekly-newsletter-bulk',
-        method: 'GET',
-        context: {
-          newsletterSend: true,
-          totalSubscribers: subscribers.length,
-          successCount,
-          errorCount,
-          successRate: `${successRate}%`,
-          durationSeconds,
-          durationMs,
-        },
-        error: errorCount > 0 
-          ? `Weekly newsletter sent with ${errorCount} errors`
-          : `Weekly newsletter sent successfully to ${successCount} subscribers`,
-        dedupeKey: `weekly_newsletter:${new Date().toISOString().split('T')[0]}`,
-        dedupeTtlMs: 24 * 60 * 60 * 1000, // 24 hours
-        metadata: {
-          summary: {
+    // Alert only on partial or total failure (avoid success notifications appearing as "errors" in monitoring)
+    if (errorCount > 0) {
+      try {
+        const { sendSlackAlert } = await import('./slackAlerts.js')
+        const durationSeconds = Math.round(durationMs / 1000)
+        const successRate = subscribers.length > 0
+          ? Math.round((successCount / subscribers.length) * 100)
+          : 0
+        await sendSlackAlert({
+          statusCode: successCount > 0 ? 207 : 500, // 207 = partial success, 500 = total failure
+          endpoint: '/api/weekly-newsletter-bulk',
+          method: 'GET',
+          context: {
+            newsletterSend: true,
             totalSubscribers: subscribers.length,
             successCount,
             errorCount,
+            successRate: `${successRate}%`,
             durationSeconds,
             durationMs,
-            successRate: `${successRate}%`,
           },
-          errors: errors.length > 0 ? errors.slice(0, 5) : undefined, // First 5 errors
-        },
-      })
-    } catch (slackError) {
-      console.warn('[Weekly Newsletter Bulk] Failed to send Slack alert:', slackError.message)
+          error: `Weekly newsletter: ${errorCount} failed of ${subscribers.length} subscribers`,
+          dedupeKey: `weekly_newsletter_errors:${new Date().toISOString().split('T')[0]}`,
+          dedupeTtlMs: 24 * 60 * 60 * 1000,
+          metadata: {
+            summary: {
+              totalSubscribers: subscribers.length,
+              successCount,
+              errorCount,
+              durationSeconds,
+              durationMs,
+              successRate: `${successRate}%`,
+            },
+            errors: errors.slice(0, 10),
+          },
+        })
+      } catch (slackError) {
+        console.warn('[Weekly Newsletter Bulk] Failed to send Slack alert:', slackError.message)
+      }
     }
     
     return new Response(

@@ -179,7 +179,7 @@ export async function query(text, params) {
     return result
   } catch (error) {
     const totalMs = Date.now() - startTotal
-    console.error('[DB] Query error', { text: text.substring(0, 50), duration, error: error.message })
+    console.error('[DB] Query error', { text: text.substring(0, 50), durationMs: totalMs, error: error.message })
 
     // Enhanced alert with performance and context
     const { sendSlackAlert } = await import('./slackAlerts.js')
