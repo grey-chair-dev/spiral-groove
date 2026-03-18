@@ -88,19 +88,11 @@ export const LocationsPage: React.FC<LocationsPageProps> = ({ viewMode }) => {
                       <ul className="space-y-3 text-sm text-gray-600">
                          <li className="flex items-start gap-2">
                             <span className="font-bold text-brand-black">•</span>
-                            <span><strong>Vintage Vinyl:</strong> 48 hours after purchase.</span>
+                            <span><strong>1 week returns</strong> from date of purchase.</span>
                          </li>
                          <li className="flex items-start gap-2">
                             <span className="font-bold text-brand-black">•</span>
-                            <span><strong>New Vinyl:</strong> 30 days — sealed exchange for full value; if opened, 50% value returned.</span>
-                         </li>
-                         <li className="flex items-start gap-2">
-                            <span className="font-bold text-brand-black">•</span>
-                            <span><strong>Equipment:</strong> sealed, still in box — $15 restocking fee on return.</span>
-                         </li>
-                         <li className="flex items-start gap-2">
-                            <span className="font-bold text-brand-black">•</span>
-                            <span>$5 restocking fee on all new returns.</span>
+                            <span>Contact us for exchanges or refunds.</span>
                          </li>
                          <li className="flex items-start gap-2">
                             <span className="font-bold text-brand-black">•</span>

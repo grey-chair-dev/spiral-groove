@@ -190,6 +190,10 @@ export const CartPage: React.FC<CartPageProps> = ({
                                 <span className="opacity-70">Subtotal</span>
                                 <span>${subtotal.toFixed(2)}</span>
                             </div>
+                            <div className="flex justify-between text-xs opacity-60">
+                                <span>Shipping</span>
+                                <span>Calculated at checkout</span>
+                            </div>
                             <div className="flex justify-between">
                                 <span className="opacity-70">Estimated Tax</span>
                                 <span>${tax.toFixed(2)}</span>

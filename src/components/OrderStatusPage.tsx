@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ViewMode, Page, Order } from '../../types';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
-import { Search, Package, Loader2, CheckCircle2, AlertCircle, MapPin, Clock } from 'lucide-react';
+import { Search, Package, Loader2, CheckCircle2, AlertCircle, MapPin, Clock, Truck, ExternalLink } from 'lucide-react';
 import { mapOrderStatus } from '../utils/orderStatus';
 
 interface OrderStatusPageProps {
@@ -75,21 +75,33 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
             if (onPersistLookup && (resolvedOrderNumber || resolvedEmail)) {
               onPersistLookup({ id: resolvedOrderNumber, email: resolvedEmail });
             }
+            const pickupDetails = apiOrder.pickup_details || {};
+            const hasShippingAddress = !!(pickupDetails.address && (pickupDetails.city || pickupDetails.zipCode));
+            const isDelivery =
+              (pickupDetails.deliveryMethod === 'delivery') ||
+              (apiOrder.delivery_method === 'delivery') ||
+              (hasShippingAddress && pickupDetails.deliveryMethod !== 'pickup' && apiOrder.delivery_method !== 'pickup');
+            const shippingAddressFormatted = isDelivery && (pickupDetails.address || pickupDetails.city)
+              ? [pickupDetails.address, [pickupDetails.city, pickupDetails.state, pickupDetails.zipCode].filter(Boolean).join(', ')].filter(Boolean).join(', ')
+              : undefined;
             const uiOrder: Order = {
                 id: apiOrder.order_number || apiOrder.id,
                 date: new Date(apiOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                // Store the canonical DB status so the UI can reflect it accurately (PROPOSED/RESERVED/PREPARED/COMPLETED/CANCELED).
                 status: normalizedDbStatus || mapOrderStatus(apiOrder.status),
                 total: apiOrder.total_cents / 100,
-                subtotal: apiOrder.total_cents / 100, // API might not return subtotal separate yet, using total for now
-                tax: 0, // Calculated on frontend or needs to be stored
+                subtotal: apiOrder.total_cents / 100,
+                tax: 0,
                 items: apiItems.map((item: any) => ({
                     title: item.name,
-                    artist: 'Unknown', // Backend might not store artist for ad-hoc items
+                    artist: 'Unknown',
                     format: item.quantity && Number(item.quantity) > 1 ? `x${Number(item.quantity)}` : 'LP',
                     price: Number(item.price) || 0,
                 })),
-                location: 'Milford Shop'
+                location: isDelivery ? 'Shipping' : 'Milford Shop',
+                deliveryMethod: isDelivery ? 'delivery' : 'pickup',
+                shippingAddress: shippingAddressFormatted,
+                trackingNumber: pickupDetails.trackingNumber || undefined,
+                trackingUrl: pickupDetails.trackingUrl || undefined,
             };
             setResult(uiOrder);
         } else {
@@ -217,6 +229,9 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
 
                         const stepActive = (idx: number) => !isCanceled && progressIndex >= idx;
                         const barWidth = isCanceled ? 0 : `${(progressIndex / 3) * 100}%`;
+                        const isDeliveryOrder = result.deliveryMethod === 'delivery';
+                        const lastStepLabel = isDeliveryOrder ? 'Delivered' : 'Picked Up';
+                        const thirdStepLabel = isDeliveryOrder ? 'Shipped' : 'Ready';
 
                         return (
                           <>
@@ -258,13 +273,13 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${stepActive(2) ? 'bg-brand-teal text-white' : 'bg-gray-200 text-gray-400'}`}>
                                   <CheckCircle2 size={16} />
                                 </div>
-                                <span className={`text-[10px] font-bold uppercase tracking-wider ${stepActive(2) ? '' : 'text-gray-400'}`}>Ready</span>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider ${stepActive(2) ? '' : 'text-gray-400'}`}>{thirdStepLabel}</span>
                             </div>
                             <div className="flex flex-col items-center gap-2">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${stepActive(3) ? 'bg-brand-teal text-white' : 'bg-gray-200 text-gray-400'}`}>
                                   <CheckCircle2 size={16} />
                                 </div>
-                                <span className={`text-[10px] font-bold uppercase tracking-wider ${stepActive(3) ? '' : 'text-gray-400'}`}>Picked Up</span>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider ${stepActive(3) ? '' : 'text-gray-400'}`}>{lastStepLabel}</span>
                             </div>
                         </div>
                     </div>
@@ -284,6 +299,46 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                 ))}
                             </ul>
                         </div>
+                        {result.deliveryMethod === 'delivery' ? (
+                          <div className="space-y-6">
+                            <div>
+                              <h4 className="font-bold text-sm uppercase tracking-widest mb-4 opacity-60">Shipping Address</h4>
+                              <div className="flex items-start gap-3">
+                                <Truck className="text-brand-teal flex-shrink-0" size={20} />
+                                <div>
+                                  <p className="text-sm font-medium">{result.shippingAddress || 'Address on file'}</p>
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-sm uppercase tracking-widest mb-4 opacity-60">Tracking</h4>
+                              <div className="flex items-start gap-3">
+                                <Package className="text-brand-orange flex-shrink-0" size={20} />
+                                <div className="min-w-0">
+                                  {result.trackingNumber || result.trackingUrl ? (
+                                    <>
+                                      {result.trackingNumber && (
+                                        <p className="text-sm font-mono font-medium break-all">{result.trackingNumber}</p>
+                                      )}
+                                      {result.trackingUrl && (
+                                        <a
+                                          href={result.trackingUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1 text-sm font-bold text-brand-orange hover:underline mt-1"
+                                        >
+                                          Track package <ExternalLink size={14} />
+                                        </a>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <p className="text-sm text-gray-500">We&apos;ll email you tracking when your order ships.</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
                         <div>
                              <h4 className="font-bold text-sm uppercase tracking-widest mb-4 opacity-60">Pickup Location</h4>
                              <div className="flex items-start gap-3">
@@ -296,6 +351,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                 </div>
                              </div>
                         </div>
+                        )}
                     </div>
 
                     <div className="text-center">

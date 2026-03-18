@@ -59,6 +59,10 @@ export type SiteConfig = {
     location: string
     hours: string
   }
+  /** Fixed shipping fee in USD when delivery is selected (MVP). */
+  shippingFee: number
+  /** Order subtotal in USD at or above which shipping is free (0 = no free shipping). */
+  freeShippingThreshold: number
   legal: {
     privacyUrl: string
     termsUrl: string
@@ -108,6 +112,8 @@ export const siteConfig: SiteConfig = {
     location: '215B Main Street, Milford, OH 45150',
     hours: 'Mon–Thu 12pm–8pm · Fri & Sat 12pm–9pm · Sun 12pm–5pm',
   },
+  shippingFee: Number(import.meta.env.VITE_SHIPPING_FEE ?? '10') || 10,
+  freeShippingThreshold: Number(import.meta.env.VITE_FREE_SHIPPING_THRESHOLD ?? '0') || 0,
   legal: {
     privacyUrl: 'https://www.spiralgrooverecords.com/privacy',
     termsUrl: 'https://www.spiralgrooverecords.com/terms',

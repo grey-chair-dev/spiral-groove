@@ -1,11 +1,13 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { CartItem, ViewMode } from '../../types';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
-import { ArrowLeft, Lock, CreditCard, Store, MapPin } from 'lucide-react';
+import { ArrowLeft, Lock, MapPin, Truck, Store } from 'lucide-react';
 import { loadSquareSdk } from '../utils/loadSquareSdk';
 import { initializeSquarePayments, generatePaymentToken, processPayment, SquarePayments, SquareCard } from '../services/squarePayment';
+import { siteConfig } from '../config';
+
+type DeliveryMethod = 'delivery' | 'pickup';
 
 interface CheckoutPageProps {
   cartItems: CartItem[];
@@ -21,6 +23,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onPlaceOrder
 }) => {
   const isRetro = viewMode === 'retro';
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup');
+  const [shippingAddress, setShippingAddress] = useState({ address: '', city: '', state: '', zipCode: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   const [squarePayments, setSquarePayments] = useState<SquarePayments | null>(null);
   const [cardElement, setCardElement] = useState<SquareCard | null>(null);
@@ -231,21 +235,38 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     const price = item.product.salePrice || item.product.price;
     return sum + (price * item.quantity);
   }, 0);
-  
-  const tax = subtotal * 0.07;
-  const total = subtotal + tax;
+
+  // Match backend calculation: fixed fee unless order meets free-shipping threshold
+  const shippingFee =
+    deliveryMethod === 'delivery'
+      ? (siteConfig.freeShippingThreshold > 0 && subtotal >= siteConfig.freeShippingThreshold ? 0 : siteConfig.shippingFee)
+      : 0;
+  const tax = (subtotal + shippingFee) * 0.07;
+  const total = subtotal + shippingFee + tax;
+  const shippingCents = Math.round(shippingFee * 100);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsProcessing(true);
-    
+
     try {
         if (isCartEmpty || total <= 0) {
             throw new Error('Add items to your cart before checking out.');
         }
         if (!cardElement) {
             throw new Error('Payment form not ready');
+        }
+        if (deliveryMethod === 'delivery') {
+            const { address, city, state, zipCode } = shippingAddress;
+            if (!address?.trim() || !city?.trim() || !state?.trim() || !zipCode?.trim()) {
+                throw new Error('Please enter your full shipping address.');
+            }
+            // Domestic (US) only: ZIP must be 5 digits or ZIP+4
+            const usZip = /^\d{5}(-\d{4})?$/.test(String(zipCode).trim());
+            if (!usZip) {
+                throw new Error('Domestic (US) shipping only. Please enter a valid US ZIP code (e.g. 45150 or 45150-1234).');
+            }
         }
 
         // 1. Get Token from Square
@@ -265,19 +286,27 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         const phone = (formData.get('phone') as string) || '';
         const newsletterOptIn = Boolean(formData.get('newsletterOptIn'));
 
-        const pickupForm = {
+        const pickupForm: Record<string, unknown> = {
             firstName,
             lastName,
             email,
-            phone
+            phone,
+            deliveryMethod,
         };
+        if (deliveryMethod === 'delivery') {
+            pickupForm.address = shippingAddress.address;
+            pickupForm.city = shippingAddress.city;
+            pickupForm.state = shippingAddress.state;
+            pickupForm.zipCode = shippingAddress.zipCode;
+        }
 
-        // 3. Process Payment on Backend
+        // 3. Process Payment on Backend (amount from Square order = subtotal + tax + shipping when delivery)
         const result = await processPayment(
             tokenResult.token,
-            Math.round(total * 100), // Amount in cents
+            Math.round(total * 100),
             {
                 pickupForm,
+                shippingCents,
                 cartItems: cartItems.map(item => ({
                     id: item.product.id,
                     name: item.product.title,
@@ -316,12 +345,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
             onPlaceOrder({
                 ...pickupForm,
-                deliveryMethod: 'pickup',
+                email,
+                deliveryMethod,
                 subtotal: finalSubtotal,
                 tax: finalTax,
                 total: finalTotal,
-                shippingCost: 0,
-                orderNumber: result.orderId // Pass back the real order ID/Number
+                shipping: shippingFee,
+                shippingCost: shippingFee,
+                orderNumber: result.orderId
             });
         } else {
             throw new Error(result.error || 'Payment failed');
@@ -447,7 +478,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                            </div>
                        </div>
 
-                       {/* 2. Delivery Method */}
+                       {/* 2. Delivery or Pickup */}
                        <div className={`p-6 md:p-8 relative
                            ${isRetro 
                             ? 'bg-white border-2 border-brand-black shadow-retro' 
@@ -457,19 +488,110 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2
                                    ${isRetro ? 'bg-brand-black text-white border-brand-black' : 'bg-black text-white border-black'}
                                `}>2</span>
-                               Pickup Details
+                               Delivery or Pickup
                            </h2>
-                           
-                           <div className={`p-4 text-sm flex items-start gap-3
-                               ${isRetro ? 'bg-brand-teal/10 border-2 border-brand-teal' : 'bg-gray-50 rounded-lg border border-gray-200'}
-                           `}>
-                               <MapPin className="text-brand-teal flex-shrink-0" size={20} />
-                               <div>
-                                   <p className="font-bold mb-1">Pickup Location:</p>
-                                   <p>215B Main Street, Milford, OH, United States, 45150</p>
-                                   <p className="mt-2 text-xs opacity-70">Bring your ID and order confirmation when you arrive.</p>
-                               </div>
+
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                               <button
+                                 type="button"
+                                 onClick={() => setDeliveryMethod('delivery')}
+                                 className={`p-4 text-left rounded-xl border-2 transition flex items-start gap-3
+                                   ${deliveryMethod === 'delivery'
+                                     ? isRetro ? 'border-brand-black bg-brand-teal/10' : 'border-black bg-gray-50'
+                                     : isRetro ? 'border-brand-black/30 hover:border-brand-teal' : 'border-gray-200 hover:border-gray-300'}
+                                 `}
+                               >
+                                 <Truck className={deliveryMethod === 'delivery' ? 'text-brand-teal' : 'text-gray-400'} size={24} />
+                                 <div>
+                                   <p className="font-bold">Delivery</p>
+                                   <p className="text-sm opacity-70">
+                                   {siteConfig.freeShippingThreshold > 0
+                                     ? `Ship to my address ($${siteConfig.shippingFee.toFixed(2)} or free over $${siteConfig.freeShippingThreshold.toFixed(0)})`
+                                     : `Ship to my address ($${siteConfig.shippingFee.toFixed(2)} shipping)`}
+                                 </p>
+                                 </div>
+                               </button>
+                               <button
+                                 type="button"
+                                 onClick={() => setDeliveryMethod('pickup')}
+                                 className={`p-4 text-left rounded-xl border-2 transition flex items-start gap-3
+                                   ${deliveryMethod === 'pickup'
+                                     ? isRetro ? 'border-brand-black bg-brand-teal/10' : 'border-black bg-gray-50'
+                                     : isRetro ? 'border-brand-black/30 hover:border-brand-teal' : 'border-gray-200 hover:border-gray-300'}
+                                 `}
+                               >
+                                 <Store className={deliveryMethod === 'pickup' ? 'text-brand-teal' : 'text-gray-400'} size={24} />
+                                 <div>
+                                   <p className="font-bold">Pickup</p>
+                                   <p className="text-sm opacity-70">Pick up at the shop (free)</p>
+                                 </div>
+                               </button>
                            </div>
+
+                           {deliveryMethod === 'pickup' && (
+                             <div className={`p-4 text-sm flex items-start gap-3
+                                 ${isRetro ? 'bg-brand-teal/10 border-2 border-brand-teal' : 'bg-gray-50 rounded-lg border border-gray-200'}
+                             `}>
+                                 <MapPin className="text-brand-teal flex-shrink-0" size={20} />
+                                 <div>
+                                     <p className="font-bold mb-1">Pickup Location</p>
+                                     <p>{siteConfig.contact.location}</p>
+                                     <p className="mt-2 text-xs opacity-70">Bring your ID and order confirmation when you arrive.</p>
+                                 </div>
+                             </div>
+                           )}
+
+                           {deliveryMethod === 'delivery' && (
+                             <div className="space-y-4">
+                               <p className="text-sm opacity-70">Domestic (US) shipping only. Material &amp; media shipping.</p>
+                               <input
+                                 name="address"
+                                 type="text"
+                                 placeholder="Street address"
+                                 required={deliveryMethod === 'delivery'}
+                                 value={shippingAddress.address}
+                                 onChange={(e) => setShippingAddress(prev => ({ ...prev, address: e.target.value }))}
+                                 className={`w-full p-4 font-medium focus:outline-none transition-all
+                                     ${isRetro ? 'bg-brand-cream border-2 border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' : 'bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
+                                 `}
+                               />
+                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                 <input
+                                   name="city"
+                                   type="text"
+                                   placeholder="City"
+                                   required={deliveryMethod === 'delivery'}
+                                   value={shippingAddress.city}
+                                   onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
+                                   className={`w-full p-4 font-medium focus:outline-none transition-all sm:col-span-2
+                                       ${isRetro ? 'bg-brand-cream border-2 border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' : 'bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
+                                   `}
+                                 />
+                                 <input
+                                   name="state"
+                                   type="text"
+                                   placeholder="State"
+                                   required={deliveryMethod === 'delivery'}
+                                   value={shippingAddress.state}
+                                   onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
+                                   className={`w-full p-4 font-medium focus:outline-none transition-all
+                                       ${isRetro ? 'bg-brand-cream border-2 border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' : 'bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
+                                   `}
+                                 />
+                               </div>
+                               <input
+                                 name="zipCode"
+                                 type="text"
+                                 placeholder="ZIP code"
+                                 required={deliveryMethod === 'delivery'}
+                                 value={shippingAddress.zipCode}
+                                 onChange={(e) => setShippingAddress(prev => ({ ...prev, zipCode: e.target.value }))}
+                                 className={`w-full p-4 font-medium focus:outline-none transition-all max-w-[140px]
+                                     ${isRetro ? 'bg-brand-cream border-2 border-brand-black focus:shadow-pop-sm placeholder-brand-black/30' : 'bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-black focus:ring-1 focus:ring-black'}
+                                 `}
+                               />
+                             </div>
+                           )}
                        </div>
 
                        {/* 3. Payment */}
@@ -558,6 +680,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                 <span className="opacity-70">Subtotal</span>
                                 <span>${subtotal.toFixed(2)}</span>
                             </div>
+                            {deliveryMethod === 'delivery' && (
+                              <div className="flex justify-between">
+                                <span className="opacity-70">Shipping</span>
+                                <span>${shippingFee.toFixed(2)}</span>
+                              </div>
+                            )}
                             <div className="flex justify-between">
                                 <span className="opacity-70">Estimated Tax</span>
                                 <span>${tax.toFixed(2)}</span>

@@ -57,6 +57,7 @@ export async function webHandler(request) {
         o.total_cents,
         o.status,
         o.pickup_details,
+        o.delivery_method,
         o.created_at,
         o.updated_at
       FROM orders o
@@ -84,16 +85,25 @@ export async function webHandler(request) {
     const result = await query(sql, params)
 
     // Normalize response: ensure pickup_details + items are consistently shaped.
+    // Use delivery_method column as fallback when pickup_details.deliveryMethod is missing (e.g. before migration).
     const orders = (result.rows || []).map((row) => {
       const pickup = row.pickup_details && typeof row.pickup_details === 'string'
         ? (() => { try { return JSON.parse(row.pickup_details) } catch { return {} } })()
         : (row.pickup_details || {})
 
       const items = Array.isArray(pickup?.items) ? pickup.items : []
+      // Support camelCase (from frontend) and snake_case (from some DB/JSON)
+      const fromPickup = pickup?.deliveryMethod ?? pickup?.delivery_method
+      const fromRow = row.delivery_method
+      const hasShippingAddress = !!(pickup?.address && (pickup?.city || pickup?.zipCode))
+      let deliveryMethod = fromPickup || fromRow
+      if (!deliveryMethod && hasShippingAddress) deliveryMethod = 'delivery'
+      if (!deliveryMethod) deliveryMethod = 'pickup'
 
       return {
         ...row,
-        pickup_details: pickup,
+        pickup_details: { ...pickup, deliveryMethod },
+        delivery_method: deliveryMethod,
         items,
         customer_email: pickup?.email || null,
         customer_phone: pickup?.phone || null,
