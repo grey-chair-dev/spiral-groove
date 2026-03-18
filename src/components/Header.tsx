@@ -277,7 +277,7 @@ export const Header: React.FC<HeaderProps> = ({
         
         {/* 1. Announcement Bar */}
         <div className="w-full py-2.5 bg-brand-black text-white text-center text-[11px] font-bold uppercase tracking-[0.15em] relative z-[60]">
-          <span className="text-brand-orange neon-text-orange">Order Online, Pick Up In-Store</span> <span className="mx-2 opacity-30">|</span> <span className="text-brand-red cursor-pointer hover:underline hover:neon-text-pink transition-all duration-300" onClick={() => onNavigate('we-buy')}>We Buy Used Vinyl</span>
+          <span className="text-brand-orange neon-text-orange">Order Online · Pick Up or Ship</span> <span className="mx-2 opacity-30">|</span> <span className="text-brand-red cursor-pointer hover:underline hover:neon-text-pink transition-all duration-300" onClick={() => onNavigate('we-buy')}>We Buy Used Vinyl</span>
         </div>
 
         {/* 2. Main Header Container */}
