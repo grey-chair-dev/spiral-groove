@@ -56,9 +56,9 @@ const getBotResponse = (message: string): string => {
     return `Browse our catalog to see our curated selection of vinyl records, hi-fi gear, and more! You can filter by genre, format, and more. Check out our Staff Picks for recommendations!`;
   }
 
-  // Order/Shipping
-  if (lowerMessage.includes('order') || lowerMessage.includes('shipping') || lowerMessage.includes('delivery') || lowerMessage.includes('pickup')) {
-    return `We offer local pickup at our store! After placing an order, you'll receive a confirmation email. When your order is ready, we'll send you another email. Just bring a valid ID when you pick it up!`;
+  // Order/Shipping/Delivery
+  if (lowerMessage.includes('order') || lowerMessage.includes('ship') || lowerMessage.includes('shipping') || lowerMessage.includes('delivery') || lowerMessage.includes('pickup')) {
+    return `Yes! We offer pickup at our Milford store or domestic (US) shipping. Shipping is $10; choose your option at checkout. When your order is ready (pickup) or ships, you'll get an email. Questions? Email ${STORE_INFO.email} or call ${STORE_INFO.phone}.`;
   }
 
   // Returns/Refunds
