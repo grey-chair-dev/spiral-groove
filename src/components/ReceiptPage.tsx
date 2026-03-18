@@ -149,7 +149,7 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({ order, viewMode, onBac
                     <p>215B Main Street</p>
                     <p>Milford, OH 45150</p>
                     <p>(513) 600-8018</p>
-                    <p>www.spiralgroove.com</p>
+                    <p>www.spiralgrooverecords.com</p>
                  </div>
               </div>
 
@@ -206,7 +206,7 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({ order, viewMode, onBac
               <div className="text-center space-y-6 relative z-10">
                  <div className="space-y-2">
                     <p className="font-bold uppercase text-sm">Thank You for Digging!</p>
-                    <p className="text-xs opacity-70">Return Policy: Vintage Vinyl 48 hours. New Vinyl 30 days (sealed exchange; opened 50% value). Equipment sealed in box: $15 restocking fee. $5 restocking fee on all new returns.</p>
+                    <p className="text-xs opacity-70">Return Policy: 1 week from purchase. Contact us for exchanges or refunds.</p>
                  </div>
                  
                  {/* Fake Barcode */}

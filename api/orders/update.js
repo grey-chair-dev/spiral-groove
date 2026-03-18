@@ -51,7 +51,7 @@ export async function webHandler(request) {
     }
 
     const body = await request.json()
-    const { order_id, status, forceEmail } = body
+    const { order_id, status, forceEmail, trackingNumber, trackingUrl } = body
 
     if (!order_id) {
       return new Response(
@@ -125,11 +125,17 @@ export async function webHandler(request) {
     const wasComplete = prevUpper === 'COMPLETED' || prevUpper === 'PICKED_UP' || prevUpper === 'DELIVERED'
     const isComplete = nextUpper === 'COMPLETED' || nextUpper === 'PICKED_UP' || nextUpper === 'DELIVERED'
 
-    // Update the order status and fetch the updated row in one round-trip.
+    // Merge optional tracking into pickup_details (for delivery orders; shown on track-order page).
+    const mergedPickup =
+      trackingNumber != null || trackingUrl != null
+        ? { ...pickupDetails, ...(trackingNumber != null && { trackingNumber: String(trackingNumber) }), ...(trackingUrl != null && { trackingUrl: String(trackingUrl) }) }
+        : pickupDetails
+
+    // Update the order status (and pickup_details when tracking provided) and fetch the updated row.
     const updatedOrder = await query(
       `UPDATE orders
-       SET status = $1, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2
+       SET status = $1, pickup_details = $2::jsonb, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
        RETURNING
          id,
          order_number,
@@ -138,7 +144,7 @@ export async function webHandler(request) {
          total_cents,
          updated_at,
          pickup_details`,
-      [status, dbOrderId],
+      [status, JSON.stringify(mergedPickup), dbOrderId],
     )
 
     const updatedPickup =

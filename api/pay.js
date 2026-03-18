@@ -209,7 +209,8 @@ export async function webHandler(request) {
     }
 
     // Validate required fields
-    const { sourceId, idempotencyKey, cartItems, pickupForm } = requestBody
+    const { sourceId, idempotencyKey, cartItems, pickupForm, shippingCents: requestShippingCents } = requestBody
+    const deliveryMethod = pickupForm?.deliveryMethod || 'pickup'
 
     if (!sourceId) {
       const { sendSlackAlert } = await import('./slackAlerts.js')
@@ -325,6 +326,18 @@ export async function webHandler(request) {
         squareVariationId: variationId || null,
       }
     })
+
+    // Calculate shipping server-side (source of truth). Pickup = 0. Delivery = fixed fee unless order meets free-shipping threshold.
+    const subtotalCents = canonicalCartItems.reduce((sum, it) => sum + it.priceCents * it.quantity, 0)
+    const feeCents = Number(process.env.SHIPPING_FEE_CENTS)
+    const feeDollars = Number(process.env.SHIPPING_FEE || 10)
+    const rawFee = Number.isFinite(feeCents) ? feeCents : feeDollars * 100
+    const fixedShippingCents = Math.max(0, Math.round(rawFee))
+    const freeShippingThresholdCents = Math.max(0, Math.round(Number(process.env.FREE_SHIPPING_THRESHOLD_CENTS || 0)))
+    const shippingCents =
+      deliveryMethod === 'delivery'
+        ? (freeShippingThresholdCents > 0 && subtotalCents >= freeShippingThresholdCents ? 0 : fixedShippingCents)
+        : 0
 
     // 0. Handle Customer FIRST (before creating order, so we can link it)
     const email = pickupForm?.email || ''
@@ -483,7 +496,9 @@ export async function webHandler(request) {
     let squareOrderForTotals = null
     
     try {
-      // Construct canonical Square line items using server-side prices + variation IDs
+      // Construct canonical Square line items. In sandbox, use name+price only (no catalogObjectId) so
+      // test/manually-added products that exist in our DB but not in Square's sandbox catalog still work.
+      const useCatalogIds = squareEnv !== 'sandbox'
       const lineItems = canonicalCartItems.map((item) => {
         const lineItem = {
           quantity: String(item.quantity),
@@ -492,15 +507,25 @@ export async function webHandler(request) {
             currency: 'USD',
           },
         }
-
-        if (item.squareVariationId) {
+        if (useCatalogIds && item.squareVariationId) {
           lineItem.catalogObjectId = item.squareVariationId
         } else {
-          // Fallback (should be rare): ad-hoc item, still priced server-side.
-          lineItem.name = item.name
+          lineItem.name = item.name || 'Item'
         }
         return lineItem
       })
+
+      // Add shipping as a line item when delivery is selected
+      if (deliveryMethod === 'delivery' && shippingCents > 0) {
+        lineItems.push({
+          name: 'Shipping',
+          quantity: '1',
+          basePriceMoney: {
+            amount: BigInt(shippingCents),
+            currency: 'USD',
+          },
+        })
+      }
 
       const orderRequest = {
         idempotencyKey: crypto.randomUUID(),
@@ -508,7 +533,6 @@ export async function webHandler(request) {
           locationId: locationId,
           lineItems: lineItems,
           // Ensure Square computes taxes/discounts based on catalog + location settings.
-          // Without this, Square may not apply configured taxes automatically.
           pricingOptions: {
             autoApplyTaxes: true,
             autoApplyDiscounts: true,
@@ -522,20 +546,41 @@ export async function webHandler(request) {
         console.log('[Payment API] Linking order to Square customer:', squareCustomerId)
       }
 
-      // Add fulfillment info if pickup
+      // Fulfillment: SHIP with address when delivery, else PICKUP
       if (pickupForm) {
-        orderRequest.order.fulfillments = [{
-          type: 'PICKUP',
-          state: 'PROPOSED',
-          pickupDetails: {
-            recipient: {
-              displayName: `${pickupForm.firstName} ${pickupForm.lastName}`,
-              emailAddress: pickupForm.email,
-              phoneNumber: pickupForm.phone,
+        if (deliveryMethod === 'delivery' && pickupForm.address && pickupForm.city && pickupForm.state && pickupForm.zipCode) {
+          orderRequest.order.fulfillments = [{
+            type: 'SHIPMENT',
+            state: 'PROPOSED',
+            shipmentDetails: {
+              recipient: {
+                displayName: `${pickupForm.firstName || ''} ${pickupForm.lastName || ''}`.trim() || 'Customer',
+                emailAddress: pickupForm.email || undefined,
+                phoneNumber: pickupForm.phone || undefined,
+                address: {
+                  addressLine1: String(pickupForm.address || '').slice(0, 500),
+                  locality: String(pickupForm.city || '').slice(0, 255),
+                  administrativeDistrictLevel1: String(pickupForm.state || '').slice(0, 255),
+                  postalCode: String(pickupForm.zipCode || '').slice(0, 20),
+                  country: 'US',
+                },
+              },
             },
-            scheduleType: 'ASAP',
-          },
-        }]
+          }]
+        } else {
+          orderRequest.order.fulfillments = [{
+            type: 'PICKUP',
+            state: 'PROPOSED',
+            pickupDetails: {
+              recipient: {
+                displayName: `${pickupForm.firstName} ${pickupForm.lastName}`,
+                emailAddress: pickupForm.email,
+                phoneNumber: pickupForm.phone,
+              },
+              scheduleType: 'ASAP',
+            },
+          }]
+        }
       }
 
       console.log('[Payment API] Creating Square Order...')
@@ -640,14 +685,16 @@ export async function webHandler(request) {
           `INSERT INTO orders (
             id,
             customer_id,
-            order_number, 
-            square_order_id, 
-            square_payment_id, 
-            total_cents, 
-            status, 
+            order_number,
+            square_order_id,
+            square_payment_id,
+            total_cents,
+            status,
             pickup_details,
+            delivery_method,
+            shipping_cents,
             created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
           [
             dbOrderId,
             customerId,
@@ -655,8 +702,10 @@ export async function webHandler(request) {
             payment.orderId || orderId,
             payment.id,
             payment.amountMoney?.amount ? Number(payment.amountMoney.amount) : 0,
-            'PROPOSED', // New order just came in (canonical initial state)
-            JSON.stringify(pickupDetailsPayload)
+            'PROPOSED',
+            JSON.stringify(pickupDetailsPayload),
+            deliveryMethod,
+            shippingCents,
           ]
         )
 
@@ -707,6 +756,11 @@ export async function webHandler(request) {
         if (email) {
           try {
             const { sendEmail } = await import('./sendEmail.js')
+            const isDelivery = pickupForm?.deliveryMethod === 'delivery'
+            const pickupLocation = '215B Main Street, Milford, OH 45150'
+            const shippingAddressFormatted = isDelivery && (pickupForm?.address || pickupForm?.city)
+              ? [pickupForm.address, [pickupForm.city, pickupForm.state, pickupForm.zipCode].filter(Boolean).join(', ')].filter(Boolean).join(', ')
+              : null
             await sendEmail({
               type: 'order_confirmation',
               to: email,
@@ -721,13 +775,16 @@ export async function webHandler(request) {
                 customerName: `${pickupForm?.firstName || ''} ${pickupForm?.lastName || ''}`.trim(),
                 customerEmail: email,
                 customerPhone: pickupForm?.phone || null,
-                items: cartItems?.map(item => ({
-                  name: item.name,
-                  quantity: item.quantity,
-                  price: Number((item.priceCents || 0) / 100) || 0,
-                })) || [],
-                deliveryMethod: 'pickup',
-                pickupLocation: '215B Main Street, Milford, OH 45150',
+                items: Array.isArray(canonicalCartItems)
+                  ? canonicalCartItems.map((item) => ({
+                      name: item.name,
+                      quantity: item.quantity,
+                      price: Number((item.priceCents || 0) / 100) || 0,
+                    }))
+                  : [],
+                deliveryMethod: isDelivery ? 'delivery' : 'pickup',
+                pickupLocation: isDelivery ? null : pickupLocation,
+                shippingAddress: shippingAddressFormatted,
               },
               dedupeKey: `order_confirmation:${orderNumber}`,
             })
@@ -842,9 +899,13 @@ export async function webHandler(request) {
       const code = squareCode
       const detail = squareDetail
 
-      const friendlyByCode = (c) => {
+      const friendlyByCode = (c, d) => {
         if (!c) return null
         const codeStr = String(c).toUpperCase()
+        const detailStr = (d && String(d)) || ''
+        if (codeStr === 'NOT_FOUND' && (detailStr.includes('nonce') || detailStr.includes('Card'))) {
+          return 'Payment form expired or already used. Please re-enter your card details and try again.'
+        }
         if (codeStr.includes('CARD_DECLINED')) return 'Your card was declined. Please try another card.'
         if (codeStr.includes('VERIFY_CVV') || codeStr.includes('CVV')) return 'The card security code (CVV) looks incorrect. Please try again.'
         if (codeStr.includes('VERIFY_AVS') || codeStr.includes('AVS')) return 'The billing address could not be verified. Please check and try again.'
@@ -855,7 +916,7 @@ export async function webHandler(request) {
         return null
       }
 
-      const friendly = friendlyByCode(code)
+      const friendly = friendlyByCode(code, detail)
       if (friendly) {
         errorMessage = friendly
       } else if (detail) {

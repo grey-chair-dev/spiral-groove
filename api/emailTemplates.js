@@ -331,10 +331,14 @@ export function generateOrderConfirmationEmail(data) {
     items = [],
     deliveryMethod,
     pickupLocation,
+    shippingAddress,
   } = data
-  
+
   const currencySymbol = currency === 'USD' ? '$' : ''
   const formattedTotal = `${currencySymbol}${parseFloat(total).toFixed(2)}`
+  const pickupLine = deliveryMethod === 'pickup'
+    ? escapeHtml(pickupLocation || '215B Main Street, Milford, OH 45150')
+    : (shippingAddress ? escapeHtml(shippingAddress) : 'Your order will be shipped to the address provided during checkout.')
   
   const itemsHtml = items.map(item => {
     const itemPrice = typeof item.price === 'number' ? item.price.toFixed(2) : (item.price || '0.00')
@@ -354,9 +358,6 @@ export function generateOrderConfirmationEmail(data) {
   const baseUrl = getBaseUrl()
   const safeCustomerName = escapeHtml(customerName || 'Valued Customer')
   const safeOrderNumber = escapeHtml(orderNumber || '')
-  const pickupLine = deliveryMethod === 'pickup'
-    ? escapeHtml(pickupLocation || '215B Main Street, Milford, OH 45150')
-    : 'Your order will be shipped to the address provided during checkout.'
 
   const bodyHtml = `
     <div style="text-align:center; margin-bottom: 18px;">

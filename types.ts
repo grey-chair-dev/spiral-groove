@@ -81,6 +81,18 @@ export interface Order {
   location: string;
   subtotal: number;
   tax: number;
+  /** Shipping cost in USD when delivery was selected */
+  shipping?: number;
+  /** Formatted shipping address when delivery was selected */
+  shippingAddress?: string;
+  /** Whether order is pickup or delivery */
+  deliveryMethod?: 'pickup' | 'delivery';
+  /** Carrier tracking number when shipped (delivery orders) */
+  trackingNumber?: string;
+  /** Link to carrier tracking page (delivery orders) */
+  trackingUrl?: string;
+  /** Payment method used for the order */
+  paymentMethod?: string;
 }
 
 export type ViewMode = 'retro' | 'modern';

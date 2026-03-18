@@ -845,7 +845,11 @@ function App() {
       details?.orderId ||
       `#ORD-${Math.floor(Math.random() * 10000) + 2024}`;
 
-    // Generate Mock Order Object for Confirmation Page (if used)
+    const isDelivery = details.deliveryMethod === 'delivery';
+    const shippingAddressFormatted = isDelivery && (details.address || details.city)
+      ? [details.address, [details.city, details.state, details.zipCode].filter(Boolean).join(', ')].filter(Boolean).join(', ')
+      : undefined;
+
     const newOrder: Order = {
         id: effectiveOrderId,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -859,8 +863,16 @@ function App() {
             format: item.product.format,
             price: item.product.salePrice || item.product.price
         })),
-        location: details.deliveryMethod === 'pickup' ? 'Milford Shop' : 'Shipping Address'
-    };
+        location: details.deliveryMethod === 'pickup' ? 'Milford Shop' : 'Shipping Address',
+        shipping: details.shipping != null ? details.shipping : (details.shippingCost ?? 0),
+        shippingAddress: shippingAddressFormatted,
+        deliveryMethod: details.deliveryMethod,
+        paymentMethod: details.paymentMethod,
+      };
+      if (details.deliveryMethod === 'delivery') {
+        newOrder.trackingNumber = details.trackingNumber;
+        newOrder.trackingUrl = details.trackingUrl;
+      }
 
     // Track purchase
     trackPurchase({

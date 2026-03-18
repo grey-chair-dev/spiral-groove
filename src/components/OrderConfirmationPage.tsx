@@ -64,6 +64,9 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
                     <div>
                          <span className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Total Paid</span>
                          <span className="font-header font-extrabold tabular-nums text-2xl">${order.total.toFixed(2)}</span>
+                         {(order.shipping ?? 0) > 0 && (
+                           <p className="text-xs text-gray-500 mt-1">Includes ${order.shipping!.toFixed(2)} shipping</p>
+                         )}
                     </div>
                     <div>
                          <span className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Date</span>
@@ -88,7 +91,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
                             ) : (
                                 <>
                                    <p className="font-bold text-black mb-1">Shipping Address</p>
-                                   <p>{order.location}</p>
+                                   <p>{order.shippingAddress || order.location}</p>
                                    <p className="mt-2 text-xs text-gray-400">Via USPS Media Mail</p>
                                 </>
                             )}

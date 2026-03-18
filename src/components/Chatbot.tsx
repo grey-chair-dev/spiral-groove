@@ -63,7 +63,7 @@ const getBotResponse = (message: string): string => {
 
   // Returns/Refunds
   if (lowerMessage.includes('return') || lowerMessage.includes('refund') || lowerMessage.includes('exchange')) {
-    return `For returns or exchanges, please contact us at ${STORE_INFO.email} or call ${STORE_INFO.phone}. We're happy to help!`;
+    return `We offer 1 week returns from purchase. For returns or exchanges, contact us at ${STORE_INFO.email} or call ${STORE_INFO.phone}. We're happy to help!`;
   }
 
   // Events
