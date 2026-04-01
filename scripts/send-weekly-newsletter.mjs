@@ -119,7 +119,14 @@ async function getNewsletterSubscribers() {
 
 async function sendWeeklyNewsletter() {
   console.log('[Weekly Newsletter] Starting weekly newsletter send...')
-  
+
+  const { evaluateSubscriptionFlag } = await import('../api/flags/evaluateSubscription.js')
+  const subscriptionOn = await evaluateSubscriptionFlag(null)
+  if (!subscriptionOn) {
+    console.log('[Weekly Newsletter] Skipped: Vercel flag `subscription` is off (enable in Vercel Flags to send).')
+    return
+  }
+
   const subscribers = await getNewsletterSubscribers()
   console.log(`[Weekly Newsletter] Found ${subscribers.length} subscribers`)
   

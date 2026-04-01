@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageCircle, X, Send, Clock, MapPin, Phone, Mail } from 'lucide-react';
+import { MessageCircle, X, Send } from 'lucide-react';
+import { fetchSubscriptionFlag } from '../lib/featureFlags';
 
 interface Message {
   id: string;
@@ -24,14 +25,14 @@ const STORE_INFO = {
   },
 };
 
-const QUICK_REPLIES = [
+const QUICK_REPLIES_BASE = [
   { text: 'Store Hours', keyword: 'hours' },
   { text: 'Location', keyword: 'location' },
   { text: 'Contact', keyword: 'contact' },
   { text: 'Products', keyword: 'products' },
 ];
 
-const getBotResponse = (message: string): string => {
+const getBotResponse = (message: string, subscriptionEnabled: boolean): string => {
   const lowerMessage = message.toLowerCase().trim();
 
   // Store hours
@@ -71,6 +72,20 @@ const getBotResponse = (message: string): string => {
     return `Check out our Events page to see upcoming shows, listening parties, and special events at the store!`;
   }
 
+  // Newsletter / mailing list (gated by Vercel `subscription` flag)
+  if (
+    subscriptionEnabled &&
+    (lowerMessage.includes('newsletter') ||
+      lowerMessage.includes('subscribe') ||
+      lowerMessage.includes('subscription') ||
+      lowerMessage.includes('mailing list') ||
+      lowerMessage.includes('email list') ||
+      lowerMessage.includes('email updates') ||
+      lowerMessage.includes('sign up for email'))
+  ) {
+    return `You can join our weekly email list at the bottom of any page — look for "Stay in the Groove" and add your email. You'll get new arrivals, events, and staff picks. Unsubscribe anytime from any email.`;
+  }
+
   // Greeting
   if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey') || lowerMessage.match(/^hi$|^hey$|^hello$/)) {
     return `Hey there! 👋 Welcome to Spiral Groove Records! How can I help you today?`;
@@ -78,7 +93,16 @@ const getBotResponse = (message: string): string => {
 
   // Help
   if (lowerMessage.includes('help') || lowerMessage.includes('what can you')) {
-    return `I can help you with:\n\n• Store hours and location\n• Contact information\n• Product information\n• Order questions\n• Returns and exchanges\n• Events\n\nJust ask me anything!`;
+    const lines = [
+      '• Store hours and location',
+      '• Contact information',
+      '• Product information',
+      '• Order questions',
+      '• Returns and exchanges',
+      '• Events',
+    ];
+    if (subscriptionEnabled) lines.push('• Newsletter signup');
+    return `I can help you with:\n\n${lines.join('\n')}\n\nJust ask me anything!`;
   }
 
   // Default response
@@ -88,6 +112,7 @@ const getBotResponse = (message: string): string => {
 export const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -101,6 +126,22 @@ export const Chatbot: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const subscriptionEnabledRef = useRef(false);
+  const messageIdRef = useRef(1);
+
+  useEffect(() => {
+    subscriptionEnabledRef.current = subscriptionEnabled;
+  }, [subscriptionEnabled]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchSubscriptionFlag().then((on) => {
+      if (!cancelled) setSubscriptionEnabled(on);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -138,13 +179,6 @@ export const Chatbot: React.FC = () => {
     };
   }, [isOpen]);
 
-  // Hide popup when chat is opened
-  useEffect(() => {
-    if (isOpen) {
-      setShowPopup(false);
-    }
-  }, [isOpen]);
-
   const handleDismissPopup = () => {
     setShowPopup(false);
     localStorage.setItem('chatbot-popup-dismissed', 'true');
@@ -160,8 +194,9 @@ export const Chatbot: React.FC = () => {
     if (!messageText) return;
 
     // Add user message
+    messageIdRef.current += 1;
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `u-${messageIdRef.current}`,
       text: messageText,
       sender: 'user',
       timestamp: new Date(),
@@ -173,9 +208,10 @@ export const Chatbot: React.FC = () => {
 
     // Simulate bot thinking time
     setTimeout(() => {
-      const botResponse = getBotResponse(messageText);
+      const botResponse = getBotResponse(messageText, subscriptionEnabledRef.current);
+      messageIdRef.current += 1;
       const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `b-${messageIdRef.current}`,
         text: botResponse,
         sender: 'bot',
         timestamp: new Date(),
@@ -364,7 +400,12 @@ export const Chatbot: React.FC = () => {
           {messages.length === 1 && (
             <div className="px-4 pb-2">
               <div className="flex flex-wrap gap-2">
-                {QUICK_REPLIES.map((reply) => (
+                {[
+                  ...QUICK_REPLIES_BASE,
+                  ...(subscriptionEnabled
+                    ? [{ text: 'Newsletter', keyword: 'newsletter' } as const]
+                    : []),
+                ].map((reply) => (
                   <button
                     key={reply.keyword}
                     onClick={() => handleQuickReply(reply.keyword)}

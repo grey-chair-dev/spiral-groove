@@ -107,6 +107,12 @@ const server = createServer(async (req, res) => {
           } else if (route === 'monthly-report-data') {
             const module = await importFresh('./api/monthly-report-data.js')
             handler = module.webHandler ?? module.default
+          } else if (route === 'flags/subscription') {
+            const module = await importFresh('./api/flags/subscription.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'flags-discovery') {
+            const module = await importFresh('./api/flags-discovery.js')
+            handler = module.webHandler ?? module.default
           } else {
             res.writeHead(404, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ error: 'Not found', route }))

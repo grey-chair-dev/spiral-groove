@@ -13,14 +13,18 @@
     "dev": "npm run build:css && vite",
     "dev:api": "node api-dev-server.js",
     "build": "npm run build:css && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.app.json",
+    "lint": "eslint src"
   },
   "dependencies": {
+    "@flags-sdk/vercel": "^1.2.1",
     "@google-analytics/data": "^4.1.0",
     "@google/genai": "^1.32.0",
     "@neondatabase/neon-auth": "^0.1.0-alpha.3",
     "@square/web-sdk": "^2.1.0",
     "dotenv": "^17.2.3",
+    "flags": "^4.0.5",
     "html2canvas": "1.4.1",
     "jspdf": "2.5.1",
     "lucide-react": "^0.559.0",

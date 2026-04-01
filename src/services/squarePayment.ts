@@ -148,6 +148,7 @@ export async function processPayment(
   orderData?: {
     pickupForm?: any
     shippingForm?: any // Legacy support
+    shippingCents?: number
     cartItems?: any[]
     orderNumber?: string
   }

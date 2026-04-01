@@ -11,6 +11,7 @@ import { withWebHandler } from './_vercelNodeAdapter.js'
 import { query } from './db.js'
 import { sendEmail } from './sendEmail.js'
 import { generateWeeklyNewsletterData } from './weekly-newsletter.js'
+import { evaluateSubscriptionFlag } from './flags/evaluateSubscription.js'
 
 export const config = {
   runtime: 'nodejs',
@@ -84,6 +85,21 @@ export async function webHandler(request) {
     return new Response(
       JSON.stringify({ success: false, error: 'Method not allowed. Use GET (for cron) or POST.' }),
       { status: 405, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  const subscriptionOn = await evaluateSubscriptionFlag(request)
+  if (!subscriptionOn) {
+    console.log('[Weekly Newsletter Bulk] Skipped: Vercel flag `subscription` is off')
+    return new Response(
+      JSON.stringify({
+        success: true,
+        skipped: true,
+        reason: 'subscription_flag_disabled',
+        message:
+          'Weekly newsletter send is disabled. Turn on the `subscription` flag in Vercel Flags to resume.',
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
