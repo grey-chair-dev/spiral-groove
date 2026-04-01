@@ -109,10 +109,10 @@ const getBotResponse = (message: string, subscriptionEnabled: boolean): string =
   return `Thanks for your message! For specific questions, you can:\n\n• Check our FAQ page\n• Email us at ${STORE_INFO.email}\n• Call us at ${STORE_INFO.phone}\n\nIs there anything else I can help with?`;
 };
 
-export const Chatbot: React.FC = () => {
+/** Full chat UI — only mounted when Vercel `subscription` flag is true (see Chatbot gate). */
+const ChatbotContent: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -126,22 +126,7 @@ export const Chatbot: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const subscriptionEnabledRef = useRef(false);
   const messageIdRef = useRef(1);
-
-  useEffect(() => {
-    subscriptionEnabledRef.current = subscriptionEnabled;
-  }, [subscriptionEnabled]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchSubscriptionFlag().then((on) => {
-      if (!cancelled) setSubscriptionEnabled(on);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -208,7 +193,7 @@ export const Chatbot: React.FC = () => {
 
     // Simulate bot thinking time
     setTimeout(() => {
-      const botResponse = getBotResponse(messageText, subscriptionEnabledRef.current);
+      const botResponse = getBotResponse(messageText, true);
       messageIdRef.current += 1;
       const botMessage: Message = {
         id: `b-${messageIdRef.current}`,
@@ -402,9 +387,7 @@ export const Chatbot: React.FC = () => {
               <div className="flex flex-wrap gap-2">
                 {[
                   ...QUICK_REPLIES_BASE,
-                  ...(subscriptionEnabled
-                    ? [{ text: 'Newsletter', keyword: 'newsletter' } as const]
-                    : []),
+                  { text: 'Newsletter', keyword: 'newsletter' } as const,
                 ].map((reply) => (
                   <button
                     key={reply.keyword}
@@ -454,4 +437,27 @@ export const Chatbot: React.FC = () => {
   }
   
   return chatbotContent;
+};
+
+/**
+ * Entire chatbot (button, popup, window) is shown only when the Vercel `subscription` flag is on.
+ */
+export const Chatbot: React.FC = () => {
+  const [subscriptionOn, setSubscriptionOn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchSubscriptionFlag().then((on) => {
+      if (!cancelled) setSubscriptionOn(on);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (subscriptionOn !== true) {
+    return null;
+  }
+
+  return <ChatbotContent />;
 };
