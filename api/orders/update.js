@@ -235,8 +235,13 @@ export async function webHandler(request) {
             })),
             total: total,
             currency: 'USD',
-            deliveryMethod: 'pickup',
-            pickupLocation: pickupDetails.address || '215B Main Street, Milford, OH 45150',
+            deliveryMethod: updatedPickup?.deliveryMethod || order?.delivery_method || 'pickup',
+            pickupLocation:
+              (updatedPickup?.deliveryMethod || order?.delivery_method) === 'delivery'
+                ? [updatedPickup?.address, updatedPickup?.city, updatedPickup?.state, updatedPickup?.zipCode]
+                    .filter(Boolean)
+                    .join(', ')
+                : (updatedPickup?.address || '215B Main Street, Milford, OH 45150'),
           },
           dedupeKey: `order_status_update:${order.order_number}:${status}`,
           force: Boolean(forceEmail),

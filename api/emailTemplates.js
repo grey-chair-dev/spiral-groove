@@ -631,10 +631,10 @@ export function generateOrderStatusUpdateEmail(data) {
       </div>
     ` : ''}
 
-    ${(deliveryMethod === 'pickup' && pickupLocation) ? `
+    ${pickupLocation ? `
       <div style="margin: 0 0 14px 0; padding: 14px 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px;">
         <p style="margin: 0 0 8px 0; color: ${BRAND.gray600}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
-          Pickup location
+          ${deliveryMethod === 'delivery' ? 'Delivery location' : 'Pickup location'}
         </p>
         <p style="margin: 0; color: ${BRAND.black}; font-size: 15px; line-height: 1.6; font-weight: 600;">
           ${escapeHtml(pickupLocation)}
