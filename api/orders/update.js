@@ -19,12 +19,13 @@ export const config = {
  * }
  */
 export async function webHandler(request) {
-  // Only allow PATCH requests
-  if (request.method !== 'PATCH') {
+  // Allow PATCH (preferred) and POST (common webhook default)
+  const method = (request.method || 'GET').toUpperCase()
+  if (method !== 'PATCH' && method !== 'POST') {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: 'Method not allowed. Use PATCH.' 
+        error: 'Method not allowed. Use PATCH or POST.' 
       }),
       { 
         status: 405,
@@ -51,13 +52,24 @@ export async function webHandler(request) {
     }
 
     const body = await request.json()
-    const { order_id, status, forceEmail, trackingNumber, trackingUrl } = body
+    const {
+      order_id: orderId,
+      square_order_id: squareOrderId,
+      order_number: orderNumber,
+      status,
+      forceEmail,
+      trackingNumber,
+      trackingUrl,
+    } = body
 
-    if (!order_id) {
+    // Accept aliases so Make/Square payloads don't have to be reshaped.
+    const lookupId = orderId || squareOrderId || orderNumber
+
+    if (!lookupId) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Missing order_id in request body.' 
+          error: 'Missing order identifier in request body (order_id, square_order_id, or order_number).' 
         }),
         { 
           status: 400,
@@ -92,14 +104,14 @@ export async function webHandler(request) {
        FROM orders o
        WHERE o.square_order_id = $1 OR o.order_number = $1 
        LIMIT 1`,
-      [order_id]
+      [lookupId]
     )
 
     if (orderResult.rows.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: `Order not found: ${order_id}` 
+          error: `Order not found: ${lookupId}` 
         }),
         { 
           status: 404,
