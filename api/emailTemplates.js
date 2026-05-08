@@ -496,6 +496,7 @@ export function generateOrderStatusUpdateEmail(data) {
     deliveryMethod,
     pickupLocation,
     trackingNumber,
+    trackingUrl,
     estimatedDelivery,
   } = data
   
@@ -642,18 +643,33 @@ export function generateOrderStatusUpdateEmail(data) {
       </div>
     ` : ''}
 
+    ${deliveryMethod === 'delivery' && (trackingNumber || trackingUrl || estimatedDelivery) ? `
+      <div style="margin: 0 0 14px 0; padding: 14px 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px;">
+        <p style="margin: 0 0 8px 0; color: ${BRAND.gray600}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
+          Shipping info
+        </p>
+        ${trackingNumber ? `
+          <p style="margin: 0 0 6px 0; color: ${BRAND.black}; font-size: 15px; line-height: 1.6; font-weight: 600;">
+            <strong>Tracking number:</strong> ${escapeHtml(trackingNumber)}
+          </p>
+        ` : ''}
+        ${trackingUrl ? `
+          <p style="margin: 0 0 6px 0; color: ${BRAND.black}; font-size: 15px; line-height: 1.6; font-weight: 600;">
+            <strong>Tracking link:</strong> <a href="${escapeHtml(trackingUrl)}" style="color:${BRAND.teal}; text-decoration:none; font-weight: 800;">Track package</a>
+          </p>
+        ` : ''}
+        ${estimatedDelivery ? `
+          <p style="margin: 0; color: ${BRAND.black}; font-size: 15px; line-height: 1.6; font-weight: 600;">
+            <strong>Estimated delivery:</strong> ${escapeHtml(estimatedDelivery)}
+          </p>
+        ` : ''}
+      </div>
+    ` : ''}
+
     ${safeActionMessage ? `
       <div style="margin-top: 14px; padding: 14px 16px; background-color: ${cardAccent === BRAND.red ? BRAND.mustard : cardAccent}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
         <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
           <strong>${safeActionText}:</strong> ${safeActionMessage}
-        </p>
-      </div>
-    ` : ''}
-
-    ${estimatedDelivery ? `
-      <div style="margin-top: 14px; padding: 14px 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px;">
-        <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
-          <strong>Estimated delivery:</strong> ${escapeHtml(estimatedDelivery)}
         </p>
       </div>
     ` : ''}
@@ -668,6 +684,92 @@ export function generateOrderStatusUpdateEmail(data) {
   return renderLayout({
     title: `Order Status Update ${orderNumber || ''}`.trim(),
     preheader: `Update for order ${orderNumber || ''}.`,
+    bodyHtml,
+  })
+}
+
+/**
+ * Generate refund notification email HTML
+ */
+export function generateRefundEmail(data) {
+  const {
+    orderNumber,
+    customerName,
+    total,
+    currency = 'USD',
+    refundAmount,
+    refundMethod = 'original payment method',
+    refundNote,
+  } = data || {}
+
+  const currencySymbol = currency === 'USD' ? '$' : ''
+  const amountNumber =
+    refundAmount != null && !Number.isNaN(Number(refundAmount))
+      ? Number(refundAmount)
+      : Number(total || 0)
+  const formattedAmount = `${currencySymbol}${amountNumber.toFixed(2)}`
+  const safeName = escapeHtml(customerName || 'there')
+  const safeOrderNumber = escapeHtml(orderNumber || '')
+  const safeRefundMethod = escapeHtml(refundMethod || 'original payment method')
+  const safeRefundNote = refundNote ? escapeHtml(refundNote) : ''
+  const baseUrl = getBaseUrl()
+
+  const bodyHtml = `
+    <div style="text-align:center; margin-bottom: 18px;">
+      <div style="display:inline-block; width: 72px; height: 72px; border-radius: 999px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; box-shadow: 4px 4px 0px 0px ${BRAND.black}; line-height: 72px; font-weight: 900; color: ${BRAND.black}; font-size: 34px;">
+        ↺
+      </div>
+    </div>
+
+    <h2 style="margin: 0 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.1; text-align:center; letter-spacing: 0.02em;">
+      Refund issued
+    </h2>
+    <p style="margin: 0 0 18px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600; text-align:center;">
+      Hi ${safeName}, your refund has been processed.
+    </p>
+
+    <div style="margin: 18px 0 0 0; padding: 18px; background-color: ${BRAND.black}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.orange};">
+      <p style="margin: 0 0 8px 0; color: ${BRAND.cream}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
+        Order number
+      </p>
+      <p style="margin: 0; color: ${BRAND.teal}; font-size: 22px; font-weight: 900; letter-spacing: 0.06em;">
+        ${safeOrderNumber}
+      </p>
+    </div>
+
+    <div style="margin: 14px 0 0 0; padding: 14px 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px;">
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 16px; font-weight: 900; text-align: right;">
+        Refund amount: <span style="font-size: 22px; letter-spacing: 0.02em;">${escapeHtml(formattedAmount)}</span>
+      </p>
+    </div>
+
+    <div style="margin: 14px 0 0 0; padding: 14px 16px; background-color: ${BRAND.white}; border: 2px solid ${BRAND.black}; border-radius: 12px;">
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
+        <strong>Refund method:</strong> ${safeRefundMethod}
+      </p>
+      ${safeRefundNote ? `
+        <p style="margin: 8px 0 0 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 600;">
+          <strong>Note:</strong> ${safeRefundNote}
+        </p>
+      ` : ''}
+    </div>
+
+    <div style="margin-top: 14px; padding: 14px 16px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
+        Refund timing depends on your bank/card and may take 3-10 business days to appear.
+      </p>
+    </div>
+
+    ${renderButton({
+      href: `${baseUrl}/order-status?order=${encodeURIComponent(orderNumber || '')}`,
+      label: 'View order status',
+      tone: 'teal',
+    })}
+  `.trim()
+
+  return renderLayout({
+    title: `Refund Issued ${orderNumber || ''}`.trim(),
+    preheader: `Refund processed for order ${orderNumber || ''}.`,
     bodyHtml,
   })
 }

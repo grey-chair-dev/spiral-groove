@@ -14,6 +14,7 @@ import {
   generateOrderConfirmationEmail,
   generateForgotPasswordEmail,
   generateOrderStatusUpdateEmail,
+  generateRefundEmail,
   generateReviewRequestEmail,
   generateWeeklyNewsletterEmail,
   generateAlertEmail,
@@ -94,6 +95,9 @@ export async function sendEmail({ type, to, subject, from: fromParam, data = {},
           break
         case 'review_request':
           html = generateReviewRequestEmail({ ...data, customerEmail: to })
+          break
+        case 'refund':
+          html = generateRefundEmail({ ...data, customerEmail: to })
           break
         case 'weekly_newsletter':
           html = generateWeeklyNewsletterEmail({ ...data, email: to })
@@ -185,6 +189,7 @@ function getDefaultSubject(type) {
     forgot_password: 'Reset Your Password - Spiral Groove Records',
     order_status_update: 'Order Status Update - Spiral Groove Records',
     review_request: 'How was your visit? Leave a quick review',
+    refund: 'Refund Processed - Spiral Groove Records',
     alert: 'API Error Alert - Spiral Groove Records',
     sale_alert: 'New order - Spiral Groove Records',
     monthly_report: 'Monthly report - Spiral Groove Records',

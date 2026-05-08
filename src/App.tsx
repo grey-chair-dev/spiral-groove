@@ -130,8 +130,22 @@ function parseRouteFromLocation(input: {
       // Account feature removed: redirect to order status lookup.
       return { page: 'order-status' };
     case 'order-status': {
-      const id = second ? decodeURIComponent(second) : '';
-      const email = third ? decodeURIComponent(third) : '';
+      const id =
+        (second ? decodeURIComponent(second) : '') ||
+        (searchParams.get('order')
+          ? decodeURIComponent(searchParams.get('order') as string)
+          : '') ||
+        (searchParams.get('order_number')
+          ? decodeURIComponent(searchParams.get('order_number') as string)
+          : '') ||
+        (searchParams.get('id')
+          ? decodeURIComponent(searchParams.get('id') as string)
+          : '');
+      const email =
+        (third ? decodeURIComponent(third) : '') ||
+        (searchParams.get('email')
+          ? decodeURIComponent(searchParams.get('email') as string)
+          : '');
       return { page: 'order-status', orderStatusParams: { id, email } };
     }
     case 'faq':

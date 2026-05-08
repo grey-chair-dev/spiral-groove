@@ -201,6 +201,9 @@ export async function webHandler(request) {
     let reviewEmailAttempted = false
     let reviewEmailSent = false
     let reviewEmailSkipReason = null
+    let refundEmailAttempted = false
+    let refundEmailSent = false
+    let refundEmailSkipReason = null
 
     if (!forceEmail && previousStatus === status) {
       emailSkipReason = 'status_unchanged'
@@ -242,6 +245,9 @@ export async function webHandler(request) {
                     .filter(Boolean)
                     .join(', ')
                 : (updatedPickup?.address || '215B Main Street, Milford, OH 45150'),
+            trackingNumber: updatedPickup?.trackingNumber || null,
+            trackingUrl: updatedPickup?.trackingUrl || null,
+            estimatedDelivery: updatedPickup?.estimatedDelivery || null,
           },
           dedupeKey: `order_status_update:${order.order_number}:${status}`,
           force: Boolean(forceEmail),
@@ -317,6 +323,61 @@ export async function webHandler(request) {
       reviewEmailSkipReason = 'send_failed'
     }
 
+    // Separate refund email when order is canceled (transition only, unless forced).
+    try {
+      const { sendEmail } = await import('../sendEmail.js')
+      const canceledStatuses = new Set(['CANCELED', 'CANCELLED'])
+      const wasCanceled = canceledStatuses.has(prevUpper)
+      const isCanceled = canceledStatuses.has(nextUpper)
+
+      if (!customerEmail) {
+        refundEmailSkipReason = 'missing_customer_email'
+      } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
+        refundEmailSkipReason = 'missing_MAKE_EMAIL_WEBHOOK_URL'
+      } else if (!isCanceled) {
+        refundEmailSkipReason = 'not_canceled_status'
+      } else if (!forceEmail && wasCanceled) {
+        refundEmailSkipReason = 'already_canceled'
+      }
+
+      if (!refundEmailSkipReason) {
+        const total = order.total_cents ? (Number(order.total_cents) / 100).toFixed(2) : '0.00'
+        const refundResult = await sendEmail({
+          type: 'refund',
+          to: customerEmail,
+          subject: `Refund Processed - Order ${order.order_number}`,
+          data: {
+            orderNumber: order.order_number,
+            customerName,
+            total,
+            currency: 'USD',
+            refundAmount: total,
+            refundMethod: 'original payment method',
+          },
+          dedupeKey: `refund_email:${order.order_number}`,
+          force: Boolean(forceEmail),
+        })
+        refundEmailAttempted = Boolean(refundResult?.attempted)
+        refundEmailSent = Boolean(refundResult?.ok)
+        if (!refundResult?.ok) {
+          refundEmailSkipReason = refundResult?.reason || 'send_failed'
+        }
+        console.log(`[Orders Update API] ✅ Refund email result for order ${order.order_number}`, refundResult)
+      } else {
+        console.log(`[Orders Update API] ⚠️  Skipping refund email: ${refundEmailSkipReason}`, {
+          previousStatus,
+          status,
+          customerEmail: customerEmail ? 'exists' : 'missing',
+          forceEmail: Boolean(forceEmail),
+        })
+      }
+    } catch (refundErr) {
+      console.error('[Orders Update API] ❌ Failed to send refund email:', refundErr)
+      refundEmailAttempted = true
+      refundEmailSent = false
+      refundEmailSkipReason = 'send_failed'
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -334,6 +395,13 @@ export async function webHandler(request) {
           attempted: reviewEmailAttempted,
           sent: reviewEmailSent,
           skipReason: reviewEmailSkipReason,
+          to: customerEmail || null,
+          force: Boolean(forceEmail),
+        },
+        refundEmail: {
+          attempted: refundEmailAttempted,
+          sent: refundEmailSent,
+          skipReason: refundEmailSkipReason,
           to: customerEmail || null,
           force: Boolean(forceEmail),
         }
