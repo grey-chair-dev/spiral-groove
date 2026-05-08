@@ -6,6 +6,26 @@ export const config = {
   runtime: 'nodejs',
 }
 
+function getOrderStatusUpdateSubject(status, orderNumber) {
+  const number = String(orderNumber || '').trim()
+  const suffix = number ? ` ${number} - Spiral Groove Records` : ' - Spiral Groove Records'
+  const upper = String(status || '').toUpperCase().trim()
+
+  if (upper === 'PREPARED' || upper === 'READY' || upper === 'READY_FOR_PICKUP') {
+    return `Ready for pickup:${suffix}`
+  }
+  if (upper === 'SHIPPED') {
+    return `Your order has shipped:${suffix}`
+  }
+  if (upper === 'COMPLETED' || upper === 'DELIVERED' || upper === 'PICKED_UP') {
+    return `Order complete:${suffix}`
+  }
+  if (upper === 'CANCELLED' || upper === 'CANCELED') {
+    return `Order cancelled:${suffix}`
+  }
+  return number ? `Order Status Update ${number} - Spiral Groove Records` : 'Order Status Update - Spiral Groove Records'
+}
+
 /**
  * PATCH /api/orders/update
  * 
@@ -197,10 +217,11 @@ export async function webHandler(request) {
         
         console.log(`[Orders Update API] Sending status update email to ${customerEmail} for order ${order.order_number}`)
         
+        const subject = getOrderStatusUpdateSubject(status, order.order_number)
         const sendResult = await sendEmail({
           type: 'order_status_update',
           to: customerEmail,
-          subject: `Order Status Update ${order.order_number} - Spiral Groove Records`,
+          subject,
           data: {
             orderNumber: order.order_number,
             customerName,
