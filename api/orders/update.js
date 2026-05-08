@@ -278,11 +278,15 @@ export async function webHandler(request) {
     // This runs independently of the status-update email (so dedupe/skip on the status email won't block reviews).
     try {
       const { sendEmail } = await import('../sendEmail.js')
+      const noReviewStatuses = new Set(['CANCELED', 'CANCELLED', 'REFUNDED'])
+      const isNoReviewStatus = noReviewStatuses.has(nextUpper)
 
       if (!customerEmail) {
         reviewEmailSkipReason = 'missing_customer_email'
       } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
         reviewEmailSkipReason = 'missing_MAKE_EMAIL_WEBHOOK_URL'
+      } else if (isNoReviewStatus) {
+        reviewEmailSkipReason = 'status_excluded'
       } else if (!isComplete) {
         reviewEmailSkipReason = 'not_completed_status'
       } else if (!forceEmail && wasComplete) {
