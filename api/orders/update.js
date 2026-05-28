@@ -1,6 +1,7 @@
 
 import { query } from '../db.js'
 import { withWebHandler } from '../_vercelNodeAdapter.js'
+import { normalizeOrderStatus } from '../orderStatusNormalize.js'
 
 export const config = {
   runtime: 'nodejs',
@@ -35,8 +36,13 @@ function getOrderStatusUpdateSubject(status, orderNumber) {
  * Request Body:
  * {
  *   order_id: string,        // Square order ID or our order_number
- *   status: string,          // New status (e.g., 'COMPLETED', 'SHIPPED', 'CANCELLED')
+ *   status: string,          // New status (e.g., 'PREPARED', 'COMPLETED', 'CANCELLED')
+ *   fulfillment_state?: string, // Square pickup fulfillment state (preferred for mapping)
+ *   forceEmail?: boolean,
  * }
+ *
+ * Status values are normalized via orderStatusNormalize.js (Square "Ready" → PREPARED).
+ * See docs/make-order-status-sync.md for Make.com scenario setup.
  */
 export async function webHandler(request) {
   // Allow PATCH (preferred) and POST (common webhook default)
@@ -148,12 +154,27 @@ export async function webHandler(request) {
         ? (() => { try { return JSON.parse(order.pickup_details) } catch { return {} } })()
         : (order.pickup_details || {})
 
+    const { status: normalizedStatus, rawStatus, reason: normalizeReason } = normalizeOrderStatus(
+      { ...body, status },
+      { pickup_details: pickupDetails, delivery_method: order.delivery_method, status: previousStatus },
+    )
+
+    if (rawStatus && normalizedStatus !== String(rawStatus).trim().toUpperCase()) {
+      console.log('[Orders Update API] Normalized status', {
+        orderNumber: order.order_number,
+        rawStatus,
+        normalizedStatus,
+        normalizeReason,
+        fulfillment_state: body?.fulfillment_state || body?.fulfillmentState || null,
+      })
+    }
+
     const customerEmail = pickupDetails?.email || null
     const customerName =
       [pickupDetails?.firstName, pickupDetails?.lastName].filter(Boolean).join(' ') || 'Valued Customer'
 
     const prevUpper = String(previousStatus || '').toUpperCase().trim()
-    const nextUpper = String(status || '').toUpperCase().trim()
+    const nextUpper = String(normalizedStatus || '').toUpperCase().trim()
     const wasComplete = prevUpper === 'COMPLETED' || prevUpper === 'PICKED_UP' || prevUpper === 'DELIVERED'
     const isComplete = nextUpper === 'COMPLETED' || nextUpper === 'PICKED_UP' || nextUpper === 'DELIVERED'
 
@@ -176,7 +197,7 @@ export async function webHandler(request) {
          total_cents,
          updated_at,
          pickup_details`,
-      [status, JSON.stringify(mergedPickup), dbOrderId],
+      [normalizedStatus, JSON.stringify(mergedPickup), dbOrderId],
     )
 
     const updatedPickup =
@@ -189,8 +210,10 @@ export async function webHandler(request) {
     // Send email notification if status changed and customer email exists
     console.log(`[Orders Update API] Checking email conditions:`, {
       previousStatus,
-      newStatus: status,
-      statusChanged: previousStatus !== status,
+      newStatus: normalizedStatus,
+      rawStatus,
+      normalizeReason,
+      statusChanged: previousStatus !== normalizedStatus,
       customerEmail: customerEmail ? 'exists' : 'missing',
       orderNumber: order.order_number,
     })
@@ -205,7 +228,7 @@ export async function webHandler(request) {
     let refundEmailSent = false
     let refundEmailSkipReason = null
 
-    if (!forceEmail && previousStatus === status) {
+    if (!forceEmail && previousStatus === normalizedStatus) {
       emailSkipReason = 'status_unchanged'
     } else if (!customerEmail) {
       emailSkipReason = 'missing_customer_email'
@@ -220,7 +243,7 @@ export async function webHandler(request) {
         
         console.log(`[Orders Update API] Sending status update email to ${customerEmail} for order ${order.order_number}`)
         
-        const subject = getOrderStatusUpdateSubject(status, order.order_number)
+        const subject = getOrderStatusUpdateSubject(normalizedStatus, order.order_number)
         const sendResult = await sendEmail({
           type: 'order_status_update',
           to: customerEmail,
@@ -229,7 +252,7 @@ export async function webHandler(request) {
             orderNumber: order.order_number,
             customerName,
             customerEmail,
-            status: status,
+            status: normalizedStatus,
             previousStatus: previousStatus,
             items: itemsFromPickup.map((item) => ({
               name: item?.name || '',
@@ -249,7 +272,7 @@ export async function webHandler(request) {
             trackingUrl: updatedPickup?.trackingUrl || null,
             estimatedDelivery: updatedPickup?.estimatedDelivery || null,
           },
-          dedupeKey: `order_status_update:${order.order_number}:${status}`,
+          dedupeKey: `order_status_update:${order.order_number}:${normalizedStatus}`,
           force: Boolean(forceEmail),
         })
         emailAttempted = Boolean(sendResult?.attempted)
@@ -268,7 +291,7 @@ export async function webHandler(request) {
     } else {
       console.log(`[Orders Update API] ⚠️  Skipping email: ${emailSkipReason}`, {
         previousStatus,
-        status,
+        status: normalizedStatus,
         customerEmail: customerEmail ? 'exists' : 'missing',
         hasWebhook: Boolean(process.env.MAKE_EMAIL_WEBHOOK_URL),
       })
@@ -315,7 +338,7 @@ export async function webHandler(request) {
       } else {
         console.log(`[Orders Update API] ⚠️  Skipping review email: ${reviewEmailSkipReason}`, {
           previousStatus,
-          status,
+          status: normalizedStatus,
           customerEmail: customerEmail ? 'exists' : 'missing',
           forceEmail: Boolean(forceEmail),
         })
@@ -370,7 +393,7 @@ export async function webHandler(request) {
       } else {
         console.log(`[Orders Update API] ⚠️  Skipping refund email: ${refundEmailSkipReason}`, {
           previousStatus,
-          status,
+          status: normalizedStatus,
           customerEmail: customerEmail ? 'exists' : 'missing',
           forceEmail: Boolean(forceEmail),
         })
@@ -386,7 +409,12 @@ export async function webHandler(request) {
       JSON.stringify({ 
         success: true,
         order: updatedOrder.rows[0],
-        message: `Order status updated to: ${status}`,
+        message: `Order status updated to: ${normalizedStatus}`,
+        statusNormalization: {
+          rawStatus: rawStatus || status,
+          normalizedStatus,
+          reason: normalizeReason,
+        },
         email: {
           attempted: emailAttempted,
           sent: emailSent,

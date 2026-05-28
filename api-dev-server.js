@@ -92,6 +92,9 @@ const server = createServer(async (req, res) => {
           } else if (route === 'orders/update') {
             const module = await importFresh('./api/orders/update.js')
             handler = module.webHandler ?? module.default
+          } else if (route === 'orders/reconcile') {
+            const module = await importFresh('./api/orders/reconcile.js')
+            handler = module.webHandler ?? module.default
           } else if (route === 'staff-picks') {
             const module = await importFresh('./api/staff-picks.js')
             handler = module.webHandler ?? module.default

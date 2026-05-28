@@ -34,7 +34,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 ### Orders & Payments
 - **`POST /api/pay`** - Processes Square payment and creates order
 - **`GET /api/orders`** - Fetches orders (with authentication)
-- **`POST /api/orders/update`** - Updates order status
+- **`PATCH /api/orders/update`** - Updates order status (Make.com / Square); see **`docs/make-order-status-sync.md`**
 - **`GET /api/orders/:id`** - Gets specific order details
 
 ### Events
