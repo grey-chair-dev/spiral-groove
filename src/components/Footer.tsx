@@ -310,15 +310,18 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/10 flex flex-col items-center gap-4 text-center md:flex-row md:justify-between md:text-left">
           <p className="text-xs font-bold text-gray-600 uppercase tracking-widest order-1 md:order-1">© {new Date().getFullYear()} Spiral Groove Records.</p>
-          <a
-            href="https://greychair.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-bold text-gray-500 hover:text-brand-orange transition-colors inline-flex items-center gap-1 order-2 md:order-2"
-          >
-            Built by Grey Chair Digital · greychair.io
-            <ArrowUpRight size={12} className="opacity-70 shrink-0" />
-          </a>
+          <p className="text-xs font-bold text-gray-500 order-2 md:order-2">
+            Built by{' '}
+            <a
+              href="https://greychair.digital"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-500 hover:text-brand-orange transition-colors inline-flex items-center gap-0.5"
+            >
+              Grey Chair Digital
+              <ArrowUpRight size={12} className="opacity-70 shrink-0" />
+            </a>
+          </p>
           <div className="flex flex-wrap justify-center gap-6 order-3 md:order-3">
              <a 
                href="/privacy" 
