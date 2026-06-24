@@ -24,6 +24,18 @@ function isInsertStatement(text) {
   return false
 }
 
+function isMaintenanceStatement(text) {
+  const sql = String(text || '').trimStart().toUpperCase()
+  if (!sql) return false
+  // ANALYZE / REINDEX / VACUUM are expected to be slow; skip slow-query alerts.
+  return (
+    sql.startsWith('ANALYZE') ||
+    sql.startsWith('REINDEX') ||
+    sql.startsWith('VACUUM') ||
+    sql.startsWith('CLUSTER')
+  )
+}
+
 /**
  * Get or create the database connection pool
  * @returns {pg.Pool}
@@ -155,7 +167,7 @@ export async function query(text, params) {
     const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_QUERY_THRESHOLD_MS || '1000', 10)
     // Do not alert on INSERT timings (noise). INSERTs should only alert on failure.
     // NOTE: measure "slow query" based on query execution time, not pool acquisition / TLS handshake.
-    if (queryMs > SLOW_QUERY_THRESHOLD_MS && !isInsertStatement(text)) {
+    if (queryMs > SLOW_QUERY_THRESHOLD_MS && !isInsertStatement(text) && !isMaintenanceStatement(text)) {
       const { sendSlackAlert } = await import('./slackAlerts.js')
       void sendSlackAlert({
         statusCode: 200, // Not an error, but performance issue
