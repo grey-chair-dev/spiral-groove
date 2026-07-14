@@ -192,8 +192,14 @@ function buildApiUrl(raw: string, params: Record<string, string | null | undefin
 
 /**
  * Fetch one page from /api/products using keyset pagination.
+ * Optional: inStock + fields=card for slim homepage payloads.
  */
-export async function fetchProductsPage(args?: { limit?: number; cursor?: string | null }): Promise<ProductsPage> {
+export async function fetchProductsPage(args?: {
+  limit?: number
+  cursor?: string | null
+  inStock?: boolean
+  fields?: 'card' | string | null
+}): Promise<ProductsPage> {
   const limit = args?.limit
   const cursor = args?.cursor
   try {
@@ -202,6 +208,8 @@ export async function fetchProductsPage(args?: { limit?: number; cursor?: string
     const url = buildApiUrl(apiUrl, {
       limit: typeof limit === 'number' ? String(limit) : null,
       cursor: cursor || null,
+      inStock: args?.inStock ? '1' : null,
+      fields: args?.fields || null,
     })
 
     const response = await fetchWithRetry(url, { headers: { accept: 'application/json' } }, 3)

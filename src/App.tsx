@@ -34,7 +34,7 @@ const TermsPage = lazy(() => import('./components/TermsPage').then(module => ({ 
 const AccessibilityPage = lazy(() => import('./components/AccessibilityPage').then(module => ({ default: module.AccessibilityPage })));
 const EditReplyPage = lazy(() => import('./components/EditReplyPage').then(module => ({ default: module.EditReplyPage })));
 import { Product, ViewMode, Page, Order, Event, CartItem } from '../types';
-import { fetchProducts as fetchApiProducts, Product as ApiProduct } from './dataAdapter';
+import { fetchProducts as fetchApiProducts, fetchProductsPage, Product as ApiProduct } from './dataAdapter';
 import { getDefaultProductImage } from './utils/defaultProductImage';
 import { fetchEvents as fetchApiEvents } from './eventsAdapter';
 import { fetchStaffPickMeta, mergeStaffPicks, type StaffPickMetaRow } from './staffPicksAdapter';
@@ -683,43 +683,58 @@ function App() {
     if (product) setSelectedProduct(product);
   }, [currentPage, pendingProductId, selectedProduct, products]);
 
-  // Fetch products from API
+  // Fetch products: slim in-stock page first (home Hero / Just Landed), then full catalog in background.
   useEffect(() => {
+    let cancelled = false
+
+    const isPosItem = (name: string) => {
+      const posPattern = /^1 - (33|45|CD|DVD|Book|Misc|Poster|Puzzle|Receiver|Sleeves|Speakers|Turntable|Equipment|Reel To Reel|Cassettes|Cleaner|Crates)( New)?$/i;
+      return posPattern.test(name);
+    }
+
+    const mapApiList = (apiProducts: ApiProduct[]) =>
+      apiProducts.filter((p) => !isPosItem(p.name)).map(mapApiProductToAppProduct)
+
     const loadProducts = async () => {
       try {
         setProductsLoading(true);
         setProductsError(null);
 
-        // Old behavior: fetch the full catalog in one request.
+        // Fast path for homepage: newest in-stock cards only (skips multi‑MB full catalog).
+        const homePage = await fetchProductsPage({ limit: 36, inStock: true, fields: 'card' });
+        if (cancelled) return;
+
+        if (homePage.products.length > 0) {
+          setProducts(mapApiList(homePage.products));
+          setProductsLoading(false);
+        }
+
+        // Full catalog for search / catalog / header (cached + ETag on subsequent visits).
         const apiProducts = await fetchApiProducts();
-        
+        if (cancelled) return;
+
         if (apiProducts.length === 0) {
-          // Launch safety: never fall back to demo/mock inventory in production.
-          setProducts([]);
-          setProductsError('Inventory is temporarily unavailable. Please check back soon.');
+          if (homePage.products.length === 0) {
+            setProducts([]);
+            setProductsError('Inventory is temporarily unavailable. Please check back soon.');
+          }
         } else {
-          // Map API products to app Product type
-          const mappedProducts = apiProducts
-            .filter(p => {
-                // Filter out POS/Generic items starting with "1 - " followed by category/type
-                // But preserve legitimate albums that might start with "1 - " (unlikely but possible)
-                // We target specifically the ones from the user's provided outlier list
-                const posPattern = /^1 - (33|45|CD|DVD|Book|Misc|Poster|Puzzle|Receiver|Sleeves|Speakers|Turntable|Equipment|Reel To Reel|Cassettes|Cleaner|Crates)( New)?$/i;
-                return !posPattern.test(p.name);
-            })
-            .map(mapApiProductToAppProduct);
-          setProducts(mappedProducts);
+          setProducts(mapApiList(apiProducts));
+          setProductsError(null);
         }
       } catch (err: any) {
+        if (cancelled) return;
         setProductsError(err.message || 'Failed to load products');
-        // Launch safety: never fall back to demo/mock inventory.
         setProducts([]);
       } finally {
-        setProductsLoading(false);
+        if (!cancelled) setProductsLoading(false);
       }
     };
 
     loadProducts();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Fetch events from API (Neon events table)

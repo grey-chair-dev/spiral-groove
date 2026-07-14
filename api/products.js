@@ -102,6 +102,10 @@ export async function webHandler(request) {
   const cursor = decodeCursor(url.searchParams.get('cursor'))
   const isPagedRequest = Boolean(limit || cursor)
   const effectiveLimit = cursor && !limit ? 500 : limit
+  const inStockOnly =
+    url.searchParams.get('inStock') === '1' ||
+    url.searchParams.get('inStock') === 'true'
+  const cardFields = String(url.searchParams.get('fields') || '').toLowerCase() === 'card'
   const ifNoneMatch = request.headers.get('if-none-match') || ''
   let computedEtag = null
   
@@ -267,24 +271,25 @@ export async function webHandler(request) {
     // Full catalog from `albums_cache` table.
     // Prefer selecting `id` directly (already "variation-<square_variation_id>") so we can use
     // the existing idx_albums_cache_created_desc (created_at DESC, id ASC) without extra sorting.
+    // Optional: inStock=1 + fields=card for slim homepage / carousel payloads.
     const pageLimit = effectiveLimit ? effectiveLimit + 1 : null // +1 to detect next page
+    const selectCols = cardFields
+      ? `id, name, ''::text AS description, price_dollars, category, all_categories,
+         stock_count, image_url, created_at, synced_at`
+      : `id, name, description, price_dollars, category, all_categories,
+         stock_count, image_url, created_at, synced_at`
+    const stockClause = inStockOnly ? 'AND stock_count > 0' : ''
     const result = await query(
       `SELECT
-        id,
-        name,
-        description,
-        price_dollars,
-        category,
-        all_categories,
-        stock_count,
-        image_url,
-        created_at,
-        synced_at
+        ${selectCols}
       FROM albums_cache
       WHERE
-        ($1::timestamptz IS NULL)
-        OR (created_at < $1::timestamptz)
-        OR (created_at = $1::timestamptz AND id > $2::text)
+        (
+          ($1::timestamptz IS NULL)
+          OR (created_at < $1::timestamptz)
+          OR (created_at = $1::timestamptz AND id > $2::text)
+        )
+        ${stockClause}
       ORDER BY created_at DESC NULLS LAST, id ASC
       ${pageLimit ? 'LIMIT $3::int' : ''}`,
       pageLimit
