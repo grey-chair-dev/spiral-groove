@@ -4,8 +4,6 @@ import { Order, ViewMode } from '../../types';
 import { Button } from './ui/Button';
 import { ArrowLeft, Printer, Download, Loader2 } from 'lucide-react';
 import { Section } from './ui/Section';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 
 interface ReceiptPageProps {
   order: Order | null;
@@ -31,17 +29,19 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({ order, viewMode, onBac
     setIsGeneratingPdf(true);
     
     try {
-      // Small delay to ensure any render updates are finished
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+
       const canvas = await html2canvas(receiptRef.current, {
-        scale: 2, // Higher resolution
-        useCORS: true, // Attempt to load external images
+        scale: 2,
+        useCORS: true,
         logging: false,
         backgroundColor: isRetro ? '#fdfbf7' : '#ffffff',
-        // Fix for jagged edges in some browsers
         ignoreElements: (element) => element.classList.contains('no-print'),
-        // Ensure full height is captured even if scrolled
         scrollY: -window.scrollY
       });
 
@@ -52,18 +52,16 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({ order, viewMode, onBac
         format: 'a4'
       });
 
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
+      const imgWidth = 210;
+      const pageHeight = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
       let heightLeft = imgHeight;
       let position = 0;
 
-      // First page
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
 
-      // Add extra pages if content overflows
       while (heightLeft > 0) {
         position = position - pageHeight;
         pdf.addPage();
@@ -73,6 +71,7 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({ order, viewMode, onBac
       
       pdf.save(`SpiralGroove_Receipt_${order.id.replace('#', '')}.pdf`);
     } catch (error) {
+      void error
       alert('Could not generate PDF. Please try the Print -> Save as PDF option.');
     } finally {
       setIsGeneratingPdf(false);

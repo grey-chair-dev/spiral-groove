@@ -26,10 +26,12 @@ export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate
                  }
               `}>
                 <img 
-                  src="/images/IMG_2500.jpeg" 
+                  src="/images/IMG_2500.webp" 
                   alt="Inside Spiral Groove Records — rows of vinyl bins" 
                   className="w-full h-full object-cover"
                   loading="lazy"
+                  width={1600}
+                  height={1200}
                 />
               </div>
 
@@ -41,10 +43,12 @@ export const StorySection: React.FC<StorySectionProps> = ({ viewMode, onNavigate
                  }
               `}>
                  <img 
-                   src="/images/IMG_2490.jpeg" 
+                   src="/images/IMG_2490.webp" 
                    alt="Spiral Groove Records storefront with neon record sign" 
                    className="w-full h-full object-cover"
                    loading="lazy"
+                   width={1600}
+                   height={1200}
                  />
               </div>
 

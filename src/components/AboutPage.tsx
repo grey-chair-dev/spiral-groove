@@ -12,30 +12,30 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
 
   const galleryImages: Array<{ src: string; alt: string }> = [
     {
-      src: '/images/IMG_2500.jpeg',
+      src: '/images/IMG_2500.webp',
       alt: 'Inside Spiral Groove Records — rows of vinyl bins',
     },
     {
-      src: '/images/IMG_2493.jpeg',
+      src: '/images/IMG_2493.webp',
       alt: 'Spiral Groove Records — mural wall inside the shop',
     },
     {
-      src: '/images/IMG_2496.jpeg',
+      src: '/images/IMG_2496.webp',
       alt: 'Spiral Groove Records — album-lined walls and lounge area',
     },
     {
-      src: '/images/IMG_2492.jpeg',
+      src: '/images/IMG_2492.webp',
       alt: 'Spiral Groove Records storefront — entrance on Main Street',
     },
   ];
 
   const ownerImages: Array<{ src: string; alt: string }> = [
     {
-      src: '/images/IMG_9247.jpeg',
+      src: '/images/IMG_9247.webp',
       alt: 'Store owner photo',
     },
     {
-      src: '/images/IMG_9246.jpeg',
+      src: '/images/IMG_9246.webp',
       alt: 'Store owner with the community',
     },
   ];
@@ -95,7 +95,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
               <div className="rounded-2xl bg-stone-200/80 p-6 md:p-10 border-2 border-stone-300/80 shadow-inner">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 justify-items-center">
                   {ownerImages.map((img, idx) => {
-                    const isCommunityPhoto = img.src === '/images/IMG_9246.jpeg';
+                    const isCommunityPhoto = img.src === '/images/IMG_9246.webp';
                     const tilts = ['-rotate-2', 'rotate-1', 'rotate-2', '-rotate-1'];
                     const tilt = tilts[idx % tilts.length];
                     return (
@@ -152,7 +152,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 md:gap-12 justify-items-center">
                   {galleryImages.map((img, idx) => {
                     const isFeatured = idx === 0;
-                    const isMural = img.src === '/images/IMG_2493.jpeg';
+                    const isMural = img.src === '/images/IMG_2493.webp';
                     const tilts = ['rotate-[-2deg]', 'rotate-[1.5deg]', 'rotate-[2deg]', '-rotate-1'];
                     const tilt = tilts[idx % tilts.length];
                     return (

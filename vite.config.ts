@@ -31,15 +31,26 @@ export default defineConfig(({ mode }) => {
       build: {
         rollupOptions: {
           output: {
-            manualChunks: {
-              // Split vendor libraries into separate chunks
-              'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-              'ui-vendor': ['lucide-react'],
-              // Split heavy libraries that are only used in specific pages
-              'chart-vendor': ['recharts'],
-              'pdf-vendor': ['html2canvas', 'jspdf'],
+            manualChunks(id) {
+              if (id.includes('node_modules')) {
+                if (id.includes('react-dom') || id.includes('/react/') || id.includes('react-router')) {
+                  return 'react-vendor'
+                }
+                if (id.includes('lucide-react')) {
+                  return 'ui-vendor'
+                }
+                // Only created when ReceiptPage dynamically imports these
+                if (id.includes('html2canvas') || id.includes('jspdf')) {
+                  return 'pdf-vendor'
+                }
+              }
             },
           },
+          // Avoid preloading PDF chunk on every HTML page load
+        },
+        modulePreload: {
+          resolveDependencies: (_filename, deps) =>
+            deps.filter((dep) => !dep.includes('pdf-vendor')),
         },
         chunkSizeWarningLimit: 600,
       },
