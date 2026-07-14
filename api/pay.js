@@ -636,8 +636,7 @@ export async function webHandler(request) {
 
     console.log('[Payment API] Creating Payment...')
     const response = await client.payments.create(paymentRequest)
-    // console.log('[Payment API] Payment Response keys:', Object.keys(response || {}))
-    
+
     const result = response.result || response.data || response.body || response
     const payment = result?.payment || response?.payment
 

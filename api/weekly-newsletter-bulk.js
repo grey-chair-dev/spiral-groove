@@ -164,7 +164,10 @@ export async function webHandler(request) {
                 metadata = COALESCE(metadata, '{}'::jsonb) || $2::jsonb
             WHERE id = $3
           `, [Date.now() - startedAt, JSON.stringify({ message }), syncLogId])
-        } catch (e) {}
+        } catch (e) {
+          // Best-effort sync_log update; newsletter response must still succeed
+          void e
+        }
       }
       
       // Send notification to Slack

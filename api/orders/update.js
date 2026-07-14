@@ -280,16 +280,16 @@ export async function webHandler(request) {
         if (!sendResult?.ok) {
           emailSkipReason = sendResult?.reason || 'send_failed'
         }
-        console.log(`[Orders Update API] ✅ Status update email result for order ${order.order_number}`, sendResult)
+        console.log(`[Orders Update API] Status update email result for order ${order.order_number}`, sendResult)
       } catch (emailError) {
-        console.error('[Orders Update API] ❌ Failed to send status update email:', emailError)
+        console.error('[Orders Update API] Failed to send status update email:', emailError)
         console.error('[Orders Update API] Error details:', emailError.stack)
         emailSent = false
         emailSkipReason = 'send_failed'
         // Don't fail the request if email fails
       }
     } else {
-      console.log(`[Orders Update API] ⚠️  Skipping email: ${emailSkipReason}`, {
+      console.log(`[Orders Update API] Skipping email: ${emailSkipReason}`, {
         previousStatus,
         status: normalizedStatus,
         customerEmail: customerEmail ? 'exists' : 'missing',
@@ -334,9 +334,9 @@ export async function webHandler(request) {
         if (!reviewResult?.ok) {
           reviewEmailSkipReason = reviewResult?.reason || 'send_failed'
         }
-        console.log(`[Orders Update API] ✅ Review request email result for order ${order.order_number}`, reviewResult)
+        console.log(`[Orders Update API] Review request email result for order ${order.order_number}`, reviewResult)
       } else {
-        console.log(`[Orders Update API] ⚠️  Skipping review email: ${reviewEmailSkipReason}`, {
+        console.log(`[Orders Update API] Skipping review email: ${reviewEmailSkipReason}`, {
           previousStatus,
           status: normalizedStatus,
           customerEmail: customerEmail ? 'exists' : 'missing',
@@ -344,7 +344,7 @@ export async function webHandler(request) {
         })
       }
     } catch (reviewErr) {
-      console.error('[Orders Update API] ❌ Failed to send review request email:', reviewErr)
+      console.error('[Orders Update API] Failed to send review request email:', reviewErr)
       reviewEmailAttempted = true
       reviewEmailSent = false
       reviewEmailSkipReason = 'send_failed'
@@ -389,9 +389,9 @@ export async function webHandler(request) {
         if (!refundResult?.ok) {
           refundEmailSkipReason = refundResult?.reason || 'send_failed'
         }
-        console.log(`[Orders Update API] ✅ Refund email result for order ${order.order_number}`, refundResult)
+        console.log(`[Orders Update API] Refund email result for order ${order.order_number}`, refundResult)
       } else {
-        console.log(`[Orders Update API] ⚠️  Skipping refund email: ${refundEmailSkipReason}`, {
+        console.log(`[Orders Update API] Skipping refund email: ${refundEmailSkipReason}`, {
           previousStatus,
           status: normalizedStatus,
           customerEmail: customerEmail ? 'exists' : 'missing',
@@ -399,7 +399,7 @@ export async function webHandler(request) {
         })
       }
     } catch (refundErr) {
-      console.error('[Orders Update API] ❌ Failed to send refund email:', refundErr)
+      console.error('[Orders Update API] Failed to send refund email:', refundErr)
       refundEmailAttempted = true
       refundEmailSent = false
       refundEmailSkipReason = 'send_failed'

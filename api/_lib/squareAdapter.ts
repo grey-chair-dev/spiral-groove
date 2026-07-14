@@ -129,12 +129,10 @@ export function transformSquareItemToProduct(
   // Extract item data
   const itemData = squareItem.itemData || {}
 
-  // Get primary image URL
+  // Get primary image URL (Square image IDs need Catalog API resolve for real CDN URLs)
   let imageUrl = ''
   if (itemData.imageIds && itemData.imageIds.length > 0) {
-    // In a real implementation, you'd fetch the image URL from Square
-    // For now, we'll use a placeholder or construct from image ID
-    imageUrl = `https://square-cdn.com/${itemData.imageIds[0]}` // This is a placeholder
+    imageUrl = `https://square-cdn.com/${itemData.imageIds[0]}`
   }
 
   // Get price from variations

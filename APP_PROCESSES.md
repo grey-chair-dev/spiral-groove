@@ -92,14 +92,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
     - Alert emails
 - **Templates**: Defined in `api/emailTemplates.js`
 
-### 3. **Performance Tracking** (`api/performanceTracker.js`)
-- **Trigger**: Automatic on API requests
-- **What it does**:
-  - Tracks response times per endpoint
-  - Monitors query durations
-  - Sends alerts for slow performance
-
-### 4. **Albums Cache Population** (`api/albumsCache.js`)
+### 3. **Albums Cache Population** (`api/albumsCache.js`)
 - **Trigger**: Run manually / on deploy as needed
 - **What it does**:
   - Creates `albums_cache` table if missing
