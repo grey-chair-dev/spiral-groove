@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect, Suspense, lazy } from 'react';
-import { trackPageView, trackProductView, trackAddToCart, trackRemoveFromCart, trackBeginCheckout, trackPurchase, trackSearch, trackNewsletterSignup, trackSignup } from './utils/analytics';
+import { trackPageView, trackProductView, trackAddToCart, trackRemoveFromCart, trackPurchase, trackSearch, trackNewsletterSignup, trackSignup } from './utils/analytics';
 import { Header } from './components/Header';
 import { NeonCursor } from './components/NeonCursor';
 import { Hero } from './components/Hero';
@@ -956,23 +956,6 @@ function App() {
       setSearchQuery(filter);
       // Track search
       trackSearch(filter);
-    }
-    
-    // Track begin checkout
-    if (page === 'checkout' && cartItems.length > 0) {
-      const cartValue = cartItems.reduce((sum, item) => {
-        return sum + (item.product.salePrice || item.product.price) * item.quantity;
-      }, 0);
-      trackBeginCheckout(
-        cartItems.map(item => ({
-          id: item.product.id,
-          name: item.product.title,
-          price: item.product.salePrice || item.product.price,
-          quantity: item.quantity,
-          category: item.product.format || 'Unknown',
-        })),
-        cartValue
-      );
     }
     
     const nextPath = toPathFromState({

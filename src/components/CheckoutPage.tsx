@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { ArrowLeft, Lock, MapPin, Truck, Store } from 'lucide-react';
 import { loadSquareSdk } from '../utils/loadSquareSdk';
 import { initializeSquarePayments, generatePaymentToken, processPayment, SquarePayments, SquareCard } from '../services/squarePayment';
+import { trackBeginCheckout } from '../utils/analytics';
 import { siteConfig } from '../config';
 
 type DeliveryMethod = 'delivery' | 'pickup';
@@ -34,6 +35,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const cardContainerRef = useRef<HTMLDivElement>(null);
   const isInitialized = useRef(false);
   const cardAttachedRef = useRef(false);
+  const beginCheckoutTracked = useRef(false);
   // Use a unique ID to prevent conflicts with React re-renders/strict mode
   const containerId = useRef(`card-container-${Math.random().toString(36).substr(2, 9)}`);
 
@@ -45,6 +47,25 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   // Account features removed: checkout is always available (no auth wall).
   const showAuthWall = false;
   const isCartEmpty = (cartItems || []).length === 0;
+
+  // Fire begin_checkout once per checkout page visit (covers refresh / direct /checkout).
+  useEffect(() => {
+    if (beginCheckoutTracked.current || isCartEmpty) return;
+    beginCheckoutTracked.current = true;
+    const cartValue = cartItems.reduce((sum, item) => {
+      return sum + (item.product.salePrice || item.product.price) * item.quantity;
+    }, 0);
+    trackBeginCheckout(
+      cartItems.map((item) => ({
+        id: item.product.id,
+        name: item.product.title,
+        price: item.product.salePrice || item.product.price,
+        quantity: item.quantity,
+        category: item.product.format || 'Unknown',
+      })),
+      cartValue
+    );
+  }, [cartItems, isCartEmpty]);
 
   // Initialize Square SDK
   useEffect(() => {
