@@ -48,7 +48,7 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate, products, onPr
     const baseCatalog = () => onNavigate('catalog', 'All')
     const viewNewArrivals = () => onNavigate('catalog', 'New Arrivals')
 
-    // Filter to only newly added products (isNewArrival flag is set in App.tsx based on createdAt within last 7 days)
+    // Filter to newly added products (isNewArrival = created within the last 2 weeks).
     const newArrivals = products
       .filter((p) => p.isNewArrival === true)
       .filter(inStock)

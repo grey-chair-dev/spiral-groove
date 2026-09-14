@@ -562,11 +562,11 @@ function App() {
       extractedFormat = formatTag;
     }
     
-    // Check if product is a new arrival (added in the last week)
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    // Badge + catalog "New Arrivals" window. Homepage Just Landed does not depend on this.
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
     const createdAt = apiProduct.createdAt ? new Date(apiProduct.createdAt) : null;
-    const isNewArrival = !!(createdAt && createdAt >= oneWeekAgo);
+    const isNewArrival = !!(createdAt && createdAt >= twoWeeksAgo);
 
     return {
       id: apiProduct.id,
@@ -581,7 +581,7 @@ function App() {
       condition: 'Mint' as const, // Default, API might not have this
       tags: allTags,
       categories: apiProduct.categories, // Pass through original categories array
-      isNewArrival: isNewArrival, // True if product was added in the last week
+      isNewArrival: isNewArrival, // True if product was added in the last 2 weeks
       inStock: apiProduct.stockCount > 0,
       stockCount: apiProduct.stockCount ?? 0,
       soldCount: apiProduct.soldCount ?? 0,
@@ -1061,13 +1061,14 @@ function App() {
                         <p className="text-gray-500 text-sm mt-2">Please try again in a moment.</p>
                     </div>
                 ) : (() => {
-                    // Home page "Just Landed":
-                    // - Prefer truly recent products (last 2 days)
-                    // - If fewer than 12, fill remaining slots with most-recent by createdAt (non-duplicates)
-                    const twoDaysAgo = new Date()
-                    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+                    // Home "Just Landed": newest in-stock records. Prefer the last 2 weeks,
+                    // then fill to 12 so a quiet week never shows "No Items Found".
+                    const twoWeeksAgo = new Date()
+                    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
 
-                    const sortedByCreatedDesc = [...products].sort((a, b) => {
+                    const inStock = products.filter(p => p.inStock !== false)
+                    const pool = inStock.length > 0 ? inStock : products
+                    const sortedByCreatedDesc = [...pool].sort((a, b) => {
                         const aT = a.createdAt ? new Date(a.createdAt).getTime() : 0
                         const bT = b.createdAt ? new Date(b.createdAt).getTime() : 0
                         return bT - aT
@@ -1075,8 +1076,7 @@ function App() {
 
                     const recentProducts = sortedByCreatedDesc.filter(product => {
                         if (!product.createdAt) return false
-                        const createdAt = new Date(product.createdAt)
-                        return createdAt >= twoDaysAgo
+                        return new Date(product.createdAt) >= twoWeeksAgo
                     })
 
                     const needed = Math.max(0, 12 - recentProducts.length)
@@ -1086,15 +1086,15 @@ function App() {
                             ? sortedByCreatedDesc.filter(p => !recentIds.has(p.id)).slice(0, needed)
                             : []
 
-                    const homeProducts = [...recentProducts, ...fillProducts]
-                    
+                    const homeProducts = [...recentProducts, ...fillProducts].slice(0, 12)
+
                     return (
                         <ProductGrid 
                             products={homeProducts} 
                             onProductClick={handleProductClick}
                             onQuickAdd={addToCart} 
                             viewMode={effectiveViewMode}
-                            initialFilter="New Arrivals"
+                            sectionTitle="Just Landed"
                             showFilters={false}
                             onViewCatalog={() => handleNavigate('catalog', 'All')}
                             limit={12}

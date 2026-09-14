@@ -22,6 +22,8 @@ interface ProductGridProps {
   showFilters?: boolean;
   compact?: boolean;
   limit?: number;
+  /** When set, used as the section heading instead of a filter-derived title. */
+  sectionTitle?: string;
 }
 
 const QUICK_FILTERS = ["All", "New Arrivals", "Bargain Bin", "Recently Sold"] as const;
@@ -64,7 +66,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   onFilterChange,
   showFilters = true,
   compact = false,
-  limit
+  limit,
+  sectionTitle,
 }) => {
   const [isWide, setIsWide] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 760 : false));
 
@@ -425,6 +428,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   }
 
   const getSectionTitle = () => {
+    if (sectionTitle) return sectionTitle;
     if (legacyFilter) return `${legacyFilter} Collection`;
 
     const parts: string[] = [];
