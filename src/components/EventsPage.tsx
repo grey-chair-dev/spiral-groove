@@ -4,6 +4,7 @@ import { ViewMode, Event } from '../../types';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { Mic2, Calendar, Mail, MapPin, Clock } from 'lucide-react';
+import { AnniversaryWeekend } from './AnniversaryWeekend';
 
 interface EventsPageProps {
   viewMode: ViewMode;
@@ -201,6 +202,8 @@ export const EventsPage: React.FC<EventsPageProps> = ({ viewMode, onRSVP, events
                 </span>
                 <h2 className={`font-display text-4xl md:text-5xl mb-4 ${isRetro ? 'text-brand-black' : 'text-gray-900'}`}>Upcoming Happenings</h2>
             </div>
+
+            <AnniversaryWeekend viewMode={viewMode} className="max-w-5xl mx-auto mb-12" />
 
             <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
                 {upcomingPageItems.map((event) => (

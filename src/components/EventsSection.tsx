@@ -4,6 +4,7 @@ import { Event, ViewMode, Page } from '../../types';
 import { Section } from './ui/Section';
 import { Button } from './ui/Button';
 import { MapPin, ArrowRight } from 'lucide-react';
+import { AnniversaryWeekend } from './AnniversaryWeekend';
 
 interface EventsSectionProps {
   events: Event[];
@@ -12,17 +13,7 @@ interface EventsSectionProps {
   onRSVP: (event: Event) => void;
 }
 
-const ANNIVERSARY_ENDS = new Date('2026-10-26T04:00:00Z').getTime()
-
-const ANNIVERSARY_FLYERS: Array<{ src: string; name: string }> = [
-  { src: '/images/anniversary/cigarboxscott.jpg', name: 'cigarboxscott' },
-  { src: '/images/anniversary/doug-wiegand.jpg', name: 'Doug Wiegand' },
-  { src: '/images/anniversary/mental-massacre.jpg', name: 'Mental Massacre' },
-  { src: '/images/anniversary/craigs-limit.jpg', name: "Craig's Limit" },
-]
-
 export const EventsSection: React.FC<EventsSectionProps> = ({ events, viewMode, onNavigate, onRSVP }) => {
-  const showAnniversary = Date.now() < ANNIVERSARY_ENDS
   return (
     <Section className={viewMode === 'retro' ? "bg-transparent relative border-t-2 border-brand-black" : "bg-white"}>
        {/* Background Grid Pattern for Retro */}
@@ -44,46 +35,7 @@ export const EventsSection: React.FC<EventsSectionProps> = ({ events, viewMode, 
         </div>
       </div>
 
-      {showAnniversary && (
-        <div className={`relative z-10 mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center p-6 md:p-8
-          ${viewMode === 'retro'
-            ? 'bg-brand-cream border-2 border-brand-black shadow-retro'
-            : 'bg-gray-50 rounded-2xl border border-gray-100'}
-        `}>
-          <div>
-            <span className={`inline-block px-3 py-1 mb-4 text-[10px] font-bold uppercase tracking-[0.2em]
-              ${viewMode === 'retro'
-                ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-pop-sm'
-                : 'bg-black text-white rounded-full'}
-            `}>
-              Anniversary weekend
-            </span>
-            <h3 className={`font-display text-3xl md:text-4xl leading-[0.95] mb-4 ${viewMode === 'retro' ? 'text-brand-black' : 'text-gray-900'}`}>
-              Spiral Groove turns 5. Hybrid Moments turns 1.
-            </h3>
-            <p className="text-gray-700 font-medium leading-relaxed">
-              Friday through Sunday, October 23–25. Fourteen artists and three vendors. We’re announcing the lineup over the next month. These are the flyers posted so far.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {ANNIVERSARY_FLYERS.map((flyer) => (
-              <figure key={flyer.src} className={`overflow-hidden ${viewMode === 'retro' ? 'border-2 border-brand-black' : 'rounded-lg'}`}>
-                <img
-                  src={flyer.src}
-                  alt={`${flyer.name} at the Spiral Groove anniversary weekend`}
-                  className="aspect-square w-full object-cover"
-                  loading="lazy"
-                />
-                <figcaption className={`px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider truncate
-                  ${viewMode === 'retro' ? 'bg-brand-black text-brand-cream' : 'bg-white text-gray-700'}
-                `}>
-                  {flyer.name}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      )}
+      <AnniversaryWeekend viewMode={viewMode} className="relative z-10 mb-12" />
 
       {events.length > 0 ? (
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
