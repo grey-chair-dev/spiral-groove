@@ -78,6 +78,36 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
 
            </div>
 
+           {/* Featured Interview Section */}
+           <div className="mt-16 p-8 md:p-12 rounded-2xl bg-gradient-to-br from-brand-orange/10 via-brand-teal/10 to-brand-mustard/10 border-2 border-brand-black/10">
+              <div className="max-w-3xl mx-auto text-center">
+                <span className={`inline-block px-4 py-1.5 mb-6 text-xs font-bold uppercase tracking-[0.2em] 
+                  ${isRetro ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-pop-sm' : 'bg-black text-white rounded-full'}
+                `}>
+                  Featured Interview
+                </span>
+                <h3 className={`font-display text-3xl md:text-5xl mb-6 leading-tight ${isRetro ? 'text-brand-black' : 'text-black'}`}>
+                  Hear the Story Behind the Grooves
+                </h3>
+                <p className="text-lg md:text-xl text-gray-600 font-medium mb-8 leading-relaxed">
+                  Adam recently sat down to share the journey of Spiral Groove Records—from personal vinyl obsession to becoming a cornerstone of Milford's music community. Hear about the shop's evolution, memorable finds, and what keeps the turntables spinning.
+                </p>
+                <a 
+                  href="https://vinylpackman.com/store/3245"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-block px-8 py-4 font-bold text-lg transition-all duration-300
+                    ${isRetro 
+                      ? 'bg-brand-orange text-brand-black border-2 border-brand-black shadow-[4px_4px_0px_#231F20] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#231F20] uppercase tracking-wide' 
+                      : 'bg-black text-white rounded-full hover:bg-gray-800 shadow-lg hover:scale-105'
+                    }
+                  `}
+                >
+                  Listen to Interview →
+                </a>
+              </div>
+           </div>
+
            {/* Owner Photos */}
            <div className="mt-16">
               <div className="text-center mb-10">
