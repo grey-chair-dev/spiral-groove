@@ -11,6 +11,7 @@
  */
 
 import { query } from './db.js'
+import { applyAlbumSalesToAlbumsCache, refreshAlbumSales } from './albumSales.js'
 
 /**
  * Ensure albums_cache table exists with a products_cache-like structure (legacy).
@@ -151,8 +152,8 @@ export async function populateAlbumsCache() {
   // Clear existing albums_cache
   await query('TRUNCATE TABLE albums_cache')
   
-  // Insert only albums from products
-  // Note: `products` does not have sold_count/last_stocked_at metadata; we populate those as defaults.
+  // Insert only albums from products.
+  // sold_count starts at 0 here, then album_sales (last 30 days of Square orders) overwrites it.
   const result = await query(`
     INSERT INTO albums_cache (
       id,
@@ -218,6 +219,25 @@ export async function populateAlbumsCache() {
       )
   `, [albumCategories, excludeCategories, oneWeekAgoISO])
 
+  // Square sales are not on `products`. Refresh the 30-day rollup, then copy it onto this rebuild.
+  // If Square is down, keep the previous album_sales rows so staff picks still have counts.
+  try {
+    await refreshAlbumSales()
+    const salesUpdated = await applyAlbumSalesToAlbumsCache()
+    console.log(`[Albums Cache] Applied sold_count to ${salesUpdated} albums`)
+  } catch (e) {
+    console.warn('[Albums Cache] Sales rollup failed; trying previous album_sales', {
+      message: e?.message || String(e),
+    })
+    try {
+      await applyAlbumSalesToAlbumsCache()
+    } catch (applyError) {
+      console.warn('[Albums Cache] Applying previous album_sales failed (continuing)', {
+        message: applyError?.message || String(applyError),
+      })
+    }
+  }
+
   // Post-population maintenance:
   // - REINDEX: ensure btree indexes are rebuilt after large churn (safe to do nightly)
   // - ANALYZE: refresh planner stats for faster ORDER BY / filters
@@ -261,8 +281,8 @@ export async function populateAlbumsCache() {
               'imageUrl', COALESCE(image_url, ''),
               'rating', 0,
               'reviewCount', 0,
-              'soldCount', 0,
-              'lastSoldAt', NULL,
+              'soldCount', COALESCE(sold_count, 0),
+              'lastSoldAt', last_sold_at,
               'lastStockedAt', NULL,
               'lastAdjustmentAt', NULL,
               'createdAt', created_at

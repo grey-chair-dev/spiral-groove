@@ -343,7 +343,7 @@ function App() {
         return at - bt;
       })
       .map(({ e }) => e)
-      .slice(0, 3);
+      .slice(0, 4);
   }, [events]);
 
   const staffPicks = useMemo(() => {

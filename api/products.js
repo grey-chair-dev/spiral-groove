@@ -52,11 +52,10 @@ function mapRowToProduct(row) {
     categories: Array.isArray(row.all_categories) ? row.all_categories : [],
     stockCount: Number(row.stock_count || 0),
     imageUrl: String(row.image_url || ''),
-    // `albums_cache` doesn't track review/sales metadata; keep API shape stable.
     rating: 0,
     reviewCount: 0,
-    soldCount: 0,
-    lastSoldAt: null,
+    soldCount: Number(row.sold_count || 0),
+    lastSoldAt: row.last_sold_at ? String(row.last_sold_at) : null,
     lastStockedAt: null,
     lastAdjustmentAt: null,
     createdAt: row.created_at ? String(row.created_at) : null,
@@ -277,7 +276,7 @@ export async function webHandler(request) {
       ? `id, name, ''::text AS description, price_dollars, category, all_categories,
          stock_count, image_url, created_at, synced_at`
       : `id, name, description, price_dollars, category, all_categories,
-         stock_count, image_url, created_at, synced_at`
+         stock_count, image_url, sold_count, last_sold_at, created_at, synced_at`
     const stockClause = inStockOnly ? 'AND stock_count > 0' : ''
     const result = await query(
       `SELECT
