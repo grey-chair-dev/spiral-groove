@@ -775,6 +775,72 @@ export function generateRefundEmail(data) {
 }
 
 /**
+ * Generate apology email after an accidental order status update was sent.
+ */
+export function generateOopsApologyEmail(data) {
+  const {
+    orderNumber,
+    customerName,
+    customerEmail,
+    isSample = false,
+  } = data || {}
+
+  const safeName = escapeHtml(customerName || 'there')
+  const safeOrderNumber = escapeHtml(orderNumber || '')
+  const baseUrl = getBaseUrl()
+
+  const bodyHtml = `
+    <div style="text-align:center; margin-bottom: 18px;">
+      <div style="display:inline-block; width: 72px; height: 72px; border-radius: 999px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; box-shadow: 4px 4px 0px 0px ${BRAND.black}; line-height: 72px; font-weight: 900; color: ${BRAND.black}; font-size: 34px;">
+        !
+      </div>
+    </div>
+
+    <h2 style="margin: 0 0 10px 0; font-family: Shrikhand, cursive; color: ${BRAND.black}; font-size: 32px; line-height: 1.1; text-align:center; letter-spacing: 0.02em;">
+      Sorry about that email
+    </h2>
+    <p style="margin: 0 0 18px 0; color: ${BRAND.black}; font-size: 16px; line-height: 1.7; font-weight: 600; text-align:center;">
+      Hi ${safeName}, we accidentally sent an order update email. Please ignore it — nothing changed with your order.
+    </p>
+
+    ${safeOrderNumber ? `
+      <div style="margin: 18px 0 0 0; padding: 18px; background-color: ${BRAND.black}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.mustard};">
+        <p style="margin: 0 0 8px 0; color: ${BRAND.cream}; font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;">
+          Order number
+        </p>
+        <p style="margin: 0; color: ${BRAND.teal}; font-size: 22px; font-weight: 900; letter-spacing: 0.06em;">
+          ${safeOrderNumber}
+        </p>
+      </div>
+    ` : ''}
+
+    <div style="margin-top: 14px; padding: 14px 16px; background-color: ${BRAND.mustard}; border: 2px solid ${BRAND.black}; border-radius: 12px; box-shadow: 4px 4px 0px 0px ${BRAND.black};">
+      <p style="margin: 0; color: ${BRAND.black}; font-size: 14px; line-height: 1.6; font-weight: 700;">
+        <strong>What this means:</strong> Your order status did not change. Sorry for the confusion — reply to this email or stop by the shop if you have questions.
+      </p>
+    </div>
+
+    ${renderButton({
+      href: `${baseUrl}/order-status?order=${encodeURIComponent(orderNumber || '')}&email=${encodeURIComponent(customerEmail || '')}`,
+      label: 'View order details',
+      tone: 'teal',
+    })}
+
+    ${isSample ? `
+      <p style="margin: 22px 0 0 0; text-align:center; color: ${BRAND.gray500}; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">
+        Sample for review — not a customer send
+      </p>
+    ` : ''}
+  `.trim()
+
+  return renderLayout({
+    title: 'Sorry about that email — Spiral Groove Records',
+    preheader: 'Please ignore the accidental order update — nothing changed with your order.',
+    bodyHtml,
+  })
+}
+
+/**
  * Separate review request email (sent after pickup / completion).
  */
 export function generateReviewRequestEmail(data) {
