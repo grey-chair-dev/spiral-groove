@@ -66,9 +66,6 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
                     Around <strong>2020, the shop was rebranded as Spiral Groove Records</strong>. That change didn't just swap the sign outside – it repositioned the store with a renewed focus on community, vinyl culture, and in-person music experience.
                  </p>
                  <p>
-                    <strong>Adam Mitzel</strong> is the owner most associated with the shop today. He moved Spiral Groove to its current Main Street location in 2021. Adam grew up in the region and has strong roots in music culture—he was into punk rock and local music scenes long before opening the store. His personal favorites show up in the store's personality, but the inventory is broad on purpose.
-                 </p>
-                 <p>
                     We're not just retail—we're a cultural hub. With <strong>thousands of records spanning decades and genres</strong>, plus tapes, CDs, and audio gear, we stock physical media at the heart of everything. The shop is active with in-store live music and events, including local bands, DJs, and Record Store Day celebrations.
                  </p>
                  <p>
@@ -119,6 +116,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({ viewMode }) => {
                 <h3 className={`font-display text-3xl md:text-4xl leading-tight ${isRetro ? 'text-brand-black' : 'text-black'}`}>
                   The face behind the shop.
                 </h3>
+                <p className="mt-6 max-w-2xl mx-auto text-lg leading-relaxed text-gray-700 font-medium">
+                  <strong>Adam Mitzel</strong> is the owner most associated with the shop today. He moved Spiral Groove to its current Main Street location in 2021. Adam grew up in the region and has strong roots in music culture—he was into punk rock and local music scenes long before opening the store. His personal favorites show up in the store's personality, but the inventory is broad on purpose.
+                </p>
               </div>
 
               {/* Wall: polaroids pinned with tape */}

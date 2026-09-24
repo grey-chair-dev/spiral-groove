@@ -24,7 +24,7 @@ const newsletterEnabled =
   (import.meta.env.VITE_ENABLE_NEWSLETTER ?? 'true').toString().toLowerCase() !== 'false'
 
 export const featureFlags: FeatureFlags = {
-  enableAbout: true,
+  enableAbout: false,
   enableEvents: true,
   enableMaintenancePage: maintenancePageEnabled,
   enableComingSoonPage: comingSoonPageEnabled,
