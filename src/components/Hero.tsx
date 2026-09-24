@@ -56,20 +56,6 @@ export const Hero: React.FC<HeroProps> = ({ viewMode, onNavigate, products, onPr
 
     const built: Slide[] = []
 
-    // Featured Interview Slide
-    built.push({
-      id: 'featured-interview',
-      badge: 'Featured Interview',
-      title: 'Hear Our Story',
-      subtitle: 'Listen to Adam share the passion behind Spiral Groove',
-      description: 'Dive into the journey of building a music community in Milford, Ohio. From vinyl obsession to local hub — hear it all.',
-      image: '/images/IMG_9247.webp',
-      ctaPrimary: 'Listen to interview',
-      ctaSecondary: 'Learn more about us',
-      onPrimary: () => window.open('https://vinylpackman.com/store/3245', '_blank'),
-      onSecondary: () => onNavigate('about'),
-    })
-
     // Create slides for each newly added product
     newArrivals.forEach((p) => {
       built.push({
