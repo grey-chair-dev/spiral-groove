@@ -313,7 +313,7 @@ export const Footer: React.FC<FooterProps> = ({ viewMode, onNavigate }) => {
           <p className="text-xs font-bold text-gray-500 order-2 md:order-2">
             Built by{' '}
             <a
-              href="https://greychair.digital"
+              href="https://greychair.digital/web-design-cincinnati"
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-500 hover:text-brand-orange transition-colors inline-flex items-center gap-0.5"
