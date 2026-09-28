@@ -65,7 +65,9 @@ Only use fulfillment `new_state`, never `order_updated.state`.
 
 ### 3. HTTP module (emails) — after Postgres
 
-Keep **PATCH** `https://spiralgrooverecords.com/api/orders/update` **after** the Postgres step.
+Keep **PATCH** `https://www.spiralgrooverecords.com/api/orders/update` **after** the Postgres step.
+
+**Important:** Use the `www` subdomain. The naked domain (`spiralgrooverecords.com`) redirects with HTTP 307, which Make.com's HTTP module may not follow automatically.
 
 Body (same status as Postgres):
 
@@ -120,7 +122,7 @@ Even if Make sends `COMPLETED` for a pickup order without `fulfillment_state: CO
 ## Manual fix + resend email
 
 ```bash
-curl -X PATCH "https://YOUR_DEPLOYMENT/api/orders/update" \
+curl -X PATCH "https://www.spiralgrooverecords.com/api/orders/update" \
   -H "Content-Type: application/json" \
   -H "x-webhook-secret: YOUR_WEBHOOK_SECRET" \
   -d '{
@@ -129,6 +131,8 @@ curl -X PATCH "https://YOUR_DEPLOYMENT/api/orders/update" \
     "forceEmail": true
   }'
 ```
+
+**Note:** Always use `https://www.spiralgrooverecords.com` (with `www`) for API calls to avoid redirect issues.
 
 `forceEmail: true` bypasses deduplication and sends even if status was already correct.
 
@@ -168,6 +172,6 @@ node scripts/reconcile-order-statuses.mjs --http --url https://YOUR_DEPLOYMENT -
 Or call the API directly:
 
 ```bash
-curl -X POST "https://YOUR_DEPLOYMENT/api/orders/reconcile?apply=1" \
+curl -X POST "https://www.spiralgrooverecords.com/api/orders/reconcile?apply=1" \
   -H "x-webhook-secret: $WEBHOOK_SECRET"
 ```
