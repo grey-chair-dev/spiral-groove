@@ -54,6 +54,8 @@ const res = await fetch(url, {
     order_id: orderNumber,
     status,
     forceEmail,
+    // --force is an intentional second send. forceEmail alone only bypasses "status unchanged".
+    resend: forceEmail,
   }),
 })
 
