@@ -2,6 +2,7 @@
 import { query } from '../db.js'
 import { withWebHandler } from '../_vercelNodeAdapter.js'
 import { normalizeOrderStatus } from '../orderStatusNormalize.js'
+import { claimEmailSend, releaseEmailSend } from '../emailDedupe.js'
 
 export const config = {
   runtime: 'nodejs',
@@ -38,7 +39,8 @@ function getOrderStatusUpdateSubject(status, orderNumber) {
  *   order_id: string,        // Square order ID or our order_number
  *   status: string,          // New status (e.g., 'PREPARED', 'COMPLETED', 'CANCELLED')
  *   fulfillment_state?: string, // Square pickup fulfillment state (preferred for mapping)
- *   forceEmail?: boolean,
+ *   forceEmail?: boolean,   // send even if the stored status already matches (does not skip dedupe)
+ *   resend?: boolean,        // send this status again; bypasses email_sends dedupe
  * }
  *
  * Status values are normalized via orderStatusNormalize.js (Square "Ready" → PREPARED).
@@ -84,9 +86,14 @@ export async function webHandler(request) {
       order_number: orderNumber,
       status,
       forceEmail,
+      resend,
       trackingNumber,
       trackingUrl,
     } = body
+    // Make sends forceEmail on every webhook so a status Postgres already wrote still mails.
+    // That must not skip dedupe: Square emits several versions while the order is still PROPOSED.
+    // resend is the explicit "send this status again" switch (manual fixes).
+    const resendEmail = Boolean(resend)
 
     // Accept aliases so Make/Square payloads don't have to be reshaped.
     const lookupId = orderId || squareOrderId || orderNumber
@@ -237,55 +244,73 @@ export async function webHandler(request) {
     }
 
     if (!emailSkipReason) {
+      let ownedStatusKey = null
       try {
         const { sendEmail } = await import('../sendEmail.js')
         const total = order.total_cents ? (Number(order.total_cents) / 100).toFixed(2) : '0.00'
-        
-        console.log(`[Orders Update API] Sending status update email to ${customerEmail} for order ${order.order_number}`)
-        
-        const subject = getOrderStatusUpdateSubject(normalizedStatus, order.order_number)
-        const sendResult = await sendEmail({
-          type: 'order_status_update',
-          to: customerEmail,
-          subject,
-          data: {
-            orderNumber: order.order_number,
-            customerName,
-            customerEmail,
-            status: normalizedStatus,
-            previousStatus: previousStatus,
-            items: itemsFromPickup.map((item) => ({
-              name: item?.name || '',
-              quantity: Number(item?.quantity) || 0,
-              price: Number(item?.price) || 0,
-            })),
-            total: total,
-            currency: 'USD',
-            deliveryMethod: updatedPickup?.deliveryMethod || order?.delivery_method || 'pickup',
-            pickupLocation:
-              (updatedPickup?.deliveryMethod || order?.delivery_method) === 'delivery'
-                ? [updatedPickup?.address, updatedPickup?.city, updatedPickup?.state, updatedPickup?.zipCode]
-                    .filter(Boolean)
-                    .join(', ')
-                : (updatedPickup?.address || '215B Main Street, Milford, OH 45150'),
-            trackingNumber: updatedPickup?.trackingNumber || null,
-            trackingUrl: updatedPickup?.trackingUrl || null,
-            estimatedDelivery: updatedPickup?.estimatedDelivery || null,
-          },
-          dedupeKey: `order_status_update:${order.order_number}:${normalizedStatus}`,
-          force: Boolean(forceEmail),
+        const statusDedupeKey = `order_status_update:${order.order_number}:${normalizedStatus}`
+        const claim = await claimEmailSend({
+          dedupeKey: statusDedupeKey,
+          emailType: 'order_status_update',
+          replace: resendEmail,
         })
-        emailAttempted = Boolean(sendResult?.attempted)
-        emailSent = Boolean(sendResult?.ok)
-        if (!sendResult?.ok) {
-          emailSkipReason = sendResult?.reason || 'send_failed'
+        ownedStatusKey = claim.claimed && claim.reason !== 'dedupe_unavailable' ? statusDedupeKey : null
+        if (!claim.claimed) {
+          emailSkipReason = 'deduped'
+          console.log(`[Orders Update API] Skipping duplicate status email for ${order.order_number} (${normalizedStatus})`)
+        } else {
+          console.log(`[Orders Update API] Sending status update email to ${customerEmail} for order ${order.order_number}`)
+
+          const subject = getOrderStatusUpdateSubject(normalizedStatus, order.order_number)
+          const sendResult = await sendEmail({
+            type: 'order_status_update',
+            to: customerEmail,
+            subject,
+            data: {
+              orderNumber: order.order_number,
+              customerName,
+              customerEmail,
+              status: normalizedStatus,
+              previousStatus: previousStatus,
+              items: itemsFromPickup.map((item) => ({
+                name: item?.name || '',
+                quantity: Number(item?.quantity) || 0,
+                price: Number(item?.price) || 0,
+              })),
+              total: total,
+              currency: 'USD',
+              deliveryMethod: updatedPickup?.deliveryMethod || order?.delivery_method || 'pickup',
+              pickupLocation:
+                (updatedPickup?.deliveryMethod || order?.delivery_method) === 'delivery'
+                  ? [updatedPickup?.address, updatedPickup?.city, updatedPickup?.state, updatedPickup?.zipCode]
+                      .filter(Boolean)
+                      .join(', ')
+                  : (updatedPickup?.address || '215B Main Street, Milford, OH 45150'),
+              trackingNumber: updatedPickup?.trackingNumber || null,
+              trackingUrl: updatedPickup?.trackingUrl || null,
+              estimatedDelivery: updatedPickup?.estimatedDelivery || null,
+            },
+            dedupeKey: statusDedupeKey,
+            // forceEmail must not skip dedupe. Only an explicit resend does.
+            force: resendEmail,
+          })
+          emailAttempted = Boolean(sendResult?.attempted)
+          emailSent = Boolean(sendResult?.ok)
+          if (!sendResult?.ok && sendResult?.reason !== 'deduped') {
+            if (ownedStatusKey) await releaseEmailSend(ownedStatusKey)
+            ownedStatusKey = null
+            emailSkipReason = sendResult?.reason || 'send_failed'
+          } else if (!sendResult?.ok) {
+            emailSkipReason = sendResult?.reason || 'deduped'
+          }
+          console.log(`[Orders Update API] Status update email result for order ${order.order_number}`, sendResult)
         }
-        console.log(`[Orders Update API] Status update email result for order ${order.order_number}`, sendResult)
       } catch (emailError) {
         console.error('[Orders Update API] Failed to send status update email:', emailError)
         console.error('[Orders Update API] Error details:', emailError.stack)
         emailSent = false
         emailSkipReason = 'send_failed'
+        if (ownedStatusKey) await releaseEmailSend(ownedStatusKey)
         // Don't fail the request if email fails
       }
     } else {
@@ -299,6 +324,7 @@ export async function webHandler(request) {
 
     // Separate review request email when picked up / completed (transition only, unless forced).
     // This runs independently of the status-update email (so dedupe/skip on the status email won't block reviews).
+    let ownedReviewKey = null
     try {
       const { sendEmail } = await import('../sendEmail.js')
       const noReviewStatuses = new Set(['CANCELED', 'CANCELLED', 'REFUNDED'])
@@ -318,23 +344,39 @@ export async function webHandler(request) {
       }
 
       if (!reviewEmailSkipReason) {
-        const reviewResult = await sendEmail({
-          type: 'review_request',
-          to: customerEmail,
-          subject: 'How was your visit? Leave a quick review',
-          data: {
-            orderNumber: order.order_number,
-            customerName,
-          },
-          dedupeKey: `review_request:${order.order_number}`,
-          force: Boolean(forceEmail),
+        const reviewDedupeKey = `review_request:${order.order_number}`
+        const reviewClaim = await claimEmailSend({
+          dedupeKey: reviewDedupeKey,
+          emailType: 'review_request',
+          replace: resendEmail,
         })
-        reviewEmailAttempted = Boolean(reviewResult?.attempted)
-        reviewEmailSent = Boolean(reviewResult?.ok)
-        if (!reviewResult?.ok) {
-          reviewEmailSkipReason = reviewResult?.reason || 'send_failed'
+        ownedReviewKey = reviewClaim.claimed && reviewClaim.reason !== 'dedupe_unavailable' ? reviewDedupeKey : null
+        if (!reviewClaim.claimed) {
+          reviewEmailSkipReason = 'deduped'
+          console.log(`[Orders Update API] Skipping duplicate review email for ${order.order_number}`)
+        } else {
+          const reviewResult = await sendEmail({
+            type: 'review_request',
+            to: customerEmail,
+            subject: 'How was your visit? Leave a quick review',
+            data: {
+              orderNumber: order.order_number,
+              customerName,
+            },
+            dedupeKey: reviewDedupeKey,
+            force: resendEmail,
+          })
+          reviewEmailAttempted = Boolean(reviewResult?.attempted)
+          reviewEmailSent = Boolean(reviewResult?.ok)
+          if (!reviewResult?.ok && reviewResult?.reason !== 'deduped') {
+            if (ownedReviewKey) await releaseEmailSend(ownedReviewKey)
+            ownedReviewKey = null
+            reviewEmailSkipReason = reviewResult?.reason || 'send_failed'
+          } else if (!reviewResult?.ok) {
+            reviewEmailSkipReason = reviewResult?.reason || 'deduped'
+          }
+          console.log(`[Orders Update API] Review request email result for order ${order.order_number}`, reviewResult)
         }
-        console.log(`[Orders Update API] Review request email result for order ${order.order_number}`, reviewResult)
       } else {
         console.log(`[Orders Update API] Skipping review email: ${reviewEmailSkipReason}`, {
           previousStatus,
@@ -348,9 +390,11 @@ export async function webHandler(request) {
       reviewEmailAttempted = true
       reviewEmailSent = false
       reviewEmailSkipReason = 'send_failed'
+      if (ownedReviewKey) await releaseEmailSend(ownedReviewKey)
     }
 
     // Separate refund email when order is canceled (transition only, unless forced).
+    let ownedRefundKey = null
     try {
       const { sendEmail } = await import('../sendEmail.js')
       const canceledStatuses = new Set(['CANCELED', 'CANCELLED'])
@@ -369,27 +413,43 @@ export async function webHandler(request) {
 
       if (!refundEmailSkipReason) {
         const total = order.total_cents ? (Number(order.total_cents) / 100).toFixed(2) : '0.00'
-        const refundResult = await sendEmail({
-          type: 'refund',
-          to: customerEmail,
-          subject: `Refund Processed - Order ${order.order_number}`,
-          data: {
-            orderNumber: order.order_number,
-            customerName,
-            total,
-            currency: 'USD',
-            refundAmount: total,
-            refundMethod: 'original payment method',
-          },
-          dedupeKey: `refund_email:${order.order_number}`,
-          force: Boolean(forceEmail),
+        const refundDedupeKey = `refund_email:${order.order_number}`
+        const refundClaim = await claimEmailSend({
+          dedupeKey: refundDedupeKey,
+          emailType: 'refund',
+          replace: resendEmail,
         })
-        refundEmailAttempted = Boolean(refundResult?.attempted)
-        refundEmailSent = Boolean(refundResult?.ok)
-        if (!refundResult?.ok) {
-          refundEmailSkipReason = refundResult?.reason || 'send_failed'
+        ownedRefundKey = refundClaim.claimed && refundClaim.reason !== 'dedupe_unavailable' ? refundDedupeKey : null
+        if (!refundClaim.claimed) {
+          refundEmailSkipReason = 'deduped'
+          console.log(`[Orders Update API] Skipping duplicate refund email for ${order.order_number}`)
+        } else {
+          const refundResult = await sendEmail({
+            type: 'refund',
+            to: customerEmail,
+            subject: `Refund Processed - Order ${order.order_number}`,
+            data: {
+              orderNumber: order.order_number,
+              customerName,
+              total,
+              currency: 'USD',
+              refundAmount: total,
+              refundMethod: 'original payment method',
+            },
+            dedupeKey: refundDedupeKey,
+            force: resendEmail,
+          })
+          refundEmailAttempted = Boolean(refundResult?.attempted)
+          refundEmailSent = Boolean(refundResult?.ok)
+          if (!refundResult?.ok && refundResult?.reason !== 'deduped') {
+            if (ownedRefundKey) await releaseEmailSend(ownedRefundKey)
+            ownedRefundKey = null
+            refundEmailSkipReason = refundResult?.reason || 'send_failed'
+          } else if (!refundResult?.ok) {
+            refundEmailSkipReason = refundResult?.reason || 'deduped'
+          }
+          console.log(`[Orders Update API] Refund email result for order ${order.order_number}`, refundResult)
         }
-        console.log(`[Orders Update API] Refund email result for order ${order.order_number}`, refundResult)
       } else {
         console.log(`[Orders Update API] Skipping refund email: ${refundEmailSkipReason}`, {
           previousStatus,
@@ -403,6 +463,7 @@ export async function webHandler(request) {
       refundEmailAttempted = true
       refundEmailSent = false
       refundEmailSkipReason = 'send_failed'
+      if (ownedRefundKey) await releaseEmailSend(ownedRefundKey)
     }
 
     return new Response(

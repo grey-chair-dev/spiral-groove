@@ -83,7 +83,7 @@ Body (same status as Postgres):
 
 Postgres can still update `RESERVED`; HTTP only needs to fire for customer-facing changes.
 
-With `forceEmail: true`, the API sends even if Postgres already wrote the same status.
+With `forceEmail: true`, the API still attempts the customer email when Postgres already wrote the same status. Repeat calls for that same order and status are deduped (one row in `email_sends`). Pass `resend: true` to send that status again on purpose.
 
 ### 4. Optional: Postgres-only (no HTTP)
 
@@ -126,11 +126,12 @@ curl -X PATCH "https://YOUR_DEPLOYMENT/api/orders/update" \
   -d '{
     "order_id": "ORD-XXXXX-XXXX",
     "status": "PREPARED",
-    "forceEmail": true
+    "forceEmail": true,
+    "resend": true
   }'
 ```
 
-`forceEmail: true` bypasses deduplication and sends even if status was already correct.
+`forceEmail: true` sends even if the status was already correct. `resend: true` is what bypasses the one-email-per-status dedupe.
 
 ## Environment
 

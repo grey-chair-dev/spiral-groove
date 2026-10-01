@@ -2,6 +2,12 @@
 
 Run these against your Neon (or other Postgres) database when adding schema changes.
 
+## add-email-sends.sql
+
+Creates `email_sends`, the claim table that lets only one status email through when Square delivers several versions of the same order at once. The orders API also creates this table on first use.
+
+**When:** Before or with the order-status email dedupe deploy.
+
 ## add-orders-shipping-columns.sql
 
 Adds `delivery_method` and `shipping_cents` to the `orders` table for shipping/delivery support.
