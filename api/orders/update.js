@@ -228,8 +228,10 @@ export async function webHandler(request) {
     let refundEmailSent = false
     let refundEmailSkipReason = null
 
+    // Only send email if status actually changed, unless explicitly forced
     if (!forceEmail && previousStatus === normalizedStatus) {
       emailSkipReason = 'status_unchanged'
+      console.log(`[Orders Update API] Skipping email: status unchanged (${previousStatus} -> ${normalizedStatus})`)
     } else if (!customerEmail) {
       emailSkipReason = 'missing_customer_email'
     } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
@@ -241,9 +243,18 @@ export async function webHandler(request) {
         const { sendEmail } = await import('../sendEmail.js')
         const total = order.total_cents ? (Number(order.total_cents) / 100).toFixed(2) : '0.00'
         
-        console.log(`[Orders Update API] Sending status update email to ${customerEmail} for order ${order.order_number}`)
-        
         const subject = getOrderStatusUpdateSubject(normalizedStatus, order.order_number)
+        const emailDedupeKey = `order_status_update:${order.order_number}:${normalizedStatus}`
+        
+        console.log(`[Orders Update API] Sending status update email`, {
+          to: customerEmail,
+          orderNumber: order.order_number,
+          previousStatus,
+          newStatus: normalizedStatus,
+          dedupeKey: emailDedupeKey,
+          forceEmail: Boolean(forceEmail)
+        })
+        
         const sendResult = await sendEmail({
           type: 'order_status_update',
           to: customerEmail,
@@ -272,7 +283,7 @@ export async function webHandler(request) {
             trackingUrl: updatedPickup?.trackingUrl || null,
             estimatedDelivery: updatedPickup?.estimatedDelivery || null,
           },
-          dedupeKey: `order_status_update:${order.order_number}:${normalizedStatus}`,
+          dedupeKey: emailDedupeKey,
           force: Boolean(forceEmail),
         })
         emailAttempted = Boolean(sendResult?.attempted)
