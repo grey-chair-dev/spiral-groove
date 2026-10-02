@@ -74,16 +74,17 @@ Body (same status as Postgres):
   "square_order_id": "{{1.data.object.order_fulfillment_updated.order_id}}",
   "status": "{{1.data.object.order_fulfillment_updated.fulfillment_update[1].new_state}}",
   "fulfillment_state": "{{1.data.object.order_fulfillment_updated.fulfillment_update[1].new_state}}",
-  "delivery_method": "pickup",
-  "forceEmail": true
+  "delivery_method": "pickup"
 }
 ```
+
+**⚠️ Important**: Do **NOT** use `"forceEmail": true` in automated Make scenarios. This bypasses deduplication and will cause duplicate emails if the webhook triggers multiple times. Only use `forceEmail: true` for manual one-off resends.
 
 **Filter on HTTP route:** run when `new_state` is **`PREPARED`** or **`COMPLETED`** (send emails). You can skip **`RESERVED`** if you don’t want mail for that step.
 
 Postgres can still update `RESERVED`; HTTP only needs to fire for customer-facing changes.
 
-With `forceEmail: true`, the API sends even if Postgres already wrote the same status.
+**Deduplication**: The API has built-in deduplication to prevent sending multiple emails for the same order+status combination within a 5-minute window. This protects against duplicate webhook triggers. Do not use `forceEmail: true` in automated scenarios as it bypasses this protection.
 
 ### 4. Optional: Postgres-only (no HTTP)
 
@@ -130,7 +131,11 @@ curl -X PATCH "https://YOUR_DEPLOYMENT/api/orders/update" \
   }'
 ```
 
-`forceEmail: true` bypasses deduplication and sends even if status was already correct.
+**Use `forceEmail: true` for manual resends only.** This bypasses deduplication and sends the email even if:
+- The status was already set to this value
+- An email was recently sent for this order+status combination
+
+Do not use `forceEmail: true` in automated Make scenarios as it will cause duplicate emails if webhooks trigger multiple times.
 
 ## Environment
 

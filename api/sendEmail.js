@@ -32,6 +32,17 @@ function shouldSend(dedupeKey, ttlMs) {
   const last = dedupeMap.get(dedupeKey)
   if (last && now - last < ttlMs) return false
   dedupeMap.set(dedupeKey, now)
+  
+  // Cleanup old entries periodically to prevent memory leaks
+  if (dedupeMap.size > 1000) {
+    const cutoff = now - ttlMs
+    for (const [key, timestamp] of dedupeMap.entries()) {
+      if (timestamp < cutoff) {
+        dedupeMap.delete(key)
+      }
+    }
+  }
+  
   return true
 }
 
@@ -68,11 +79,17 @@ export async function sendEmail({ type, to, subject, from: fromParam, data = {},
 
     // Deduplication check (skip if force=true)
     if (!force) {
-      const key = dedupeKey || `email:${type}:${to}:${Date.now() - (Date.now() % (dedupeTtlMs / 10))}`
+      // Use explicit dedupeKey if provided, otherwise generate a stable key based on type and recipient
+      // Note: For order emails, callers should always provide an explicit dedupeKey like:
+      //   "order_status_update:ORDER_NUMBER:STATUS" to ensure proper deduplication
+      const key = dedupeKey || `email:${type}:${to}`
       if (!shouldSend(key, dedupeTtlMs)) {
-        console.log('[Email Webhook] Skipping duplicate email:', { type, to })
+        console.log('[Email Webhook] Skipping duplicate email:', { type, to, dedupeKey: key })
         return { attempted: false, ok: true, reason: 'deduped' }
       }
+      console.log('[Email Webhook] Sending email:', { type, to, dedupeKey: key })
+    } else {
+      console.warn('[Email Webhook] Force-sending email (deduplication bypassed):', { type, to, dedupeKey })
     }
 
     // Generate HTML email content based on type
