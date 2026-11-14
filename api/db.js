@@ -266,6 +266,32 @@ export async function query(text, params) {
 }
 
 /**
+ * Run work on one pooled client inside BEGIN…COMMIT (ROLLBACK on throw).
+ * Caller: api/staff-picks-weekly.js → refreshStaffPicks({ withTransaction }).
+ * No prior txn helper in this file. Does not change table schemas; wraps SQL only.
+ * User: "lets do it" (Staff Picks race / advisory lock).
+ * @param {(txQuery: (text: string, params?: any[]) => Promise<import('pg').QueryResult>) => Promise<any>} fn
+ */
+export async function withTransaction(fn) {
+  const pool = getPool()
+  const client = await pool.connect()
+  const txQuery = (text, params) => client.query(text, params)
+  try {
+    await client.query('BEGIN')
+    const result = await fn(txQuery)
+    await client.query('COMMIT')
+    return result
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK')
+    } catch {}
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+/**
  * Close the connection pool (useful for cleanup in tests)
  */
 export async function closePool() {

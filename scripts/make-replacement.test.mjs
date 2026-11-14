@@ -176,11 +176,23 @@ test('staff picks: writes quotes before swapping, strips quote marks', async () 
     if (sql.includes('FROM albums_cache')) return { rows: [{ name: 'Album A', category: 'New Vinyl', square_item_id: 'I1', square_variation_id: 'V1' }] }
     return { rows: [], rowCount: 1 }
   })
-  const res = await refreshStaffPicks({ query: q.query, complete: async () => '“Warm Rhodes and a slow groove.”', now: () => new Date('2026-11-16T07:45:00Z') })
+  const res = await refreshStaffPicks({
+    query: q.query,
+    complete: async () => '“Warm Rhodes and a slow groove.”',
+    now: () => new Date('2026-11-16T07:45:00Z'),
+    withTransaction: async (fn) => fn(q.query),
+  })
   assert.deepEqual(res.picks, ['Album A'])
-  const order = q.calls.map((c) => c.sql.split(' ')[0])
-  assert.deepEqual(order, ['SELECT', 'SELECT', 'DELETE', 'INSERT'])
-  assert.equal(q.calls[3].params[3], 'Warm Rhodes and a slow groove.')
+  const kinds = q.calls.map((c) => {
+    if (c.sql.includes('pg_advisory_xact_lock')) return 'LOCK'
+    if (c.sql.includes('count(*)')) return 'COUNT'
+    if (c.sql.includes('FROM albums_cache')) return 'ALBUMS'
+    if (c.sql.startsWith('DELETE')) return 'DELETE'
+    if (c.sql.startsWith('INSERT')) return 'INSERT'
+    return c.sql.split(' ')[0]
+  })
+  assert.deepEqual(kinds, ['COUNT', 'ALBUMS', 'LOCK', 'COUNT', 'DELETE', 'INSERT'])
+  assert.equal(q.calls.find((c) => c.sql.startsWith('INSERT')).params[3], 'Warm Rhodes and a slow groove.')
 })
 
 test('staff picks: a failed LLM call leaves last week alone; already-refreshed day is a no-op', async () => {
@@ -196,6 +208,28 @@ test('staff picks: a failed LLM call leaves last week alone; already-refreshed d
   const res = await refreshStaffPicks({ query: done.query, complete: async () => 'x' })
   assert.equal(res.note, 'already refreshed today')
   assert.equal(done.calls.length, 1)
+})
+
+test('staff picks: lock re-check skips swap if another run finished during LLM', async () => {
+  let counts = 0
+  const q = fakeQuery((sql) => {
+    if (sql.includes('count(*)')) {
+      counts += 1
+      return { rows: [{ n: counts === 1 ? 0 : 4 }] }
+    }
+    if (sql.includes('FROM albums_cache')) {
+      return { rows: [{ name: 'A', category: 'New Vinyl', square_item_id: 'I', square_variation_id: 'V' }] }
+    }
+    return { rows: [], rowCount: 1 }
+  })
+  const res = await refreshStaffPicks({
+    query: q.query,
+    complete: async () => 'quote',
+    withTransaction: async (fn) => fn(q.query),
+  })
+  assert.equal(res.note, 'already refreshed today')
+  assert.ok(!q.calls.some((c) => c.sql.startsWith('DELETE')))
+  assert.ok(!q.calls.some((c) => c.sql.startsWith('INSERT')))
 })
 
 test('staff picks LLM: OpenAI-compatible request, errors surface', async () => {

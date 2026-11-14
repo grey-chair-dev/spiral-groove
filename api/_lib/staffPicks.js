@@ -3,11 +3,24 @@
  * Picks the 4 best-selling in-stock New Vinyl albums not already picked, writes a short quote
  * for each with an LLM, then swaps them into `staff_picks` (read by api/staff-picks.js).
  *
+ * Caller: api/staff-picks-weekly.js (Vercel Cron + manual POST).
+ * No other Staff Picks writer in-repo.
+ *
+ * Concurrency: after quotes are ready, one Postgres transaction takes
+ * `pg_advisory_xact_lock(hashtext('spiral_groove.staff_picks'))`, re-checks "already today",
+ * then DELETE+INSERT in the same txn so readers never see an empty table mid-swap and
+ * parallel cron/manual runs cannot double-insert.
+ *
+ * User: "lets do it" (fix the Staff Picks race).
+ *
  * LLM: any OpenAI-compatible chat endpoint.
  *   STAFF_PICKS_LLM_API_KEY (or OPENAI_API_KEY)
  *   STAFF_PICKS_LLM_BASE_URL (default https://api.openai.com/v1)
  *   STAFF_PICKS_LLM_MODEL    (default gpt-4.1-mini, what the Make scenario used)
  */
+
+/** Stable advisory lock key (hashtext of this string inside Postgres). */
+export const STAFF_PICKS_LOCK_ID = 'spiral_groove.staff_picks'
 
 export function staffPickPrompt(name, category) {
   return `You are Spiral Groove Records staff. Write ONE short “Staff Pick” quote for an album card.
@@ -51,9 +64,18 @@ export function createCompleter(env = process.env, fetchImpl = fetch) {
   }
 }
 
-export async function refreshStaffPicks({ query, complete, now = () => new Date() }) {
+/**
+ * @param {{
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
+ *   complete: (prompt: string) => Promise<string>,
+ *   now?: () => Date,
+ *   withTransaction?: (fn: (txQuery: typeof query) => Promise<any>) => Promise<any>,
+ * }} opts
+ */
+export async function refreshStaffPicks({ query, complete, now = () => new Date(), withTransaction }) {
   const today = now().toISOString().slice(0, 10)
-  // Already refreshed today (e.g. Make's scenario still on during the cutover, or a manual run): don't stack picks.
+
+  // Cheap early exit (no lock) — skip LLM when today already has picks.
   const { rows: existing } = await query('SELECT count(*)::int AS n FROM staff_picks WHERE created_at >= $1', [today])
   if (existing[0]?.n > 0) return { ok: true, picks: [], note: 'already refreshed today' }
 
@@ -67,7 +89,7 @@ export async function refreshStaffPicks({ query, complete, now = () => new Date(
   )
   if (albums.length === 0) return { ok: true, picks: [], note: 'no candidates; kept last week' }
 
-  // Write every quote first so a failed LLM call leaves last week's picks in place.
+  // Finish every LLM quote before touching rows so a failure leaves last week alone.
   const picks = []
   for (const a of albums) {
     const quote = String(await complete(staffPickPrompt(a.name, a.category)))
@@ -76,13 +98,27 @@ export async function refreshStaffPicks({ query, complete, now = () => new Date(
     picks.push({ ...a, quote })
   }
 
-  await query('DELETE FROM staff_picks WHERE created_at < $1', [today])
-  for (const p of picks) {
-    await query(
-      `INSERT INTO staff_picks (square_item_id, square_variation_id, name, quote, created_at)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [p.square_item_id, p.square_variation_id, p.name, p.quote, now().toISOString()],
-    )
+  const createdAt = now().toISOString()
+  const swap = async (txQuery) => {
+    // Serialize concurrent cron + manual runs; released at COMMIT/ROLLBACK.
+    await txQuery('SELECT pg_advisory_xact_lock(hashtext($1))', [STAFF_PICKS_LOCK_ID])
+
+    const { rows: again } = await txQuery('SELECT count(*)::int AS n FROM staff_picks WHERE created_at >= $1', [today])
+    if (again[0]?.n > 0) return { ok: true, picks: [], note: 'already refreshed today' }
+
+    // Same transaction: outsiders keep seeing old rows until COMMIT (no empty gap).
+    await txQuery('DELETE FROM staff_picks')
+    for (const p of picks) {
+      await txQuery(
+        `INSERT INTO staff_picks (square_item_id, square_variation_id, name, quote, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [p.square_item_id, p.square_variation_id, p.name, p.quote, createdAt],
+      )
+    }
+    return { ok: true, picks: picks.map((p) => p.name) }
   }
-  return { ok: true, picks: picks.map((p) => p.name) }
+
+  if (withTransaction) return withTransaction(swap)
+  // Tests / callers without a real txn helper still run the swap steps in order.
+  return swap(query)
 }

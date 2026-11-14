@@ -5,7 +5,7 @@
  * Auth: in production only Vercel Cron (Authorization: Bearer CRON_SECRET when CRON_SECRET is set,
  * else the x-vercel-cron header, like the other crons). POST with x-webhook-secret runs it by hand.
  */
-import { query } from './db.js'
+import { query, withTransaction } from './db.js'
 import { withWebHandler } from './_vercelNodeAdapter.js'
 import { createCompleter, llmConfigured, refreshStaffPicks } from './_lib/staffPicks.js'
 import { sendSlackAlert } from './slackAlerts.js'
@@ -39,7 +39,7 @@ export async function webHandler(request) {
   if (!llmConfigured()) return json(200, { success: true, skipped: 'STAFF_PICKS_LLM_API_KEY not set' })
 
   try {
-    const result = await refreshStaffPicks({ query, complete: createCompleter() })
+    const result = await refreshStaffPicks({ query, complete: createCompleter(), withTransaction })
     console.log('[Staff Picks]', JSON.stringify(result))
     return json(200, { success: true, ...result })
   } catch (error) {
