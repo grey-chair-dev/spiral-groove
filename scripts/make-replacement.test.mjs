@@ -316,3 +316,84 @@ test('alerts: email alerts@ via SMTP (no Slack/Make)', async () => {
   assert.equal(res.sent, true)
   assert.equal(res.to, 'alerts@greychair.io')
 })
+
+
+// ---------- Instagram events (api-anything cutover) ----------
+
+test('instagram events: map posts, fingerprint, gates, fence strip', async () => {
+  const {
+    mapApiAnythingPosts,
+    fingerprintFor,
+    shouldInsertEvent,
+    parseEventExtraction,
+    stripLlmJsonFences,
+  } = await import('../api/_lib/instagramEvents.js')
+
+  assert.equal(stripLlmJsonFences('```json\n{"a":1}\n```'), '{"a":1}')
+  assert.deepEqual(parseEventExtraction('```json\n{"is_event":false}\n```'), { is_event: false })
+
+  const mapped = mapApiAnythingPosts([
+    {
+      'node.code': 'AbC',
+      'node.caption.text': 'Live Sat',
+      'node.accessibility_caption': 'Photo',
+      'node.display_uri': 'https://cdn.example/x.jpg',
+    },
+  ])
+  assert.deepEqual(mapped, [
+    {
+      code: 'AbC',
+      caption: 'Live Sat',
+      accessibilityCaption: 'Photo',
+      mediaUrl: 'https://cdn.example/x.jpg',
+      permalink: 'https://www.instagram.com/p/AbC/',
+    },
+  ])
+
+  assert.equal(fingerprintFor('  Rosemat ', '2026-11-15'), 'rosemat2026-11-15')
+  assert.equal(shouldInsertEvent({ is_event: true, event_type: 'recap', confidence: 0.9, artist: 'A', event_date: '2026-11-15' }).reason, 'recap')
+  assert.equal(shouldInsertEvent({ is_event: true, event_type: 'upcoming', confidence: 0.4, artist: 'A', event_date: '2026-11-15' }).reason, 'low_confidence')
+  assert.equal(shouldInsertEvent({ is_event: true, event_type: 'upcoming', confidence: 0.9, artist: 'A', event_date: '2026-11-15' }).ok, true)
+})
+
+test('instagram events: sync inserts once, skips duplicate', async () => {
+  const { syncInstagramEvents } = await import('../api/_lib/instagramEvents.js')
+  const rows = []
+  const query = async (sql, params = []) => {
+    if (sql.includes('SELECT id FROM events')) {
+      return { rows: rows.some((r) => r.fingerprint === params[0]) ? [{ id: 1 }] : [] }
+    }
+    if (sql.includes('INSERT INTO events')) {
+      rows.push({ fingerprint: params[12] })
+      return { rows: [], rowCount: 1 }
+    }
+    throw new Error('unexpected sql')
+  }
+  const complete = async () =>
+    JSON.stringify({
+      is_event: true,
+      event_type: 'upcoming',
+      event_name: 'Live',
+      artist: 'Rosemat',
+      venue: 'Spiral Groove Records',
+      event_date: '2026-11-15',
+      start_time: '15:00',
+      end_time: '17:00',
+      event_description: 'Live set',
+      confidence: 0.9,
+    })
+  const fetchPosts = async () => [
+    {
+      code: 'X1',
+      caption: 'Rosemat this Saturday 3-5',
+      accessibilityCaption: '',
+      mediaUrl: null,
+      permalink: 'https://www.instagram.com/p/X1/',
+    },
+  ]
+  const a = await syncInstagramEvents({ query, complete, fetchPosts, sleepMs: async () => {}, dryRun: false })
+  assert.equal(a.inserted, 1)
+  const b = await syncInstagramEvents({ query, complete, fetchPosts, sleepMs: async () => {}, dryRun: false })
+  assert.equal(b.inserted, 0)
+  assert.equal(b.skipped.some((s) => s.reason === 'duplicate'), true)
+})

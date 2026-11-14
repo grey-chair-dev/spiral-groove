@@ -95,6 +95,9 @@ const server = createServer(async (req, res) => {
           } else if (route === 'staff-picks') {
             const module = await importFresh('./api/staff-picks.js')
             handler = module.webHandler ?? module.default
+          } else if (route === 'instagram-events-sync') {
+            const module = await importFresh('./api/instagram-events-sync.js')
+            handler = module.webHandler ?? module.default
           } else if (route === 'staff-picks-weekly') {
             const module = await importFresh('./api/staff-picks-weekly.js')
             handler = module.webHandler ?? module.default

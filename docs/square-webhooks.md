@@ -25,6 +25,7 @@ Everything Spiral Groove used Make for now runs in this repo (SMTP + Square webh
 | Inventory Count | `api/square/webhook.js` → `api/_lib/squareEvents.js` | Square subscription points here |
 | Order Status Updates | `api/square/webhook.js` → `updateOrderStatus()` in `api/orders/update.js` | Square subscription points here |
 | Staff Picks | `api/staff-picks-weekly.js` (Vercel Cron, Mon 07:45 UTC) → `api/_lib/staffPicks.js` | `STAFF_PICKS_LLM_API_KEY` set |
+| Events From Instagram | `api/instagram-events-sync.js` via api-anything getPosts + LLM → Neon `events` | daily cron 22:40 UTC |
 | Usage Cost Backfill | dropped (only tracked Make's own costs) | — |
 
 Tests: `npm test`.

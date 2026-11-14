@@ -114,7 +114,7 @@ function throwLlmFailure(provider, status, body) {
   throw new LlmProviderError(`LLM ${kind}: ${message}`, { kind, status, provider, rawType })
 }
 
-export function createCompleter(env = process.env, fetchImpl = fetch) {
+export function createCompleter(env = process.env, fetchImpl = fetch, opts = {}) {
   const provider = resolveLlmProvider(env)
   const key = env.STAFF_PICKS_LLM_API_KEY || (provider === 'anthropic' ? env.ANTHROPIC_API_KEY : env.OPENAI_API_KEY)
   const base = String(
@@ -124,6 +124,7 @@ export function createCompleter(env = process.env, fetchImpl = fetch) {
   const model =
     env.STAFF_PICKS_LLM_MODEL ||
     (provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gpt-4.1-mini')
+  const maxTokens = Number(opts.maxTokens) > 0 ? Math.floor(Number(opts.maxTokens)) : 256
 
   return async function complete(prompt) {
     if (!key) throw new Error('STAFF_PICKS_LLM_API_KEY (or ANTHROPIC_API_KEY / OPENAI_API_KEY) is not set')
@@ -138,7 +139,7 @@ export function createCompleter(env = process.env, fetchImpl = fetch) {
         },
         body: JSON.stringify({
           model,
-          max_tokens: 256,
+          max_tokens: maxTokens,
           temperature: 1,
           messages: [{ role: 'user', content: prompt }],
         }),
@@ -159,8 +160,13 @@ export function createCompleter(env = process.env, fetchImpl = fetch) {
     const res = await fetchImpl(`${base}/chat/completions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 1 }),
-      signal: AbortSignal.timeout(30_000),
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 1,
+        max_tokens: maxTokens,
+      }),
+      signal: AbortSignal.timeout(60_000),
     })
     const body = await res.json().catch(() => ({}))
     const text = body?.choices?.[0]?.message?.content?.trim()

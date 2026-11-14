@@ -24,6 +24,7 @@
     "@google/genai": "^1.32.0",
     "@neondatabase/neon-auth": "^0.1.0-alpha.3",
     "@square/web-sdk": "^2.1.0",
+    "api-anything": "^0.4.0",
     "dotenv": "^17.2.3",
     "flags": "^4.0.5",
     "html2canvas": "1.4.1",
