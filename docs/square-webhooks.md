@@ -14,8 +14,8 @@ the site keeps using the old Make webhooks, so this can be merged before the cut
 
 | Was (Make scenario) | Now | Switches on when |
 |---|---|---|
-| Transactional Emails | `api/sendEmail.js` → `api/_lib/mailer.js` (from spiralgrooverecords@greychair.io) | `SGR_SMTP_URL` set |
-| Contact Us (+ sale alerts) | `api/contact-inquiry.js`, `sendEmail` `sale_alert` → `api/_lib/inquiryMail.js` (from general@greychair.io) | `SGR_SMTP_URL` set |
+| Transactional Emails | `api/sendEmail.js` → `api/_lib/mailer.js` (from spiralgrooverecords@greychair.digital) | `SGR_SMTP_URL` set |
+| Contact Us (+ sale alerts) | `api/contact-inquiry.js`, `sendEmail` `sale_alert` → `api/_lib/inquiryMail.js` (from general@greychair.digital) | `SGR_SMTP_URL` set |
 | Event Inquiries | `api/event-inquiry.js` → `api/_lib/inquiryMail.js` | `SGR_SMTP_URL` set |
 | Alerts - Spiral Groove Records | Vercel Observability + `/api/health` uptime (see `docs/observability.md`); `sendSlackAlert` is log-only | Make Alerts scenario off |
 | Inventory Count | `api/square/webhook.js` → `api/_lib/squareEvents.js` | Square subscription points here |
@@ -29,8 +29,9 @@ Tests: `npm test`.
 
 | Var | What |
 |---|---|
-| `SGR_SMTP_URL` | SMTP for spiralgrooverecords@greychair.io. Gmail: `smtps://<user%40domain>:<app-password>@smtp.gmail.com:465` (the account must have spiralgrooverecords@ as a verified "Send mail as" alias). Resend: `smtps://resend:<api-key>@smtp.resend.com:465`. |
-| `PROJECTS_SMTP_URL` | SMTP for general@greychair.io (store inquiries, sale alerts). Defaults to `SGR_SMTP_URL`. |
+| `SGR_SMTP_URL` | Resend SMTP: `smtps://resend:<api-key>@smtp.resend.com:465`. From must be on **greychair.digital** (Resend rejects greychair.io). |
+| `SGR_MAIL_FROM` / `PROJECTS_MAIL_FROM` | Defaults: spiralgrooverecords@ / general@ on greychair.digital. |
+| `PROJECTS_SMTP_URL` | SMTP for store inquiries + sale alerts. Defaults to `SGR_SMTP_URL`. |
 | `ALERTS_SMTP_URL`, `ALERT_EMAIL` | Error alerts sender and recipient (default alerts@greychair.io). |
 | `CONTACT_INQUIRY_TO`, `EVENT_INQUIRY_TO` | Override the inquiry inboxes (defaults adam@spiralgrooverecords.com, hybridmoments25@gmail.com, as in Make). |
 | `EMAIL_SUPPRESS_TO` | Comma list of recipients never sent customer email (default the test inbox Make dropped). |

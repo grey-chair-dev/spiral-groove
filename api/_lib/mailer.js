@@ -2,14 +2,15 @@
  * Direct email sending (replaces the Make.com email relay scenarios).
  *
  * Accounts, like the Make connections they replace:
- *   sgr       "Spiral Groove Records" <spiralgrooverecords@greychair.io>  customer email (was "sgr_gmail")
- *   projects  general@greychair.io                                        inquiries + sale alerts to the store (was "Projects")
- *   alerts    alerts sender                                               error alerts
+ *   sgr       "Spiral Groove Records" <spiralgrooverecords@greychair.digital>  customer email
+ *   projects  general@greychair.digital                                        inquiries + sale alerts
+ *   alerts    alerts@greychair.digital                                         error alerts
+ *
+ * Resend is authorized for greychair.digital (not greychair.io). Override with *_MAIL_FROM if needed.
  *
  * Env:
  *   SGR_SMTP_URL       SMTP URL for the sgr account, e.g.
- *                      smtps://user%40greychair.io:<app-password>@smtp.gmail.com:465
- *                      or smtps://resend:<api-key>@smtp.resend.com:465
+ *                      smtps://resend:<api-key>@smtp.resend.com:465
  *                      Setting it switches the site from Make to direct sending.
  *   PROJECTS_SMTP_URL  SMTP URL for the projects account (default: SGR_SMTP_URL)
  *   ALERTS_SMTP_URL    SMTP URL for alerts (default: PROJECTS_SMTP_URL, then SGR_SMTP_URL)
@@ -19,9 +20,9 @@
 import nodemailer from 'nodemailer'
 
 const DEFAULT_FROM = {
-  sgr: '"Spiral Groove Records" <spiralgrooverecords@greychair.io>',
-  projects: 'general@greychair.io',
-  alerts: '"Spiral Groove Alerts" <general@greychair.io>',
+  sgr: '"Spiral Groove Records" <spiralgrooverecords@greychair.digital>',
+  projects: 'general@greychair.digital',
+  alerts: '"Spiral Groove Alerts" <alerts@greychair.digital>',
 }
 
 const transports = new Map()
