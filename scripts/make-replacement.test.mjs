@@ -262,7 +262,7 @@ test('staff picks LLM: Anthropic Messages API when key is sk-ant-', async () => 
   assert.equal(sent.url, 'https://api.anthropic.com/v1/messages')
   assert.equal(sent.headers['x-api-key'], 'sk-ant-test')
   assert.equal(sent.headers['anthropic-version'], '2023-06-01')
-  assert.equal(sent.body.model, 'claude-haiku-4-5')
+  assert.equal(sent.body.model, 'claude-haiku-4-5-20251001')
   assert.equal(sent.body.max_tokens, 256)
 })
 

@@ -40,9 +40,12 @@ export async function webHandler(request) {
   if (!llmConfigured()) return json(200, { success: true, skipped: 'STAFF_PICKS_LLM_API_KEY not set' })
 
   try {
-    const result = await refreshStaffPicks({ query, complete: createCompleter(), withTransaction })
-    logger.info('staff_picks_refresh', { event: 'staff_picks_refresh', ...result })
-    return json(200, { success: true, ...result })
+    const url = new URL(request.url)
+    // Manual POST only: ?force=1 re-runs even if today already has picks (cron never forces).
+    const force = method === 'POST' && (url.searchParams.get('force') === '1' || url.searchParams.get('force') === 'true')
+    const result = await refreshStaffPicks({ query, complete: createCompleter(), withTransaction, force })
+    logger.info('staff_picks_refresh', { event: 'staff_picks_refresh', force, ...result })
+    return json(200, { success: true, force, ...result })
   } catch (error) {
     const llm = error instanceof LlmProviderError ? error : null
     const kind = llm?.kind || 'other'

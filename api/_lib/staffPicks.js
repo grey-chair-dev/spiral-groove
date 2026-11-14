@@ -18,7 +18,7 @@
  *   STAFF_PICKS_LLM_PROVIDER  openai | anthropic (default: anthropic if key starts with sk-ant-)
  *   STAFF_PICKS_LLM_BASE_URL  (openai default https://api.openai.com/v1,
  *                             anthropic default https://api.anthropic.com)
- *   STAFF_PICKS_LLM_MODEL     (openai default gpt-4.1-mini; anthropic default claude-haiku-4-5)
+ *   STAFF_PICKS_LLM_MODEL     (openai default gpt-4.1-mini; anthropic default claude-haiku-4-5-20251001)
  */
 
 /** Stable advisory lock key (hashtext of this string inside Postgres). */
@@ -122,7 +122,8 @@ export function createCompleter(env = process.env, fetchImpl = fetch) {
       (provider === 'anthropic' ? 'https://api.anthropic.com' : 'https://api.openai.com/v1'),
   ).replace(/\/$/, '')
   const model =
-    env.STAFF_PICKS_LLM_MODEL || (provider === 'anthropic' ? 'claude-haiku-4-5' : 'gpt-4.1-mini')
+    env.STAFF_PICKS_LLM_MODEL ||
+    (provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gpt-4.1-mini')
 
   return async function complete(prompt) {
     if (!key) throw new Error('STAFF_PICKS_LLM_API_KEY (or ANTHROPIC_API_KEY / OPENAI_API_KEY) is not set')
@@ -174,14 +175,17 @@ export function createCompleter(env = process.env, fetchImpl = fetch) {
  *   complete: (prompt: string) => Promise<string>,
  *   now?: () => Date,
  *   withTransaction?: (fn: (txQuery: typeof query) => Promise<any>) => Promise<any>,
+ *   force?: boolean,
  * }} opts
  */
-export async function refreshStaffPicks({ query, complete, now = () => new Date(), withTransaction }) {
+export async function refreshStaffPicks({ query, complete, now = () => new Date(), withTransaction, force = false }) {
   const today = now().toISOString().slice(0, 10)
 
   // Cheap early exit (no lock) — skip LLM when today already has picks.
-  const { rows: existing } = await query('SELECT count(*)::int AS n FROM staff_picks WHERE created_at >= $1', [today])
-  if (existing[0]?.n > 0) return { ok: true, picks: [], note: 'already refreshed today' }
+  if (!force) {
+    const { rows: existing } = await query('SELECT count(*)::int AS n FROM staff_picks WHERE created_at >= $1', [today])
+    if (existing[0]?.n > 0) return { ok: true, picks: [], note: 'already refreshed today' }
+  }
 
   const { rows: albums } = await query(
     `SELECT name, category, square_item_id, square_variation_id, sold_count
@@ -207,8 +211,10 @@ export async function refreshStaffPicks({ query, complete, now = () => new Date(
     // Serialize concurrent cron + manual runs; released at COMMIT/ROLLBACK.
     await txQuery('SELECT pg_advisory_xact_lock(hashtext($1))', [STAFF_PICKS_LOCK_ID])
 
-    const { rows: again } = await txQuery('SELECT count(*)::int AS n FROM staff_picks WHERE created_at >= $1', [today])
-    if (again[0]?.n > 0) return { ok: true, picks: [], note: 'already refreshed today' }
+    if (!force) {
+      const { rows: again } = await txQuery('SELECT count(*)::int AS n FROM staff_picks WHERE created_at >= $1', [today])
+      if (again[0]?.n > 0) return { ok: true, picks: [], note: 'already refreshed today' }
+    }
 
     // Same transaction: outsiders keep seeing old rows until COMMIT (no empty gap).
     await txQuery('DELETE FROM staff_picks')
