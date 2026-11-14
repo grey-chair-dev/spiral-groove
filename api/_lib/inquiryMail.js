@@ -5,12 +5,19 @@
  */
 import { sendMail } from './mailer.js'
 
-async function sendInquiry({ to, subject, html, replyTo, copy }) {
+async function sendInquiry({ to, subject, html, customerReplyTo, copy }) {
   // Brand as noreply@spiralgrooverecords.com (same Resend domain as order mail).
-  await sendMail('sgr', { to, subject, html, replyTo })
+  // Store/venue notify: Reply-To = customer (Adam hits Reply → emails them).
+  // Customer copy: Reply-To = store/venue inbox (not noreply).
+  await sendMail('sgr', { to, subject, html, replyTo: customerReplyTo })
   if (copy?.to) {
     try {
-      await sendMail('sgr', { to: copy.to, subject: copy.subject, html: copy.html })
+      await sendMail('sgr', {
+        to: copy.to,
+        subject: copy.subject,
+        html: copy.html,
+        replyTo: to,
+      })
     } catch (error) {
       console.error('[Inquiry] Customer copy failed:', error?.message || error)
     }
@@ -19,21 +26,23 @@ async function sendInquiry({ to, subject, html, replyTo, copy }) {
 
 export function sendContactInquiryEmails(payload, { html, customerHtml }) {
   const topic = String(payload.topic || '')
+  const storeTo = process.env.CONTACT_INQUIRY_TO || 'adam@spiralgrooverecords.com'
   return sendInquiry({
-    to: process.env.CONTACT_INQUIRY_TO || 'adam@spiralgrooverecords.com',
+    to: storeTo,
     subject: `New Contact Inquiry - ${topic} - ${payload.name || ''}`,
     html,
-    replyTo: payload.email,
+    customerReplyTo: payload.email,
     copy: payload.sendCopy && payload.email ? { to: payload.email, subject: `${topic || 'Message'} Received`, html: customerHtml } : null,
   })
 }
 
 export function sendEventInquiryEmails(payload, { html, customerHtml }) {
+  const venueTo = process.env.EVENT_INQUIRY_TO || 'hybridmoments25@gmail.com'
   return sendInquiry({
-    to: process.env.EVENT_INQUIRY_TO || 'hybridmoments25@gmail.com',
+    to: venueTo,
     subject: `Event Inquiry - ${payload.name || ''}`,
     html,
-    replyTo: payload.email,
+    customerReplyTo: payload.email,
     copy: payload.sendCopy && payload.email ? { to: payload.email, subject: 'Event Inquiry Received', html: customerHtml } : null,
   })
 }
