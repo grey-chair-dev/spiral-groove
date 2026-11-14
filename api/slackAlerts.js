@@ -12,6 +12,7 @@
  */
 
 import { directMailEnabled, sendMail } from './_lib/mailer.js'
+import { logger } from './_lib/logger.js'
 
 const ALERT_TO = () => process.env.ALERT_EMAIL || 'alerts@greychair.io'
 
@@ -724,33 +725,33 @@ export async function sendSlackAlert(payload) {
       performanceMetrics: payload.endpoint ? performanceMetrics.get(payload.endpoint) : undefined,
     })
 
-    // Always log → Vercel Logs / Observability (even when email is deduped).
-    console.error(
-      '[Alert]',
-      JSON.stringify({
-        channel: 'email',
-        to: ALERT_TO(),
-        severity,
-        endpoint: payload.endpoint,
-        method: payload.method,
-        statusCode: payload.statusCode,
-        error: payload.error,
-        summary: payload.summary,
-        slowResponse: Boolean(isSlowResponse),
-        slowQuery: Boolean(isSlowQuery),
-        errorSpike: errorSpike ? { count: errorSpike.count } : null,
-        deduped: Boolean(isDuplicate),
-        timestamp,
-      }),
-    )
+    // Always emit structured o11y log (even when email is deduped).
+    const alertFields = {
+      event: 'ops_alert',
+      channel: 'email',
+      to: ALERT_TO(),
+      severity,
+      endpoint: payload.endpoint,
+      method: payload.method,
+      statusCode: payload.statusCode,
+      errorMessage: payload.error,
+      summary: payload.summary,
+      requestId: payload.requestId,
+      slowResponse: Boolean(isSlowResponse),
+      slowQuery: Boolean(isSlowQuery),
+      errorSpike: errorSpike ? { count: errorSpike.count } : null,
+      deduped: Boolean(isDuplicate),
+      emailSent: false,
+    }
 
     if (isDuplicate) {
+      logger.warn('ops_alert deduped', alertFields)
       return { sent: false, reason: 'duplicate', channel: 'console' }
     }
 
     // Prefer alerts SMTP; SGR_SMTP_URL alone still enables the mailer path.
     if (!directMailEnabled() && !process.env.SGR_ALERTS_SMTP_URL && !process.env.ALERTS_SMTP_URL) {
-      console.warn('[Alert] No SMTP URL set; logged only (would email', ALERT_TO() + ')')
+      logger.warn('ops_alert missing_smtp', { ...alertFields, reason: 'missing_smtp' })
       return { sent: false, reason: 'missing_smtp', channel: 'console' }
     }
 
@@ -762,13 +763,14 @@ export async function sendSlackAlert(payload) {
           formatted.html ||
           `<pre>${String(JSON.stringify({ ...payload, stack: payload.stack }, null, 2)).replace(/</g, '&lt;')}</pre>`,
       })
+      logger.error('ops_alert', null, { ...alertFields, emailSent: true })
       return { sent: true, channel: 'email', to: ALERT_TO() }
     } catch (e) {
-      console.error('[Alert] Email to', ALERT_TO(), 'failed:', e?.message || e)
+      logger.error('ops_alert email_failed', e, { ...alertFields, reason: 'smtp_error' })
       return { sent: false, reason: 'smtp_error', channel: 'email' }
     }
   } catch (error) {
-    console.error('[Alert] Error sending alert:', error?.message || error)
+    logger.error('ops_alert exception', error, { event: 'ops_alert' })
     return { sent: false, reason: 'exception', error: error?.message }
   }
 }

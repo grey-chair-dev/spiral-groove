@@ -1,27 +1,47 @@
-# Knowing when something needs fixed
+# Observability (o11y)
 
-Pages go to **alerts@greychair.io** only — no Slack, no Make.
+Pages go to **alerts@greychair.io**. Logs stay in **Vercel Logs / Observability**.
 
-## 1. App alerts (email)
+## Pillars
 
-`sendSlackAlert()` always writes a structured `[Alert] {…}` line to **Vercel → Logs** (search `"[Alert]"`). It emails `ALERT_EMAIL` via `SGR_ALERTS_SMTP_URL` (or `SGR_SMTP_URL`). Deduped repeats still log (`deduped: true`) but skip another email.
+| Pillar | What we use |
+|--------|-------------|
+| **Logs** | Structured JSON via `api/_lib/logger.js` → Vercel Runtime Logs |
+| **Metrics / alerts** | Vercel monitors (Default + Spiral Groove 5xx) + UptimeRobot on `/api/health` |
+| **Email** | `sendSlackAlert` → Resend (`SGR_ALERTS_SMTP_URL`) → alerts@ |
 
-Critical paths return **5xx** on real failures so Vercel sees them; card declines stay 4xx.
+## Structured logs (Vercel-aligned)
 
-## 2. Vercel Observability (optional extra)
+- One JSON object per `console.*` call (searchable fields).
+- `level` matches the console method: `error` / `warn` / `log`.
+- Ops alerts emit `event: "ops_alert"` (search Logs for `ops_alert`).
+- Health DB failure emits `event: "health_check"` + `errorId`.
+- Deduped alerts still log (`deduped: true`) at **warn**; email is skipped.
+- Stacks only when `NODE_ENV=development` or `ENABLE_STACK_TRACES=true` (Preview).
 
-1. Vercel → `spiral-groove-records` → **Settings → Alerts** (Observability Plus).
-2. **Error anomaly** → 5xx.
-3. Notifications → **email only** to `alerts@greychair.io` (do not add Slack).
+Ref: [Vercel structured application logs](https://vercel.com/kb/guide/add-structured-application-logs-to-vercel-functions).
 
-## 3. External uptime (site / DB unreachable)
+## Where to look
+
+1. Vercel → `spiral-groove-records` → **Logs** → filter `ops_alert` or `level:error`
+2. Same project → **Observability** → 5xx / latency
+3. Inbox **alerts@greychair.io** for emailed ops alerts
+4. UptimeRobot for total outage (Vercel logs won’t fire if the app never runs)
+
+## App alerts
+
+`sendSlackAlert()` always logs; emails when SMTP is set and not deduped.
+
+Critical paths return **5xx** on real failures so Vercel monitors see them; card declines stay 4xx.
+
+## External uptime
 
 | Probe | URL | Expect |
 |-------|-----|--------|
 | Homepage | `https://www.spiralgrooverecords.com/` | HTTP 200 |
 | API + DB | `https://www.spiralgrooverecords.com/api/health` | HTTP 200 `{ status: "ok" }` |
 
-Point Better Stack / UptimeRobot at `/api/health` → notify **alerts@greychair.io**. Returns **503** if Neon is down.
+`/api/health` returns **503** (+ structured error log) if Neon is down.
 
 ## Make.com
 
