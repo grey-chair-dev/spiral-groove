@@ -24,7 +24,15 @@ Built-in `error_anomaly` filters (`statusGroup:5xx AND route:…`), medium+, tea
 | SGR event inquiry 5xx | `/api/event-inquiry` |
 | SGR products 5xx | `/api/products` |
 | SGR sendEmail 5xx | `/api/sendEmail` |
-| SGR staff picks cron 5xx | `/api/staff-picks-weekly` |
+| SGR staff picks cron 5xx | `/api/staff-picks-weekly` (also fires on LLM rate-limit/quota → **503**) |
+
+### Staff Picks LLM quota / rate limit
+
+When Anthropic/OpenAI returns rate-limit, insufficient credits/quota, or bad API key:
+
+1. Structured log `event: "staff_picks_llm_failure"` + `llmKind` (`rate_limit` | `quota` | `auth`)
+2. Email to **alerts@** (deduped 1h per kind)
+3. HTTP **503** so the existing Staff Picks 5xx Vercel monitor can fire
 | SGR newsletter cron 5xx | `/api/weekly-newsletter-bulk` |
 | SGR catalog sync cron 5xx | `/api/catalog-sync-nightly` |
 

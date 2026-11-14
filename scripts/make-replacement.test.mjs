@@ -12,7 +12,13 @@ process.env.SGR_SMTP_URL = 'smtps://user:pass@smtp.example.com:465'
 process.env.EMAIL_SUPPRESS_TO = 'test-inbox@example.com'
 
 const { handleInventoryCountUpdated, handleOrderFulfillmentUpdated } = await import('../api/_lib/squareEvents.js')
-const { refreshStaffPicks, createCompleter, resolveLlmProvider } = await import('../api/_lib/staffPicks.js')
+const {
+  refreshStaffPicks,
+  createCompleter,
+  resolveLlmProvider,
+  classifyLlmFailure,
+  LlmProviderError,
+} = await import('../api/_lib/staffPicks.js')
 const { sendEmail } = await import('../api/sendEmail.js')
 const { buildFrom } = await import('../api/_lib/mailer.js')
 
@@ -242,7 +248,7 @@ test('staff picks LLM: OpenAI-compatible request, errors surface', async () => {
   assert.equal(sent.url, 'https://api.openai.com/v1/chat/completions')
   assert.equal(sent.body.model, 'gpt-4.1-mini')
   const bad = createCompleter({ STAFF_PICKS_LLM_API_KEY: 'k', STAFF_PICKS_LLM_PROVIDER: 'openai' }, async () => new Response('{}', { status: 500 }))
-  await assert.rejects(bad('p'), /LLM call failed/)
+  await assert.rejects(bad('p'), (err) => err instanceof LlmProviderError && /LLM other/.test(err.message))
 })
 
 test('staff picks LLM: Anthropic Messages API when key is sk-ant-', async () => {
@@ -258,6 +264,25 @@ test('staff picks LLM: Anthropic Messages API when key is sk-ant-', async () => 
   assert.equal(sent.headers['anthropic-version'], '2023-06-01')
   assert.equal(sent.body.model, 'claude-haiku-4-5')
   assert.equal(sent.body.max_tokens, 256)
+})
+
+test('staff picks LLM: classifies rate limit and quota failures', async () => {
+  assert.equal(classifyLlmFailure(429, { error: { type: 'rate_limit_error', message: 'slow down' } }).kind, 'rate_limit')
+  assert.equal(
+    classifyLlmFailure(400, { error: { type: 'insufficient_quota', message: 'You exceeded your current quota' } }).kind,
+    'quota',
+  )
+  assert.equal(classifyLlmFailure(401, { error: { type: 'authentication_error', message: 'invalid x-api-key' } }).kind, 'auth')
+
+  const limited = createCompleter({ STAFF_PICKS_LLM_API_KEY: 'sk-ant-x' }, async () =>
+    new Response(JSON.stringify({ error: { type: 'rate_limit_error', message: 'rate limited' } }), { status: 429 }),
+  )
+  await assert.rejects(limited('p'), (err) => err instanceof LlmProviderError && err.kind === 'rate_limit')
+
+  const broke = createCompleter({ STAFF_PICKS_LLM_API_KEY: 'sk-ant-x' }, async () =>
+    new Response(JSON.stringify({ error: { type: 'invalid_request_error', message: 'bad' } }), { status: 400 }),
+  )
+  await assert.rejects(broke('p'), (err) => err instanceof LlmProviderError && err.kind === 'other')
 })
 
 // ---------- email ----------

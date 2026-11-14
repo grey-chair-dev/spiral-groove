@@ -55,6 +55,65 @@ export function llmConfigured(env = process.env) {
   return Boolean(env.STAFF_PICKS_LLM_API_KEY || env.ANTHROPIC_API_KEY || env.OPENAI_API_KEY)
 }
 
+/** @typedef {'rate_limit'|'quota'|'auth'|'other'} LlmFailureKind */
+
+export class LlmProviderError extends Error {
+  /**
+   * @param {string} message
+   * @param {{ kind: LlmFailureKind, status?: number, provider?: string, rawType?: string }} meta
+   */
+  constructor(message, meta) {
+    super(message)
+    this.name = 'LlmProviderError'
+    this.kind = meta.kind
+    this.status = meta.status
+    this.provider = meta.provider
+    this.rawType = meta.rawType
+  }
+}
+
+/**
+ * Classify Anthropic / OpenAI HTTP failures for alerting.
+ * @returns {{ kind: LlmFailureKind, message: string, rawType?: string }}
+ */
+export function classifyLlmFailure(status, body = {}) {
+  const err = body?.error || {}
+  const rawType = String(err.type || err.code || err.error || '').toLowerCase()
+  const msg = String(err.message || body?.message || '').toLowerCase()
+  const blob = `${rawType} ${msg}`
+
+  if (
+    status === 429 ||
+    rawType.includes('rate_limit') ||
+    blob.includes('rate limit') ||
+    blob.includes('too many requests') ||
+    rawType.includes('overloaded')
+  ) {
+    return { kind: 'rate_limit', message: err.message || `HTTP ${status}`, rawType: rawType || undefined }
+  }
+  if (
+    status === 402 ||
+    rawType.includes('insufficient_quota') ||
+    rawType.includes('billing') ||
+    blob.includes('credit') ||
+    blob.includes('quota') ||
+    blob.includes('billing') ||
+    blob.includes('payment') ||
+    blob.includes('spend limit')
+  ) {
+    return { kind: 'quota', message: err.message || `HTTP ${status}`, rawType: rawType || undefined }
+  }
+  if (status === 401 || status === 403 || rawType.includes('auth') || blob.includes('invalid api key')) {
+    return { kind: 'auth', message: err.message || `HTTP ${status}`, rawType: rawType || undefined }
+  }
+  return { kind: 'other', message: err.message || err.type || `HTTP ${status}`, rawType: rawType || undefined }
+}
+
+function throwLlmFailure(provider, status, body) {
+  const { kind, message, rawType } = classifyLlmFailure(status, body)
+  throw new LlmProviderError(`LLM ${kind}: ${message}`, { kind, status, provider, rawType })
+}
+
 export function createCompleter(env = process.env, fetchImpl = fetch) {
   const provider = resolveLlmProvider(env)
   const key = env.STAFF_PICKS_LLM_API_KEY || (provider === 'anthropic' ? env.ANTHROPIC_API_KEY : env.OPENAI_API_KEY)
@@ -92,9 +151,7 @@ export function createCompleter(env = process.env, fetchImpl = fetch) {
             .join('\n')
             .trim()
         : ''
-      if (!res.ok || !text) {
-        throw new Error(`LLM call failed: ${body?.error?.message || body?.error?.type || res.status}`)
-      }
+      if (!res.ok || !text) throwLlmFailure(provider, res.status, body)
       return text
     }
 
@@ -106,7 +163,7 @@ export function createCompleter(env = process.env, fetchImpl = fetch) {
     })
     const body = await res.json().catch(() => ({}))
     const text = body?.choices?.[0]?.message?.content?.trim()
-    if (!res.ok || !text) throw new Error(`LLM call failed: ${body?.error?.message || res.status}`)
+    if (!res.ok || !text) throwLlmFailure(provider, res.status, body)
     return text
   }
 }

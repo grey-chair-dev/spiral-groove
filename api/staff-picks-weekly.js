@@ -7,7 +7,8 @@
  */
 import { query, withTransaction } from './db.js'
 import { withWebHandler } from './_vercelNodeAdapter.js'
-import { createCompleter, llmConfigured, refreshStaffPicks } from './_lib/staffPicks.js'
+import { createCompleter, LlmProviderError, llmConfigured, refreshStaffPicks } from './_lib/staffPicks.js'
+import { logger } from './_lib/logger.js'
 import { sendSlackAlert } from './slackAlerts.js'
 
 export const config = {
@@ -40,18 +41,45 @@ export async function webHandler(request) {
 
   try {
     const result = await refreshStaffPicks({ query, complete: createCompleter(), withTransaction })
-    console.log('[Staff Picks]', JSON.stringify(result))
+    logger.info('staff_picks_refresh', { event: 'staff_picks_refresh', ...result })
     return json(200, { success: true, ...result })
   } catch (error) {
-    console.error('[Staff Picks] Failed:', error?.message || error)
+    const llm = error instanceof LlmProviderError ? error : null
+    const kind = llm?.kind || 'other'
+    // 503 so Vercel 5xx monitors fire for quota/rate-limit as well as generic failures.
+    const statusCode = kind === 'rate_limit' || kind === 'quota' || kind === 'auth' ? 503 : 500
+    logger.error('staff_picks_refresh_failed', error, {
+      event: 'staff_picks_llm_failure',
+      llmKind: kind,
+      llmProvider: llm?.provider,
+      llmStatus: llm?.status,
+      endpoint: '/api/staff-picks-weekly',
+      statusCode,
+    })
     void sendSlackAlert({
-      statusCode: 500,
-      error: `Staff Picks refresh failed: ${error?.message || error}`,
+      statusCode,
+      error:
+        kind === 'rate_limit'
+          ? `Staff Picks LLM rate limited: ${error?.message || error}`
+          : kind === 'quota'
+            ? `Staff Picks LLM out of credits/quota: ${error?.message || error}`
+            : kind === 'auth'
+              ? `Staff Picks LLM auth failed (check API key): ${error?.message || error}`
+              : `Staff Picks refresh failed: ${error?.message || error}`,
       endpoint: '/api/staff-picks-weekly',
       method,
-      dedupeKey: 'staff-picks-weekly:500',
+      summary:
+        kind === 'rate_limit' || kind === 'quota'
+          ? 'Top up / raise Anthropic (or OpenAI) limits — weekly Staff Picks cannot refresh.'
+          : undefined,
+      dedupeKey: `staff-picks-weekly:llm:${kind}`,
+      dedupeTtlMs: 60 * 60 * 1000,
     })
-    return json(500, { success: false, error: 'Staff Picks refresh failed' })
+    return json(statusCode, {
+      success: false,
+      error: 'Staff Picks refresh failed',
+      llmKind: kind,
+    })
   }
 }
 
