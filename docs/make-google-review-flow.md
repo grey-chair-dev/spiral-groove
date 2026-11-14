@@ -1,143 +1,58 @@
-# Google review reply flow (Make.com only)
+# Google review replies (in-repo)
 
-The review-notification and reply flow lives entirely in Make.com. This app does not host any form or API for it.
+**Status: PARKED (2026-11-14)** — GCP project `458093339048` (`spiral-groove-records`) was denied GBP API Basic Access. Reviews stay on `mybusiness.googleapis.com` which is unavailable until Google approves a future re-application. Keep Vercel flag **`googleReviews` off**. Do not enable Make scenarios `4142796` / `4143607` unless Brendan decides otherwise.
 
-## Flow in Make
+Code + cron remain in-repo for a later unpark. OAuth tokens may exist in env; they cannot list/reply to reviews without project approval.
 
-1. **Watch reviews** (Google My Business) → new review.
-2. **OpenAI** → generate suggested reply from review text.
-3. **Router**
-   - **Stars > 3:** Post suggested reply to Google (Create/update a reply).
-   - **Else (e.g. ≤ 3 stars):** Send internal email to owner; email is built in Make (HTML).
+Replaces Make scenarios **Auto Reply Google Reviews** (`4142796`) and **Review Reply** (`4143607`). Those scenarios stay **OFF** while parked.
 
-## Email (built in Make)
+## Feature flag
 
-- **From:** Your SMTP/email connection in Make.
-- **To:** Owner (e.g. brendan@greychair.io or adam@spiralgrooverecords.com).
-- **Subject:** e.g. `New Google review – {{2.starRating}} stars`
-- **Content type:** HTML.
+Vercel Flags key: **`googleReviews`** (default off).
 
-Include in the email:
+When off:
 
-- Review details: reviewer name, rating, review text, date.
-- **Suggested reply** (e.g. `{{6.result}}`).
-- **“Post this reply”** link: webhook URL that posts the suggested reply to Google (you manage the business profile).
-- **“Edit”** link: opens a form so the store owner can change the reply and submit their own text (same webhook; you still post to GMB).
+- Cron `/api/google-reviews-sync` returns `{ skipped: "flag_off" }`
+- `POST /api/google-reviews/reply` returns 403
+- `/edit-reply` shows the retired stub
 
-## “Post this reply” link (Make-only)
+Create the flag in the Vercel Flags dashboard (same place as `subscription`) only when unparking.
 
-Use a **second Make scenario** triggered by **Webhooks → Custom webhook**:
+## Flow (when unparked)
 
-- **Webhook URL:** `https://hook.us2.make.com/vp5fdupao3oxo5y9p5gkl7a3irl0r7mq`
-- **Link in email:**  
-  `https://hook.us2.make.com/vp5fdupao3oxo5y9p5gkl7a3irl0r7mq?reviewId={{2.name}}&response={{6.result}}`  
-  Make has no `encodeUriComponent`; if the reply contains `&`, `?`, `=`, or spaces the GET link may break—use a simple HTML form that POSTs to the webhook for long or special-character replies.
+1. Cron every 15 minutes (`vercel.json`) hits `/api/google-reviews-sync`.
+2. Lists recent GBP reviews for the configured location.
+3. Skips empty comments and rows already in `google_review_events`.
+4. LLM drafts a short owner-voice reply (`STAFF_PICKS_LLM_*`).
+5. **4–5 stars:** posts reply via GBP `updateReply`.
+6. **1–3 stars:** emails `GOOGLE_REVIEW_ALERT_TO` (default `adam@spiralgrooverecords.com`) with Post + Edit links.
+7. Post/Edit use `/edit-reply` and `POST /api/google-reviews/reply` (secret: `GOOGLE_REVIEW_REPLY_SECRET` or `WEBHOOK_SECRET`).
 
-When the webhook runs:
+## Unpark checklist
 
-- Read `reviewId` (GMB review name) and `response` (reply text) from the request.
-- **Google My Business – Create/update a reply:**  
-  Review name = `reviewId`, Reply comment = `response`.
+1. Re-apply for [GBP API Basic Access](https://support.google.com/business/contact/api_default) (docs: [prereqs](https://developers.google.com/my-business/content/prereqs)) — prefer Spiral business-domain email that is GBP owner; project number on Dashboard.
+2. Quota for My Business APIs shows **300 QPM** (not 0).
+3. Enable **Google My Business API** in Cloud Console if it appears; confirm v4 discovery is not 404.
+4. Smoke: `curl -sS "$SITE/api/google-reviews-sync?dryRun=1" -H "x-vercel-cron: 1"` with flag on.
+5. Only then flip Vercel flag `googleReviews` on.
 
-Optional: add a **secret token** in the webhook URL (e.g. `?token=SECRET&...`) and in the webhook scenario check that token so only your email link can trigger it.
+## OAuth setup (already done locally; redo if rotating)
 
-## Email HTML
+1. Google Cloud project → enable Account Management + Business Information (+ My Business API after approval).
+2. OAuth web client redirect: `http://localhost:3002/api/google-gbp/oauth/callback`
+3. Env: `GOOGLE_GBP_CLIENT_ID` / `SECRET` / `REFRESH_TOKEN`
+4. Start: `http://localhost:3002/api/google-gbp/oauth/start`
 
-- No “View on Google” link (you manage the profile; owner doesn’t need the review page).
-- **Post this reply** = direct webhook link with `reviewId` and `response`.
-- **Edit** = link to your hosted “edit reply” form with `reviewId` and optional `response` (pre-fill); owner edits and submits to the same webhook.
+## Env
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Google review</title>
-</head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 1.5; color: #333; max-width: 560px; margin: 0 auto; padding: 24px;">
-  <h1 style="font-size: 1.25rem; margin-bottom: 16px;">New Google review</h1>
+See `.env.example` (`GOOGLE_GBP_*`). Account/location IDs default to the Make Spiral Groove Milford location.
 
-  <div style="margin-bottom: 20px; padding: 16px; background: #f5f5f5; border-radius: 8px;">
-    <p style="margin: 0 0 8px;"><strong>Reviewer:</strong> {{2.reviewer.displayName}}</p>
-    <p style="margin: 0 0 8px;"><strong>Rating:</strong> {{2.starRating}} stars</p>
-    <p style="margin: 0 0 8px;"><strong>Date:</strong> {{2.createTime}}</p>
-    <p style="margin: 0;"><strong>Review:</strong><br>{{2.text}}</p>
-  </div>
+## Manual smoke
 
-  <div style="margin-bottom: 20px;">
-    <p style="margin: 0 0 8px; font-weight: 600;">Suggested reply</p>
-    <p style="margin: 0; padding: 12px; background: #f0f7ff; border-left: 4px solid #2563eb; border-radius: 4px;">{{6.result}}</p>
-  </div>
+```bash
+# Flag off (expected while parked)
+curl -sS "$SITE/api/google-reviews-sync"
 
-  <p style="margin-bottom: 8px;">
-    <a href="https://hook.us2.make.com/vp5fdupao3oxo5y9p5gkl7a3irl0r7mq?reviewId={{2.name}}&response={{6.result}}" style="display: inline-block; padding: 10px 20px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">Post this reply</a>
-    <span style="margin-left: 8px;">
-      <a href="https://spiralgrooverecords.com/edit-reply?reviewId={{2.name}}&response={{6.result}}" style="display: inline-block; padding: 10px 20px; background: #64748b; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">Edit</a>
-    </span>
-  </p>
-</body>
-</html>
+# Flag on + dry run (only after GBP API approval)
+curl -sS "$SITE/api/google-reviews-sync?dryRun=1" -H "x-vercel-cron: 1"
 ```
-
-Edit button points to **https://spiralgrooverecords.com/edit-reply** (hosted on the site).
-
-## Edit-reply page (spiralgrooverecords.com)
-
-Live at **https://spiralgrooverecords.com/edit-reply**. Implemented in the site (see `src/components/EditReplyPage.tsx`). Owner can change the reply text and submit; the form POSTs `reviewId` and `response` to the same Make webhook.
-
-**Protected / not public:** The page is only useful when opened from the email link (it requires `reviewId` in the URL; otherwise it shows “Invalid link”). It is **not** in the sitemap, is **Disallow: /edit-reply** in `robots.txt`, and sends **noindex,nofollow** (Vercel header + meta on the page).
-
-Standalone HTML equivalent for reference:
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit reply</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 24px; max-width: 520px; margin: 0 auto; }
-    label { display: block; font-weight: 600; margin-bottom: 6px; }
-    textarea { width: 100%; min-height: 120px; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font: inherit; box-sizing: border-box; }
-    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; margin-top: 12px; }
-    .btn:hover { background: #1d4ed8; }
-    p { margin-bottom: 16px; }
-  </style>
-</head>
-<body>
-  <h1>Edit reply</h1>
-  <p>Change the reply below, then click Submit. We’ll post it to the Google review (we manage the business profile).</p>
-  <form id="editForm" method="post" action="https://hook.us2.make.com/vp5fdupao3oxo5y9p5gkl7a3irl0r7mq" target="_blank">
-    <input type="hidden" name="reviewId" id="reviewId">
-    <label for="response">Your reply</label>
-    <textarea name="response" id="response" required placeholder="Type or paste your reply…"></textarea>
-    <button type="submit" class="btn">Submit reply</button>
-  </form>
-
-  <script>
-    var params = new URLSearchParams(window.location.search);
-    document.getElementById('reviewId').value = params.get('reviewId') || '';
-    var response = params.get('response');
-    if (response) document.getElementById('response').value = response;
-  </script>
-</body>
-</html>
-```
-
-- **Edit** link from email: `https://spiralgrooverecords.com/edit-reply?reviewId={{2.name}}&response={{6.result}}` (pre-fill may break on special characters; owner can still type).
-- Webhook receives POST body: `reviewId`, `response` — same as the “Post this reply” scenario.
-
-## Summary
-
-| Piece              | Where        |
-|--------------------|--------------|
-| Watch reviews      | Make scenario |
-| AI suggested reply | Make (OpenAI) |
-| Router             | Make          |
-| Email to owner     | Make (Send Email) |
-| “Post this reply”  | Make webhook URL in email |
-| Post reply to GMB  | Make scenario (webhook → GMB module) |
-
-No routes, env vars, or templates in this app are used for this flow.

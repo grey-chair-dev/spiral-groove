@@ -1,7 +1,7 @@
 /**
  * Development server for API routes
  * Run this alongside Vite for local development: node api-dev-server.js
- * Then update vite.config.ts proxy to point to http://localhost:3001
+ * Then update vite.config.ts proxy to point to http://localhost:3002
  */
 
 import { createServer } from 'http'
@@ -30,7 +30,7 @@ console.log(
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const PORT = 3001
+const PORT = Number(process.env.PORT) || 3002
 
 // Node ESM caches dynamic imports. In dev, cache-bust module specifiers so handler
 // changes are picked up without restarting this server.
@@ -121,6 +121,21 @@ const server = createServer(async (req, res) => {
             handler = module.webHandler ?? module.default
           } else if (route === 'flags-discovery') {
             const module = await importFresh('./api/flags-discovery.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'flags/googleReviews') {
+            const module = await importFresh('./api/flags/googleReviews.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'google-reviews-sync') {
+            const module = await importFresh('./api/google-reviews-sync.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'google-reviews/reply') {
+            const module = await importFresh('./api/google-reviews/reply.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'google-gbp/oauth/start') {
+            const module = await importFresh('./api/google-gbp/oauth/start.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'google-gbp/oauth/callback') {
+            const module = await importFresh('./api/google-gbp/oauth/callback.js')
             handler = module.webHandler ?? module.default
           } else {
             res.writeHead(404, { 'Content-Type': 'application/json' })

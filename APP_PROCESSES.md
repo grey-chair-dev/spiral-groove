@@ -38,6 +38,11 @@ This document lists all processes, cron jobs, API endpoints, and background task
 - **Schedule**: Daily 10:40 PM UTC (`40 22 * * *`)
 - **Purpose**: Fetch public Instagram posts via api-anything, insert new events (replaces Make "Events From Instagram")
 
+### 7. **Google Reviews Sync** (`/api/google-reviews-sync`) — PARKED
+- **Schedule**: Every 15 minutes (`*/15 * * * *`) — no-ops while flag off
+- **Purpose**: GBP new reviews → LLM reply; 4–5★ auto-post, 1–3★ email Adam (flag `googleReviews`)
+- **Parked 2026-11-14**: GCP project denied GBP API Basic Access; keep `googleReviews` off. See `docs/make-google-review-flow.md`.
+
 ---
 
 ## API Endpoints
@@ -140,7 +145,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 
 ### Email / alerts (post-Make cutover)
 - **`SGR_SMTP_URL`** - Direct SMTP for customer + inquiry + alert mail (see `docs/square-webhooks.md`)
-- Strip leftover `MAKE_*` vars from Vercel when convenient (no longer read by app code)
+- Leftover `MAKE_*` vars removed from Vercel (2026-11-14; no longer read by app code)
 
 ---
 
@@ -297,5 +302,5 @@ email_list → /api/weekly-newsletter-bulk → SMTP (SGR_SMTP_URL) → Email Del
 ## Notes
 
 - All cron jobs run on Vercel
-- Ported Make scenarios are OFF in Make; leftover `MAKE_*` env cleanup is optional hygiene
-- Google review reply flow still Make-only (`docs/make-google-review-flow.md`)
+- All 11 Spiral Make scenarios inactive (confirmed Make API 2026-11-14); `MAKE_*` env gone from Vercel
+- Google review replies **parked**: in-repo code behind flag `googleReviews` (off); Make scenarios OFF; unpark only after GBP API approval (`docs/make-google-review-flow.md`)

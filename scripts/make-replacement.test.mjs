@@ -397,3 +397,120 @@ test('instagram events: sync inserts once, skips duplicate', async () => {
   assert.equal(b.inserted, 0)
   assert.equal(b.skipped.some((s) => s.reason === 'duplicate'), true)
 })
+
+// ---------- Google reviews (Make cutover) ----------
+
+test('google reviews: star routing, comment gate, email HTML', async () => {
+  const {
+    starRatingToNumber,
+    routeForStars,
+    reviewHasComment,
+    buildReviewAlertHtml,
+    reviewReplyPrompt,
+  } = await import('../api/_lib/googleReviews.js')
+
+  assert.equal(starRatingToNumber('FIVE'), 5)
+  assert.equal(starRatingToNumber('THREE'), 3)
+  assert.equal(routeForStars('FIVE'), 'auto_reply')
+  assert.equal(routeForStars('FOUR'), 'auto_reply')
+  assert.equal(routeForStars('THREE'), 'email')
+  assert.equal(routeForStars('ONE'), 'email')
+  assert.equal(reviewHasComment({ comment: '  ' }), false)
+  assert.equal(reviewHasComment({ comment: 'Great shop' }), true)
+  assert.match(reviewReplyPrompt('nice'), /Spiral Groove Records/)
+
+  const html = buildReviewAlertHtml({
+    reviewerName: 'Sam',
+    starRating: 'TWO',
+    createTime: '2026-11-14',
+    comment: 'Meh',
+    suggestedReply: 'Thanks for the feedback.',
+    reviewName: 'accounts/1/locations/2/reviews/abc',
+    siteUrl: 'https://www.spiralgrooverecords.com',
+    replyToken: 'secret',
+  })
+  assert.match(html, /edit-reply/)
+  assert.match(html, /reviewId=accounts/)
+  assert.match(html, /token=secret/)
+  assert.match(html, /Thanks for the feedback/)
+})
+
+test('google reviews: processReview auto vs email vs skip', async () => {
+  const { processReview, ensureGoogleReviewEventsTable } = await import('../api/_lib/googleReviews.js')
+  const seen = []
+  const query = async (sql, params = []) => {
+    if (sql.includes('CREATE TABLE')) return { rows: [] }
+    if (sql.includes('SELECT 1 FROM google_review_events')) {
+      return { rows: seen.includes(params[0]) ? [{ '?column?': 1 }] : [], rowCount: seen.includes(params[0]) ? 1 : 0 }
+    }
+    if (sql.includes('INSERT INTO google_review_events')) {
+      seen.push(params[0])
+      return { rows: [], rowCount: 1 }
+    }
+    throw new Error('unexpected sql: ' + sql.slice(0, 80))
+  }
+  await ensureGoogleReviewEventsTable(query)
+
+  const complete = async () => 'Thanks for stopping by.'
+  const replies = []
+  const mails = []
+  const fetchImpl = async (url, init) => {
+    if (String(url).includes('oauth2.googleapis.com/token')) {
+      return new Response(JSON.stringify({ access_token: 'tok', expires_in: 3600 }), { status: 200 })
+    }
+    if (String(url).includes('/reply') && init?.method === 'PUT') {
+      replies.push(JSON.parse(init.body))
+      return new Response(JSON.stringify({ comment: 'Thanks for stopping by.' }), { status: 200 })
+    }
+    throw new Error('unexpected fetch ' + url)
+  }
+  const sendMailImpl = async (account, mail) => {
+    mails.push({ account, ...mail })
+  }
+  const env = {
+    GOOGLE_GBP_CLIENT_ID: 'id',
+    GOOGLE_GBP_CLIENT_SECRET: 'sec',
+    GOOGLE_GBP_REFRESH_TOKEN: 'ref',
+    SITE_URL: 'https://www.spiralgrooverecords.com',
+    WEBHOOK_SECRET: 'wh',
+  }
+
+  const five = await processReview(
+    {
+      name: 'accounts/a/locations/l/reviews/r5',
+      starRating: 'FIVE',
+      comment: 'Love it',
+      reviewer: { displayName: 'A' },
+      createTime: '2026-11-14T00:00:00Z',
+    },
+    { query, complete, env, fetchImpl, sendMailImpl },
+  )
+  assert.equal(five.status, 'auto_replied')
+  assert.equal(replies.length, 1)
+
+  const two = await processReview(
+    {
+      name: 'accounts/a/locations/l/reviews/r2',
+      starRating: 'TWO',
+      comment: 'Not great',
+      reviewer: { displayName: 'B' },
+      createTime: '2026-11-14T00:00:00Z',
+    },
+    { query, complete, env, fetchImpl, sendMailImpl },
+  )
+  assert.equal(two.status, 'emailed')
+  assert.equal(mails.length, 1)
+  assert.match(mails[0].subject, /2 Start Review/)
+
+  const skip = await processReview(
+    { name: 'accounts/a/locations/l/reviews/r5', starRating: 'FIVE', comment: 'Love it' },
+    { query, complete, env, fetchImpl, sendMailImpl },
+  )
+  assert.equal(skip.reason, 'already_processed')
+
+  const empty = await processReview(
+    { name: 'accounts/a/locations/l/reviews/empty', starRating: 'FIVE', comment: '' },
+    { query, complete, env, fetchImpl, sendMailImpl },
+  )
+  assert.equal(empty.reason, 'no_comment')
+})

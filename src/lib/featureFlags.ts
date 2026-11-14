@@ -21,3 +21,23 @@ export async function fetchSubscriptionFlag(): Promise<boolean> {
   }
   return false
 }
+
+export type GoogleReviewsFlagResponse =
+  | { success: true; key: 'googleReviews'; value: boolean }
+  | { success: false; error: string }
+
+export async function fetchGoogleReviewsFlag(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/flags/googleReviews', {
+      credentials: 'include',
+    })
+    const data = (await res.json()) as GoogleReviewsFlagResponse
+    if (data.success && typeof data.value === 'boolean') {
+      return data.value
+    }
+  } catch {
+    // ignore
+  }
+  return false
+}
+

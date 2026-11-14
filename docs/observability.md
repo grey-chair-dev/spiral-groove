@@ -84,4 +84,4 @@ Critical paths return **5xx** on real failures so Vercel monitors see them; card
 
 ## Make.com
 
-**Alerts - Spiral Groove Records** is off. Remove `MAKE_ALERTS_WEBHOOK_URL` from Vercel when convenient.
+**Alerts - Spiral Groove Records** is off. `MAKE_ALERTS_WEBHOOK_URL` already removed from Vercel (2026-11-14).

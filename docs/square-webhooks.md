@@ -13,8 +13,9 @@ Everything Spiral Groove used Make for now runs in this repo (SMTP + Square webh
   (`inventory.count.updated` + `order.fulfillment.updated`); Make Inventory Count +
   Order Status Updates off. Use **www** (apex 307 breaks HMAC).
 - Dead Make relays removed from the repo (`notifyWebhook`, inventory log shim, webhook test
-  route, Make fallbacks in sendEmail / contact / event / orders gate). Remove leftover
-  `MAKE_*` vars from Vercel when convenient.
+  route, Make fallbacks in sendEmail / contact / event / orders gate). Leftover
+  `MAKE_*` vars already removed from Vercel (confirmed 2026-11-14). All 11 Spiral Make
+  scenarios inactive.
 
 | Was (Make scenario) | Now | Switches on when |
 |---|---|---|
@@ -57,7 +58,7 @@ Tests: `npm test`.
    subscription disabled. Make **Inventory Count** + **Order Status Updates** deactivated.
    `PATCH /api/orders/update` needs `x-webhook-secret` in production.
 3. **Staff Picks.** Cron + key live; Make Staff Picks off.
-4. Remove leftover `MAKE_*` env vars from Vercel when convenient. Usage Cost Backfill already off.
+4. Leftover `MAKE_*` env vars removed from Vercel (2026-11-14). Usage Cost Backfill already off.
 
 ## Behaviour changes from the Make versions
 
@@ -72,4 +73,4 @@ Tests: `npm test`.
 - The Make "monthly report copy to brendan@greychair.io" route never fired (it filtered on a field the
   site doesn't send) and is not carried over; add the address to `MONTHLY_REPORT_RECIPIENTS` instead.
 - Newsletter signups are no longer forwarded to Make (that webhook had no scenario).
-- `/edit-reply` is a retired stub (review reply still lives in Make if used).
+- Google review replies: **parked** — in-repo behind flag `googleReviews` (off); Make scenarios OFF (`docs/make-google-review-flow.md`).
