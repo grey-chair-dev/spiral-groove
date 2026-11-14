@@ -8,7 +8,6 @@
  */
 
 import { query } from './db.js'
-import { notifyWebhook } from './notifyWebhook.js'
 import { sendSlackAlert } from './slackAlerts.js'
 import { withWebHandler } from './_vercelNodeAdapter.js'
 
@@ -176,19 +175,6 @@ export async function webHandler(request) {
 
     console.error('[Events API] Failed to fetch events:', error)
 
-    void notifyWebhook({
-      event: 'api.events_error',
-      title: '❌ /api/events failed',
-      message: error?.message || 'Unknown error',
-      context: {
-        route: '/api/events',
-        name: error?.name,
-        hasSgrDatabaseUrl: !!process.env.SGR_DATABASE_URL,
-        hasSprDatabaseUrl: !!process.env.SPR_DATABASE_URL,
-        hasDatabaseUrl: !!process.env.DATABASE_URL,
-      },
-      dedupeKey: `events:${error?.message || 'unknown'}`,
-    })
 
     // Enhanced Slack alert for critical database errors
     const responseTime = Date.now() - startTime

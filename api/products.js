@@ -13,7 +13,6 @@
  */
 
 import { query } from './db.js'
-import { notifyWebhook } from './notifyWebhook.js'
 import { sendSlackAlert } from './slackAlerts.js'
 import { withWebHandler } from './_vercelNodeAdapter.js'
 
@@ -360,20 +359,6 @@ export async function webHandler(request) {
     console.error('[Products API] DATABASE_URL available:', !!process.env.DATABASE_URL)
     console.error('[Products API] ===========================')
 
-    // Make.com webhook alert (best-effort, deduped)
-    void notifyWebhook({
-      event: 'api.products_error',
-      title: '❌ /api/products failed',
-      message: error?.message || 'Unknown error',
-      context: {
-        route: '/api/products',
-        name: error?.name,
-        hasSgrDatabaseUrl: !!process.env.SGR_DATABASE_URL,
-        hasSprDatabaseUrl: !!process.env.SPR_DATABASE_URL,
-        hasDatabaseUrl: !!process.env.DATABASE_URL,
-      },
-      dedupeKey: `products:${error?.message || 'unknown'}`,
-    })
 
     // Enhanced Slack alert for critical database errors
     const responseTime = Date.now() - startTime

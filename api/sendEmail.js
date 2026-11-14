@@ -1,11 +1,6 @@
 /**
- * Unified Email Webhook Handler
- * 
- * Sends all email-related events to a single webhook endpoint.
- * Supports: newsletter signups, order confirmations, signup confirmations, password resets, order status updates
- * 
- * Sends directly over SMTP when SGR_SMTP_URL is set (see api/_lib/mailer.js).
- * Otherwise falls back to the old Make.com webhook (MAKE_EMAIL_WEBHOOK_URL).
+ * Unified transactional email sender (SMTP via api/_lib/mailer.js).
+ * Supports: newsletter, order confirmations, signup, password reset, order status, sale alerts, etc.
  */
 
 import {
@@ -60,8 +55,8 @@ function shouldSend(dedupeKey, ttlMs) {
 }
 
 /**
- * Send email event to unified webhook
- * 
+ * Send a transactional email over SMTP.
+ *
  * @param {Object} params
  * @param {string} params.type - Email type: 'newsletter', 'order_confirmation', 'signup', 'forgot_password', 'order_status_update'
  * @param {string} params.to - Recipient email address
@@ -74,28 +69,16 @@ function shouldSend(dedupeKey, ttlMs) {
  */
 export async function sendEmail({ type, to, subject, from: fromParam, data = {}, dedupeKey, dedupeTtlMs = DEFAULT_DEDUPE_TTL_MS, force = false }) {
   try {
-    // Pick webhook URL.
-    // - Default: unified email webhook
-    // - sale_alert: route through the same Make webhook used for contact inquiries (per request)
-    const contactWebhookUrl =
-      process.env.MAKE_CONTACT_US_WEBHOOK_URL || process.env.MAKE_CONTACT_INQUIRY_WEBHOOK_URL
-    const webhookUrl =
-      type === 'sale_alert' && contactWebhookUrl ? contactWebhookUrl : process.env.MAKE_EMAIL_WEBHOOK_URL
-    const direct = directMailEnabled()
-    if (!direct && !webhookUrl) {
-      console.warn('[Email Webhook] Missing webhook URL for email send', {
-        type,
-        hasMakeEmailWebhookUrl: !!process.env.MAKE_EMAIL_WEBHOOK_URL,
-        hasContactInquiryWebhookUrl: !!contactWebhookUrl,
-      })
-      return { attempted: false, ok: false, reason: 'missing_webhook_url' }
+    if (!directMailEnabled()) {
+      console.warn('[Email] Missing SGR_SMTP_URL for email send', { type })
+      return { attempted: false, ok: false, reason: 'missing_smtp' }
     }
 
     // Deduplication check (skip if force=true)
     if (!force) {
       const key = dedupeKey || `email:${type}:${to}:${Date.now() - (Date.now() % (dedupeTtlMs / 10))}`
       if (!shouldSend(key, dedupeTtlMs)) {
-        console.log('[Email Webhook] Skipping duplicate email:', { type, to })
+        console.log('[Email] Skipping duplicate email:', { type, to })
         return { attempted: false, ok: true, reason: 'deduped' }
       }
     }
@@ -145,11 +128,11 @@ export async function sendEmail({ type, to, subject, from: fromParam, data = {},
           break
         }
         default:
-          console.warn(`[Email Webhook] Unknown email type: ${type}, generating basic HTML`)
+          console.warn(`[Email] Unknown email type: ${type}, generating basic HTML`)
           html = `<html><body><h1>${subject || getDefaultSubject(type)}</h1><p>Email type: ${type}</p></body></html>`
       }
     } catch (error) {
-      console.error(`[Email Webhook] Error generating HTML for ${type}:`, error)
+      console.error(`[Email] Error generating HTML for ${type}:`, error)
       html = `<html><body><h1>${subject || getDefaultSubject(type)}</h1><p>Email type: ${type}</p></body></html>`
     }
 
@@ -171,41 +154,9 @@ export async function sendEmail({ type, to, subject, from: fromParam, data = {},
       ...data,
     }
 
-    // Send to webhook
-    if (direct) {
-      return await sendDirect({ type, to, subject: payload.subject, html, replyTo: data?.email })
-    }
-
-    if (typeof fetch !== 'function') {
-      console.warn('[Email Webhook] fetch() not available; skipping email')
-      return { attempted: false, ok: false, reason: 'fetch_unavailable' }
-    }
-
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
-
-    if (!response.ok) {
-      console.error('[Email Webhook] Failed to send email:', {
-        type,
-        to,
-        status: response.status,
-        statusText: response.statusText,
-      })
-      return { attempted: true, ok: false, status: response.status, statusText: response.statusText, reason: 'webhook_non_2xx' }
-    } else {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('[Email Webhook] Email sent:', { type, to, status: response.status })
-      }
-      return { attempted: true, ok: true, status: response.status, statusText: response.statusText }
-    }
+    return await sendDirect({ type, to, subject: payload.subject, html, replyTo: data?.email })
   } catch (error) {
-    console.error('[Email Webhook] Error sending email:', error?.message || error)
-    // Don't throw - email failures shouldn't break the main flow
+    console.error('[Email] Error sending email:', error?.message || error)
     return { attempted: true, ok: false, reason: 'exception' }
   }
 }

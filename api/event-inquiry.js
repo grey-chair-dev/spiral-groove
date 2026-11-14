@@ -1,8 +1,7 @@
 /**
  * POST /api/event-inquiry
  *
- * Emails Events page inquiries (direct SMTP, or the Make.com webhook until SGR_SMTP_URL is set).
- * Kept server-side so the Make webhook URL isn't shipped to the browser bundle.
+ * Emails Events page inquiries over SMTP (SGR_SMTP_URL).
  */
 
 import { directMailEnabled } from './_lib/mailer.js'
@@ -331,10 +330,8 @@ export async function webHandler(request) {
     })
   }
 
-  const direct = directMailEnabled()
-  const webhookUrl = process.env.MAKE_EVENTS_INQUIRY_WEBHOOK_URL
-  if (!direct && !webhookUrl) {
-    console.error('[Event Inquiry] Missing MAKE_EVENTS_INQUIRY_WEBHOOK_URL')
+  if (!directMailEnabled()) {
+    console.error('[Event Inquiry] Missing SGR_SMTP_URL')
     const responseTime = Date.now() - startTime
     void sendSlackAlert({
       statusCode: 500,
@@ -348,8 +345,8 @@ export async function webHandler(request) {
       requestBody,
       requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
       queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
-      context: { missingWebhook: true },
-      dedupeKey: `event-inquiry:500:missing-webhook`,
+      context: { missingSmtp: true },
+      dedupeKey: `event-inquiry:500:missing-smtp`,
     })
     return new Response(JSON.stringify({ success: false, error: 'Server not configured for event inquiries.' }), {
       status: 500,
@@ -358,43 +355,7 @@ export async function webHandler(request) {
   }
 
   try {
-    // Direct SMTP when SGR_SMTP_URL is set (throws → handled below); otherwise the old Make webhook.
-    const res = direct
-      ? (await sendEventInquiryEmails(payload, { html, customerHtml }), new Response('sent', { status: 200 }))
-      : await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, replyToEmail, replyToName, subject, html, customerHtml }),
-        })
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      console.error('[Event Inquiry] Webhook error', { status: res.status, text: text?.slice?.(0, 200) })
-      const responseTime = Date.now() - startTime
-      void sendSlackAlert({
-        statusCode: 502,
-        error: 'Failed to submit inquiry - webhook error',
-        endpoint: '/api/event-inquiry',
-        method: 'POST',
-        requestId,
-        userAgent,
-        ip,
-        responseTime,
-        requestBody,
-        requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
-        queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
-        context: { webhookStatus: res.status, webhookError: text?.slice?.(0, 200) },
-        dedupeKey: `event-inquiry:502:webhook-${res.status}`,
-      })
-      const details =
-        process.env.NODE_ENV === 'production'
-          ? undefined
-          : { status: res.status, body: (text || '').slice(0, 500) }
-      return new Response(JSON.stringify({ success: false, error: 'Failed to submit inquiry.', details }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
+    await sendEventInquiryEmails(payload, { html, customerHtml })
 
     logger.info('event_inquiry_sent', {
       event: 'event_inquiry_sent',
@@ -404,7 +365,7 @@ export async function webHandler(request) {
       sendCopy: Boolean(payload.sendCopy),
       hasEmail: Boolean(payload.email),
       hasPhone: Boolean(payload.phone),
-      via: direct ? 'smtp' : 'make_webhook',
+      via: 'smtp',
     })
 
     return new Response(html, {
@@ -412,7 +373,7 @@ export async function webHandler(request) {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     })
   } catch (e) {
-    console.error('[Event Inquiry] Webhook request failed:', e)
+    console.error('[Event Inquiry] Send failed:', e)
     const responseTime = Date.now() - startTime
     void sendSlackAlert({
       statusCode: 502,

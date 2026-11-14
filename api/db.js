@@ -10,7 +10,6 @@
 
 import pg from 'pg'
 const { Pool } = pg
-import { notifyWebhook } from './notifyWebhook.js'
 
 let pool = null
 
@@ -211,18 +210,6 @@ export async function query(text, params) {
       dedupeKey: `db:${error?.code || ''}:${error?.message || 'unknown'}`,
     })
 
-    // Make.com webhook alert (best-effort, deduped) - legacy support
-    void notifyWebhook({
-      event: 'db.query_error',
-      title: '❌ Neon query failed',
-      message: error?.message || 'Unknown error',
-      context: {
-        code: error?.code,
-        durationMs: totalMs,
-        sql: String(text || '').substring(0, 200),
-      },
-      dedupeKey: `db:${error?.code || ''}:${error?.message || 'unknown'}`,
-    })
 
     // If Neon drops connections, retry once with a fresh pool.
     const msg = String(error?.message || '')

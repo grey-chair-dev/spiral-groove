@@ -137,20 +137,14 @@ test('webhook: not configured → 503, bad signature → 401, valid signature on
 
 // ---------- orders/update email delivery gate ----------
 
-test('orders/update: email delivery accepts SMTP without Make webhook', async () => {
+test('orders/update: email delivery requires SMTP', async () => {
   const { emailDeliveryConfigured } = await import('../api/orders/update.js')
   const env = { ...process.env }
   try {
     process.env.SGR_SMTP_URL = 'smtps://user:pass@smtp.example.com:465'
-    delete process.env.MAKE_EMAIL_WEBHOOK_URL
     assert.equal(emailDeliveryConfigured(), true)
 
     delete process.env.SGR_SMTP_URL
-    process.env.MAKE_EMAIL_WEBHOOK_URL = 'https://hook.us2.make.com/example'
-    assert.equal(emailDeliveryConfigured(), true)
-
-    delete process.env.SGR_SMTP_URL
-    delete process.env.MAKE_EMAIL_WEBHOOK_URL
     assert.equal(emailDeliveryConfigured(), false)
   } finally {
     process.env = env

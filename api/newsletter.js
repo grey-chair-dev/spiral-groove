@@ -7,7 +7,6 @@
  */
 
 import { withWebHandler } from './_vercelNodeAdapter.js'
-import { notifyWebhook } from './notifyWebhook.js'
 
 /**
  * @param {Request} request
@@ -118,9 +117,6 @@ export async function webHandler(request) {
       // If DB is unavailable, fall back to insert flow.
       console.warn('[Newsletter API] Could not pre-check existing subscription:', e?.message || e)
     }
-
-    // Forward to Make.com (marketing list / CRM) if configured
-    // (Signups used to be forwarded to a Make.com webhook that had no scenario attached; removed.)
 
     // Store in database
     try {

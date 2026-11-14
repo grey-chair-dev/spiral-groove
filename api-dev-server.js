@@ -80,9 +80,6 @@ const server = createServer(async (req, res) => {
           } else if (route === 'weekly-newsletter-bulk') {
             const module = await importFresh('./api/weekly-newsletter-bulk.js')
             handler = module.webHandler ?? module.default
-          } else if (route === 'webhook/test') {
-            const module = await importFresh('./api/webhook/test.js')
-            handler = module.webHandler ?? module.default
           } else if (route === 'pay') {
             const module = await importFresh('./api/pay.js')
             handler = module.webHandler ?? module.default
@@ -109,9 +106,6 @@ const server = createServer(async (req, res) => {
             handler = module.webHandler ?? module.default
           } else if (route === 'image-proxy') {
             const module = await importFresh('./api/image-proxy.js')
-            handler = module.webHandler ?? module.default
-          } else if (route === 'inventory/log') {
-            const module = await importFresh('./api/inventory/log.js')
             handler = module.webHandler ?? module.default
           } else if (route === 'monthly-report') {
             const module = await importFresh('./api/monthly-report.js')

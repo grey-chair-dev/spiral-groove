@@ -1,7 +1,7 @@
 /**
  * POST /api/contact-inquiry
  *
- * Emails Contact inquiries (direct SMTP, or the Make.com webhook until SGR_SMTP_URL is set).
+ * Emails Contact inquiries over SMTP (SGR_SMTP_URL).
  * Returns an HTML receipt (admin-style) and provides a customerHtml copy for optional "send me a copy".
  */
 
@@ -330,10 +330,8 @@ export async function webHandler(request) {
   const html = renderAdminHtml(payload)
   const customerHtml = renderCustomerHtml(payload)
 
-  const direct = directMailEnabled()
-  const webhookUrl = process.env.MAKE_CONTACT_US_WEBHOOK_URL || process.env.MAKE_CONTACT_INQUIRY_WEBHOOK_URL
-  if (!direct && !webhookUrl) {
-    console.error('[Contact Inquiry] Missing MAKE_CONTACT_US_WEBHOOK_URL (or MAKE_CONTACT_INQUIRY_WEBHOOK_URL)')
+  if (!directMailEnabled()) {
+    console.error('[Contact Inquiry] Missing SGR_SMTP_URL')
     const responseTime = Date.now() - startTime
     void sendSlackAlert({
       statusCode: 500,
@@ -347,8 +345,8 @@ export async function webHandler(request) {
       requestBody,
       requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
       queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
-      context: { missingWebhook: true },
-      dedupeKey: `contact-inquiry:500:missing-webhook`,
+      context: { missingSmtp: true },
+      dedupeKey: `contact-inquiry:500:missing-smtp`,
     })
     return new Response(JSON.stringify({ success: false, error: 'Server not configured for contact inquiries.' }), {
       status: 500,
@@ -357,43 +355,7 @@ export async function webHandler(request) {
   }
 
   try {
-    // Direct SMTP when SGR_SMTP_URL is set (throws → handled below); otherwise the old Make webhook.
-    const res = direct
-      ? (await sendContactInquiryEmails(payload, { html, customerHtml }), new Response('sent', { status: 200 }))
-      : await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, replyToEmail, replyToName, subject, html, customerHtml }),
-        })
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      console.error('[Contact Inquiry] Webhook error', { status: res.status, text: text?.slice?.(0, 200) })
-      const responseTime = Date.now() - startTime
-      void sendSlackAlert({
-        statusCode: 502,
-        error: 'Failed to submit inquiry - webhook error',
-        endpoint: '/api/contact-inquiry',
-        method: 'POST',
-        requestId,
-        userAgent,
-        ip,
-        responseTime,
-        requestBody,
-        requestHeaders: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
-        queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
-        context: { webhookStatus: res.status, webhookError: text?.slice?.(0, 200) },
-        dedupeKey: `contact-inquiry:502:webhook-${res.status}`,
-      })
-      const details =
-        process.env.NODE_ENV === 'production'
-          ? undefined
-          : { status: res.status, body: (text || '').slice(0, 500) }
-      return new Response(JSON.stringify({ success: false, error: 'Failed to submit inquiry.', details }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
+    await sendContactInquiryEmails(payload, { html, customerHtml })
 
     logger.info('contact_inquiry_sent', {
       event: 'contact_inquiry_sent',
@@ -404,7 +366,7 @@ export async function webHandler(request) {
       sendCopy: Boolean(payload.sendCopy),
       hasEmail: Boolean(payload.email),
       hasPhone: Boolean(payload.phone),
-      via: direct ? 'smtp' : 'make_webhook',
+      via: 'smtp',
     })
 
     return new Response(html, {
@@ -412,7 +374,7 @@ export async function webHandler(request) {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     })
   } catch (e) {
-    console.error('[Contact Inquiry] Webhook request failed:', e)
+    console.error('[Contact Inquiry] Send failed:', e)
     const responseTime = Date.now() - startTime
     void sendSlackAlert({
       statusCode: 502,

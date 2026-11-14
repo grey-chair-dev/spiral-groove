@@ -1,7 +1,6 @@
 # Automations that used to run in Make.com
 
-Everything Spiral Groove used Make for now runs in this repo. Until the env vars below are set,
-the site keeps using the old Make webhooks, so this can be merged before the cutover.
+Everything Spiral Groove used Make for now runs in this repo (SMTP + Square webhook + cron).
 
 ## Status (2026-11-13)
 
@@ -13,6 +12,9 @@ the site keeps using the old Make webhooks, so this can be merged before the cut
   `https://www.spiralgrooverecords.com/api/square/webhook`
   (`inventory.count.updated` + `order.fulfillment.updated`); Make Inventory Count +
   Order Status Updates off. Use **www** (apex 307 breaks HMAC).
+- Dead Make relays removed from the repo (`notifyWebhook`, inventory log shim, webhook test
+  route, Make fallbacks in sendEmail / contact / event / orders gate). Remove leftover
+  `MAKE_*` vars from Vercel when convenient.
 
 | Was (Make scenario) | Now | Switches on when |
 |---|---|---|
@@ -44,22 +46,17 @@ Tests: `npm test`.
 | `STAFF_PICKS_LLM_API_KEY` | OpenAI key (or `OPENAI_API_KEY`). Optional `STAFF_PICKS_LLM_BASE_URL`, `STAFF_PICKS_LLM_MODEL` (default gpt-4.1-mini). |
 | `CRON_SECRET` | Optional; when set, crons must send it (Vercel Cron does this automatically). |
 
-## Cutover (one piece at a time; Make keeps working until each step)
+## Cutover (done)
 
-1. **Email.** Set `SGR_SMTP_URL` (and `PROJECTS_SMTP_URL` if general@ is a different account), redeploy.
-   Submit the contact form with "send me a copy", trigger a test alert, and check a customer email
-   (e.g. `node scripts/test-emails.mjs`). Then turn off Make: Transactional Emails, Contact Us,
-   Event Inquiries. (Alerts already moved to Vercel Observability — see `docs/observability.md`.)
+1. **Email.** `SGR_SMTP_URL` live; Make Transactional / Contact / Event off.
 2. **Square.** Done 2026-11-13. One enabled Square subscription
    (`wbhk_acb3392f8da74e4dba5c3828068ce342`) →
    `https://www.spiralgrooverecords.com/api/square/webhook` for
    `inventory.count.updated` + `order.fulfillment.updated`. Old Order Status Make-pointing
    subscription disabled. Make **Inventory Count** + **Order Status Updates** deactivated.
    `PATCH /api/orders/update` needs `x-webhook-secret` in production.
-3. **Staff Picks.** Set `STAFF_PICKS_LLM_API_KEY`, then run once: `curl -X POST -H "x-webhook-secret: $WEBHOOK_SECRET" https://spiralgrooverecords.com/api/staff-picks-weekly`.
-   Turn off Make's Staff Picks the same day (the job skips a day that already has picks, but both
-   starting at 07:45 could still race).
-4. Remove the `MAKE_*` env vars and turn off "Spiral Groove Make Usage Cost Backfill".
+3. **Staff Picks.** Cron + key live; Make Staff Picks off.
+4. Remove leftover `MAKE_*` env vars from Vercel when convenient. Usage Cost Backfill already off.
 
 ## Behaviour changes from the Make versions
 
@@ -74,8 +71,4 @@ Tests: `npm test`.
 - The Make "monthly report copy to brendan@greychair.io" route never fired (it filtered on a field the
   site doesn't send) and is not carried over; add the address to `MONTHLY_REPORT_RECIPIENTS` instead.
 - Newsletter signups are no longer forwarded to Make (that webhook had no scenario).
-
-## Not changed
-
-- `api/notifyWebhook.js` (`MAKE_WEBHOOK_URL`) still points at Make if that env is set; confirm in
-  Vercel before removing. `/edit-reply` is a retired stub (no Make POST).
+- `/edit-reply` is a retired stub (review reply still lives in Make if used).

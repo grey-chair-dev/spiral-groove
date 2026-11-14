@@ -5,9 +5,9 @@ import { normalizeOrderStatus } from '../orderStatusNormalize.js'
 import { directMailEnabled } from '../_lib/mailer.js'
 import { timingSafeEqual } from 'crypto'
 
-/** True when SMTP or legacy Make email webhook can deliver customer mail. */
+/** True when SGR_SMTP_URL can deliver customer mail. */
 export function emailDeliveryConfigured() {
-  return directMailEnabled() || Boolean(process.env.MAKE_EMAIL_WEBHOOK_URL)
+  return directMailEnabled()
 }
 
 function secretsMatch(a, b) {
