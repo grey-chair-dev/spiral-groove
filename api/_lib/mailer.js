@@ -1,37 +1,52 @@
 /**
  * Direct email sending (replaces the Make.com email relay scenarios).
  *
- * Accounts, like the Make connections they replace:
- *   sgr       "Spiral Groove Records" <spiralgrooverecords@greychair.digital>  customer email
- *   projects  general@greychair.digital                                        inquiries + sale alerts
- *   alerts    alerts@greychair.digital                                         error alerts
+ * Accounts:
+ *   sgr       "Spiral Groove Records" <noreply@spiralgrooverecords.com>  customer / transactional
+ *   projects  general@greychair.digital                                  inquiries + sale alerts
+ *   alerts    alerts@greychair.digital                                   ops alerts
  *
- * Resend is authorized for greychair.digital (not greychair.io). Override with *_MAIL_FROM if needed.
+ * Two Resend keys (typical):
+ *   SGR_SMTP_URL         spiralgrooverecords.com (transactional)
+ *   SGR_ALERTS_SMTP_URL  greychair.digital (alerts + store inquiries)
+ *
+ * Callers: api/sendEmail.js, api/_lib/inquiryMail.js, api/slackAlerts.js,
+ * api/contact-inquiry.js / event-inquiry.js (via directMailEnabled).
  *
  * Env:
- *   SGR_SMTP_URL       SMTP URL for the sgr account, e.g.
- *                      smtps://resend:<api-key>@smtp.resend.com:465
- *                      Setting it switches the site from Make to direct sending.
- *   PROJECTS_SMTP_URL  SMTP URL for the projects account (default: SGR_SMTP_URL)
- *   ALERTS_SMTP_URL    SMTP URL for alerts (default: PROJECTS_SMTP_URL, then SGR_SMTP_URL)
- *   SGR_MAIL_FROM / PROJECTS_MAIL_FROM / ALERTS_MAIL_FROM   override the From header
- *   MAIL_DRY_RUN=1     log instead of sending
+ *   SGR_SMTP_URL / SGR_ALERTS_SMTP_URL / SGR_PROJECTS_SMTP_URL
+ *   (also ALERTS_SMTP_URL / PROJECTS_SMTP_URL)
+ *   SGR_MAIL_FROM / SGR_PROJECTS_MAIL_FROM / SGR_ALERTS_MAIL_FROM
+ *   (also PROJECTS_MAIL_FROM / ALERTS_MAIL_FROM)
+ *   MAIL_DRY_RUN=1
  */
 import nodemailer from 'nodemailer'
 
 const DEFAULT_FROM = {
-  sgr: '"Spiral Groove Records" <spiralgrooverecords@greychair.digital>',
+  sgr: '"Spiral Groove Records" <noreply@spiralgrooverecords.com>',
   projects: 'general@greychair.digital',
   alerts: '"Spiral Groove Alerts" <alerts@greychair.digital>',
 }
 
 const transports = new Map()
 
+function firstEnv(...keys) {
+  for (const key of keys) {
+    const v = process.env[key]
+    if (v) return v
+  }
+  return undefined
+}
+
 function smtpUrl(account) {
-  const env = process.env
-  if (account === 'alerts') return env.ALERTS_SMTP_URL || env.PROJECTS_SMTP_URL || env.SGR_SMTP_URL
-  if (account === 'projects') return env.PROJECTS_SMTP_URL || env.SGR_SMTP_URL
-  return env.SGR_SMTP_URL
+  if (account === 'alerts') {
+    return firstEnv('SGR_ALERTS_SMTP_URL', 'ALERTS_SMTP_URL', 'SGR_PROJECTS_SMTP_URL', 'PROJECTS_SMTP_URL', 'SGR_SMTP_URL')
+  }
+  if (account === 'projects') {
+    // Prefer the greychair.digital key — projects From is not on spiralgrooverecords.com.
+    return firstEnv('SGR_PROJECTS_SMTP_URL', 'PROJECTS_SMTP_URL', 'SGR_ALERTS_SMTP_URL', 'ALERTS_SMTP_URL', 'SGR_SMTP_URL')
+  }
+  return firstEnv('SGR_SMTP_URL')
 }
 
 /** True once SMTP is set up; until then callers keep posting to the Make webhooks. */
@@ -55,8 +70,15 @@ function parseFrom(from) {
   return m ? { name: m[1].trim() || undefined, address: m[2].trim() } : { address: String(from).trim() }
 }
 
+function mailFromEnv(account) {
+  if (account === 'sgr') return firstEnv('SGR_MAIL_FROM')
+  if (account === 'projects') return firstEnv('SGR_PROJECTS_MAIL_FROM', 'PROJECTS_MAIL_FROM')
+  if (account === 'alerts') return firstEnv('SGR_ALERTS_MAIL_FROM', 'ALERTS_MAIL_FROM')
+  return undefined
+}
+
 export function buildFrom(account, { fromName, fromAddress } = {}) {
-  const def = parseFrom(process.env[`${account.toUpperCase()}_MAIL_FROM`] || DEFAULT_FROM[account])
+  const def = parseFrom(mailFromEnv(account) || DEFAULT_FROM[account])
   const address = fromAddress || def.address
   const name = fromName || def.name
   return name ? { name, address } : address

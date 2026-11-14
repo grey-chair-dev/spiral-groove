@@ -224,7 +224,7 @@ test('sendEmail: direct mode sends, suppresses the test inbox, sale alerts use t
 })
 
 test('mailer: From defaults match the Make connections', () => {
-  assert.deepEqual(buildFrom('sgr'), { name: 'Spiral Groove Records', address: 'spiralgrooverecords@greychair.digital' })
+  assert.deepEqual(buildFrom('sgr'), { name: 'Spiral Groove Records', address: 'noreply@spiralgrooverecords.com' })
   assert.equal(buildFrom('projects'), 'general@greychair.digital')
   assert.deepEqual(buildFrom('projects', { fromName: 'X' }), { name: 'X', address: 'general@greychair.digital' })
 })
