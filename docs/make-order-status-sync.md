@@ -1,3 +1,5 @@
+> **Superseded (2026-11):** Square now calls `api/square/webhook.js` directly. See [square-webhooks.md](square-webhooks.md). Kept for history.
+
 # Make.com → Order status sync
 
 Square **`order.fulfillment.updated`** webhooks update Neon and send customer email. You can do both in Make:

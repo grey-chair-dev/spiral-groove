@@ -1,10 +1,12 @@
 /**
  * POST /api/contact-inquiry
  *
- * Forwards Contact inquiries to Make.com webhook.
+ * Emails Contact inquiries (direct SMTP, or the Make.com webhook until SGR_SMTP_URL is set).
  * Returns an HTML receipt (admin-style) and provides a customerHtml copy for optional "send me a copy".
  */
 
+import { directMailEnabled } from './_lib/mailer.js'
+import { sendContactInquiryEmails } from './_lib/inquiryMail.js'
 import crypto from 'crypto'
 import { withWebHandler } from './_vercelNodeAdapter.js'
 import { sendSlackAlert } from './slackAlerts.js'
@@ -327,8 +329,9 @@ export async function webHandler(request) {
   const html = renderAdminHtml(payload)
   const customerHtml = renderCustomerHtml(payload)
 
+  const direct = directMailEnabled()
   const webhookUrl = process.env.MAKE_CONTACT_US_WEBHOOK_URL || process.env.MAKE_CONTACT_INQUIRY_WEBHOOK_URL
-  if (!webhookUrl) {
+  if (!direct && !webhookUrl) {
     console.error('[Contact Inquiry] Missing MAKE_CONTACT_US_WEBHOOK_URL (or MAKE_CONTACT_INQUIRY_WEBHOOK_URL)')
     const responseTime = Date.now() - startTime
     void sendSlackAlert({
@@ -353,11 +356,14 @@ export async function webHandler(request) {
   }
 
   try {
-    const res = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, replyToEmail, replyToName, subject, html, customerHtml }),
-    })
+    // Direct SMTP when SGR_SMTP_URL is set (throws → handled below); otherwise the old Make webhook.
+    const res = direct
+      ? (await sendContactInquiryEmails(payload, { html, customerHtml }), new Response('sent', { status: 200 }))
+      : await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, replyToEmail, replyToName, subject, html, customerHtml }),
+        })
 
     if (!res.ok) {
       const text = await res.text().catch(() => '')

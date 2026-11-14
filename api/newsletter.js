@@ -3,28 +3,11 @@
  * 
  * Newsletter subscription endpoint
  * 
- * Accepts email addresses and optionally stores them in database or sends to webhook.
- * Supports Make.com webhook integration for email marketing platforms.
+ * Accepts email addresses and stores them in the database and sends the welcome email.
  */
 
 import { withWebHandler } from './_vercelNodeAdapter.js'
 import { notifyWebhook } from './notifyWebhook.js'
-import crypto from 'crypto'
-
-async function forwardToNewsletterWebhook(payload) {
-  const webhookUrl = process.env.MAKE_NEWSLETTER_SIGNUP_WEBHOOK_URL || process.env.MAKE_NEWSLETTER_WEBHOOK_URL
-  if (!webhookUrl) return { attempted: false }
-  const res = await fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  const text = await res.text().catch(() => '')
-  if (!res.ok) {
-    return { attempted: true, ok: false, status: res.status, body: (text || '').slice(0, 500) }
-  }
-  return { attempted: true, ok: true }
-}
 
 /**
  * @param {Request} request
@@ -137,24 +120,7 @@ export async function webHandler(request) {
     }
 
     // Forward to Make.com (marketing list / CRM) if configured
-    const newsletterPayload = {
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      source: requestBody.source || 'website',
-      email: String(email).trim(),
-      firstName: requestBody.firstName || null,
-      lastName: requestBody.lastName || null,
-      pageUrl: requestBody.pageUrl || '',
-      userAgent: requestBody.userAgent || '',
-    }
-    try {
-      const forwarded = await forwardToNewsletterWebhook(newsletterPayload)
-      if (forwarded.attempted && forwarded.ok === false) {
-        console.error('[Newsletter API] Newsletter webhook error', forwarded)
-      }
-    } catch (e) {
-      console.error('[Newsletter API] Newsletter webhook request failed:', e)
-    }
+    // (Signups used to be forwarded to a Make.com webhook that had no scenario attached; removed.)
 
     // Store in database
     try {

@@ -5,7 +5,8 @@
  * request context, rate limiting details, error grouping, and more.
  * 
  * Environment Variables:
- *   MAKE_ALERTS_WEBHOOK_URL - Make.com webhook URL for error alerts
+ *   SGR_SMTP_URL (+ ALERT_EMAIL) - email alerts directly (see api/_lib/mailer.js)
+ *   MAKE_ALERTS_WEBHOOK_URL - legacy Make.com webhook, used until SGR_SMTP_URL is set
  *   ALERT_ENABLED - Set to "true" to enable alerts (default: false in dev)
  *   ALERT_SLOW_QUERY_THRESHOLD_MS - Alert on queries slower than this (default: 1000)
  *   ALERT_SLOW_API_THRESHOLD_MS - Alert on API responses slower than this (default: 2000)
@@ -16,6 +17,8 @@
  *   import { sendSlackAlert } from './slackAlerts.js'
  *   await sendSlackAlert({ statusCode: 500, error: 'Database connection failed', endpoint: '/api/products' })
  */
+
+import { directMailEnabled, sendMail } from './_lib/mailer.js'
 
 const DEFAULT_DEDUPE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_QUERY_THRESHOLD_MS || '1000', 10)
@@ -701,9 +704,10 @@ function formatMakeWebhookPayload(payload) {
 export async function sendSlackAlert(payload) {
   try {
     // Check if alerts are enabled
+    const direct = directMailEnabled()
     const alertsEnabled = process.env.ALERT_ENABLED === 'true' || 
                          process.env.SLACK_ALERT_ENABLED === 'true' ||
-                         (process.env.NODE_ENV === 'production' && process.env.MAKE_ALERTS_WEBHOOK_URL)
+                         (process.env.NODE_ENV === 'production' && (direct || process.env.MAKE_ALERTS_WEBHOOK_URL))
     
     if (!alertsEnabled) {
       if (process.env.NODE_ENV === 'development') {
@@ -714,7 +718,7 @@ export async function sendSlackAlert(payload) {
 
     // Get webhook URL
     const webhookUrl = process.env.MAKE_ALERTS_WEBHOOK_URL
-    if (!webhookUrl) {
+    if (!direct && !webhookUrl) {
       console.warn('[Alert] MAKE_ALERTS_WEBHOOK_URL not configured')
       return { sent: false, reason: 'missing_webhook_url' }
     }
@@ -756,6 +760,21 @@ export async function sendSlackAlert(payload) {
       errorSpike,
       performanceMetrics: payload.endpoint ? performanceMetrics.get(payload.endpoint) : undefined,
     })
+
+    // Direct email when SGR_SMTP_URL is set (was Make's "Alerts - Spiral Groove Records")
+    if (direct) {
+      try {
+        await sendMail('alerts', {
+          to: process.env.ALERT_EMAIL || 'alerts@greychair.io',
+          subject: webhookPayload.title || 'Spiral Groove alert',
+          html: webhookPayload.html || `<pre>${String(JSON.stringify(webhookPayload, null, 2)).replace(/</g, '&lt;')}</pre>`,
+        })
+        return { sent: true }
+      } catch (e) {
+        console.error('[Alert] Direct send failed:', e?.message || e)
+        return { sent: false, reason: 'smtp_error' }
+      }
+    }
 
     // Send to Make.com webhook
     if (typeof fetch !== 'function') {

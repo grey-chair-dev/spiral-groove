@@ -1,10 +1,12 @@
 /**
  * POST /api/event-inquiry
  *
- * Forwards Events page inquiries to Make.com webhook.
+ * Emails Events page inquiries (direct SMTP, or the Make.com webhook until SGR_SMTP_URL is set).
  * Kept server-side so the Make webhook URL isn't shipped to the browser bundle.
  */
 
+import { directMailEnabled } from './_lib/mailer.js'
+import { sendEventInquiryEmails } from './_lib/inquiryMail.js'
 import crypto from 'crypto'
 import { withWebHandler } from './_vercelNodeAdapter.js'
 import { sendSlackAlert } from './slackAlerts.js'
@@ -328,8 +330,9 @@ export async function webHandler(request) {
     })
   }
 
+  const direct = directMailEnabled()
   const webhookUrl = process.env.MAKE_EVENTS_INQUIRY_WEBHOOK_URL
-  if (!webhookUrl) {
+  if (!direct && !webhookUrl) {
     console.error('[Event Inquiry] Missing MAKE_EVENTS_INQUIRY_WEBHOOK_URL')
     const responseTime = Date.now() - startTime
     void sendSlackAlert({
@@ -354,11 +357,14 @@ export async function webHandler(request) {
   }
 
   try {
-    const res = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, replyToEmail, replyToName, subject, html, customerHtml }),
-    })
+    // Direct SMTP when SGR_SMTP_URL is set (throws → handled below); otherwise the old Make webhook.
+    const res = direct
+      ? (await sendEventInquiryEmails(payload, { html, customerHtml }), new Response('sent', { status: 200 }))
+      : await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, replyToEmail, replyToName, subject, html, customerHtml }),
+        })
 
     if (!res.ok) {
       const text = await res.text().catch(() => '')
