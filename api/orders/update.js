@@ -2,7 +2,13 @@
 import { query } from '../db.js'
 import { withWebHandler } from '../_vercelNodeAdapter.js'
 import { normalizeOrderStatus } from '../orderStatusNormalize.js'
+import { directMailEnabled } from '../_lib/mailer.js'
 import { timingSafeEqual } from 'crypto'
+
+/** True when SMTP or legacy Make email webhook can deliver customer mail. */
+export function emailDeliveryConfigured() {
+  return directMailEnabled() || Boolean(process.env.MAKE_EMAIL_WEBHOOK_URL)
+}
 
 function secretsMatch(a, b) {
   const ab = Buffer.from(String(a))
@@ -255,8 +261,8 @@ export async function updateOrderStatus(body) {
       emailSkipReason = 'status_unchanged'
     } else if (!customerEmail) {
       emailSkipReason = 'missing_customer_email'
-    } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
-      emailSkipReason = 'missing_MAKE_EMAIL_WEBHOOK_URL'
+    } else if (!emailDeliveryConfigured()) {
+      emailSkipReason = 'missing_email_delivery'
     }
 
     if (!emailSkipReason) {
@@ -316,7 +322,8 @@ export async function updateOrderStatus(body) {
         previousStatus,
         status: normalizedStatus,
         customerEmail: customerEmail ? 'exists' : 'missing',
-        hasWebhook: Boolean(process.env.MAKE_EMAIL_WEBHOOK_URL),
+        hasEmailDelivery: emailDeliveryConfigured(),
+        directMail: directMailEnabled(),
       })
     }
 
@@ -329,8 +336,8 @@ export async function updateOrderStatus(body) {
 
       if (!customerEmail) {
         reviewEmailSkipReason = 'missing_customer_email'
-      } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
-        reviewEmailSkipReason = 'missing_MAKE_EMAIL_WEBHOOK_URL'
+      } else if (!emailDeliveryConfigured()) {
+        reviewEmailSkipReason = 'missing_email_delivery'
       } else if (isNoReviewStatus) {
         reviewEmailSkipReason = 'status_excluded'
       } else if (!isComplete) {
@@ -382,8 +389,8 @@ export async function updateOrderStatus(body) {
 
       if (!customerEmail) {
         refundEmailSkipReason = 'missing_customer_email'
-      } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
-        refundEmailSkipReason = 'missing_MAKE_EMAIL_WEBHOOK_URL'
+      } else if (!emailDeliveryConfigured()) {
+        refundEmailSkipReason = 'missing_email_delivery'
       } else if (!isCanceled) {
         refundEmailSkipReason = 'not_canceled_status'
       } else if (!forceEmail && wasCanceled) {

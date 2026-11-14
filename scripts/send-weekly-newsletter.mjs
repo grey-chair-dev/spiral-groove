@@ -10,7 +10,7 @@
  * 
  * Environment Variables:
  *   SGR_DATABASE_URL - Database connection string
- *   MAKE_EMAIL_WEBHOOK_URL - Email webhook URL
+ *   SGR_SMTP_URL - Direct SMTP (preferred); or MAKE_EMAIL_WEBHOOK_URL during cutover
  */
 
 import pg from 'pg'

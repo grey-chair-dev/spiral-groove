@@ -33,7 +33,7 @@ npm run dev
 - **`/api/robots.js`** - Dynamic robots.txt (served via `/robots.txt`)
 
 ### Email System
-- **Unified Email Webhook** - All emails sent via `MAKE_EMAIL_WEBHOOK_URL`
+- **Direct SMTP** via `SGR_SMTP_URL` (`api/sendEmail.js` → `api/_lib/mailer.js`). Cutover notes: `docs/square-webhooks.md`.
 - **Email Types Supported:**
   - Newsletter signup confirmations
   - Order confirmations
@@ -99,8 +99,8 @@ VITE_SQUARE_LOCATION_ID=your_square_location_id
 SQUARE_ACCESS_TOKEN=your_square_access_token
 VITE_SQUARE_ENVIRONMENT=sandbox  # or 'production'
 
-# Email Webhook
-MAKE_EMAIL_WEBHOOK_URL=https://hook.us2.make.com/...
+# Email (direct SMTP — see docs/square-webhooks.md)
+SGR_SMTP_URL=smtps://user%40greychair.io:app-password@smtp.gmail.com:465
 
 # Analytics
 VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXXX
@@ -131,7 +131,7 @@ See database migration files or schema documentation for details.
 
 ## 📧 Email System
 
-All emails are sent through a unified webhook system:
+Emails send via direct SMTP when `SGR_SMTP_URL` is set (`api/_lib/mailer.js`). See `docs/square-webhooks.md`.
 
 1. **Email Types:**
    - `newsletter` - Newsletter signup confirmation
@@ -141,7 +141,7 @@ All emails are sent through a unified webhook system:
    - `forgot_password` - Password reset
 
 2. **Configuration:**
-   - Set `MAKE_EMAIL_WEBHOOK_URL` environment variable
+   - Set `SGR_SMTP_URL` (and optional `PROJECTS_SMTP_URL` / `ALERTS_SMTP_URL`)
    - All emails include full HTML content
    - Emails match website design (fonts, colors, branding)
 

@@ -3,12 +3,21 @@
 Everything Spiral Groove used Make for now runs in this repo. Until the env vars below are set,
 the site keeps using the old Make webhooks, so this can be merged before the cutover.
 
+## Status (2026-11-13)
+
+- Code lives on branch `replace-make-automations` (not yet on production `main`).
+- Make **Transactional Emails** still received traffic through 2026-11-11 → do **not** deactivate
+  Make email scenarios until `SGR_SMTP_URL` is set and smoked after deploy.
+- Make **Usage Cost Backfill** deactivated (no code replacement).
+- Production probes: `POST /api/square/webhook` → 405; `GET /api/staff-picks-weekly` → SPA HTML
+  until this branch is deployed.
+
 | Was (Make scenario) | Now | Switches on when |
 |---|---|---|
 | Transactional Emails | `api/sendEmail.js` → `api/_lib/mailer.js` (from spiralgrooverecords@greychair.io) | `SGR_SMTP_URL` set |
 | Contact Us (+ sale alerts) | `api/contact-inquiry.js`, `sendEmail` `sale_alert` → `api/_lib/inquiryMail.js` (from general@greychair.io) | `SGR_SMTP_URL` set |
 | Event Inquiries | `api/event-inquiry.js` → `api/_lib/inquiryMail.js` | `SGR_SMTP_URL` set |
-| Alerts - Spiral Groove Records | `api/slackAlerts.js` → email to `ALERT_EMAIL` | `SGR_SMTP_URL` set |
+| Alerts - Spiral Groove Records | Vercel Observability + `/api/health` uptime (see `docs/observability.md`); `sendSlackAlert` is log-only | Make Alerts scenario off |
 | Inventory Count | `api/square/webhook.js` → `api/_lib/squareEvents.js` | Square subscription points here |
 | Order Status Updates | `api/square/webhook.js` → `updateOrderStatus()` in `api/orders/update.js` | Square subscription points here |
 | Staff Picks | `api/staff-picks-weekly.js` (Vercel Cron, Mon 07:45 UTC) → `api/_lib/staffPicks.js` | `STAFF_PICKS_LLM_API_KEY` set |
@@ -37,7 +46,7 @@ Tests: `npm test`.
 1. **Email.** Set `SGR_SMTP_URL` (and `PROJECTS_SMTP_URL` if general@ is a different account), redeploy.
    Submit the contact form with "send me a copy", trigger a test alert, and check a customer email
    (e.g. `node scripts/test-emails.mjs`). Then turn off Make: Transactional Emails, Contact Us,
-   Event Inquiries, Alerts - Spiral Groove Records.
+   Event Inquiries. (Alerts already moved to Vercel Observability — see `docs/observability.md`.)
 2. **Square.** Square Developer → the app → Webhooks → add a subscription:
    URL `https://spiralgrooverecords.com/api/square/webhook`, events `inventory.count.updated` and
    `order.fulfillment.updated`, API version as the existing ones. Copy its signature key into
@@ -45,6 +54,10 @@ Tests: `npm test`.
    subscriptions that point at hook.us2.make.com and turn off Make's Inventory Count + Order Status Updates.
    Send a test event from Square and change a test order's pickup status. From this deploy on,
    `PATCH /api/orders/update` needs `x-webhook-secret`.
+   **Race:** once `SQUARE_WEBHOOK_SIGNATURE_KEY` is set, Make's HTTP call to `/api/orders/update`
+   gets 401, but Make can still write status via Postgres if the old Square→Make subscription is
+   still on. The site then skips email with `status_unchanged`. Disable old Square→Make hooks
+   before or immediately with the signature-key deploy.
 3. **Staff Picks.** Set `STAFF_PICKS_LLM_API_KEY`, then run once: `curl -X POST -H "x-webhook-secret: $WEBHOOK_SECRET" https://spiralgrooverecords.com/api/staff-picks-weekly`.
    Turn off Make's Staff Picks the same day (the job skips a day that already has picks, but both
    starting at 07:45 could still race).
@@ -66,6 +79,5 @@ Tests: `npm test`.
 
 ## Not changed
 
-- `api/notifyWebhook.js` (`MAKE_WEBHOOK_URL`) and `src/components/EditReplyPage.tsx` (paused
-  "Review Reply" scenario) still point at Make. Both look dead; confirm `MAKE_WEBHOOK_URL` in Vercel
-  before removing.
+- `api/notifyWebhook.js` (`MAKE_WEBHOOK_URL`) still points at Make if that env is set; confirm in
+  Vercel before removing. `/edit-reply` is a retired stub (no Make POST).

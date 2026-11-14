@@ -123,6 +123,28 @@ test('webhook: not configured → 503, bad signature → 401, valid signature on
   delete process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
 })
 
+// ---------- orders/update email delivery gate ----------
+
+test('orders/update: email delivery accepts SMTP without Make webhook', async () => {
+  const { emailDeliveryConfigured } = await import('../api/orders/update.js')
+  const env = { ...process.env }
+  try {
+    process.env.SGR_SMTP_URL = 'smtps://user:pass@smtp.example.com:465'
+    delete process.env.MAKE_EMAIL_WEBHOOK_URL
+    assert.equal(emailDeliveryConfigured(), true)
+
+    delete process.env.SGR_SMTP_URL
+    process.env.MAKE_EMAIL_WEBHOOK_URL = 'https://hook.us2.make.com/example'
+    assert.equal(emailDeliveryConfigured(), true)
+
+    delete process.env.SGR_SMTP_URL
+    delete process.env.MAKE_EMAIL_WEBHOOK_URL
+    assert.equal(emailDeliveryConfigured(), false)
+  } finally {
+    process.env = env
+  }
+})
+
 // ---------- orders/update lock ----------
 
 test('orders/update: open during cutover, locked once Square points at the site', async () => {
@@ -205,4 +227,18 @@ test('mailer: From defaults match the Make connections', () => {
   assert.deepEqual(buildFrom('sgr'), { name: 'Spiral Groove Records', address: 'spiralgrooverecords@greychair.io' })
   assert.equal(buildFrom('projects'), 'general@greychair.io')
   assert.deepEqual(buildFrom('projects', { fromName: 'X' }), { name: 'X', address: 'general@greychair.io' })
+})
+
+test('alerts: email alerts@ via SMTP (no Slack/Make)', async () => {
+  const { sendSlackAlert } = await import('../api/slackAlerts.js')
+  const res = await sendSlackAlert({
+    statusCode: 500,
+    error: 'test observability alert',
+    endpoint: '/api/health',
+    method: 'GET',
+    dedupeKey: `test-obs-${Date.now()}`,
+  })
+  assert.equal(res.channel, 'email')
+  assert.equal(res.sent, true)
+  assert.equal(res.to, 'alerts@greychair.io')
 })

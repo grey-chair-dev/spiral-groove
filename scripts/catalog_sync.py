@@ -248,11 +248,18 @@ def _send_make_alert_email(
     severity: str,
 ) -> None:
     """
-    Best-effort webhook to the existing Make alerts pipeline.
-    It is responsible for sending Slack + email. We include the alert code in multiple places.
+    Best-effort webhook to the legacy Make alerts pipeline (optional during cutover).
+    Production alerts prefer Node api/slackAlerts.js via SGR_SMTP_URL.
+    Include the alert code in multiple places for triage.
     """
     webhook_url = _get_env("MAKE_ALERTS_WEBHOOK_URL")
     if not webhook_url:
+        # No Make fallback: Node path owns alerts when SGR_SMTP_URL is set on the site.
+        print(
+            f"[catalog_sync] MAKE_ALERTS_WEBHOOK_URL unset; skip Make alert ({alert_code}). "
+            "Use site SMTP alerts after cutover.",
+            file=sys.stderr,
+        )
         return
 
     enabled = _truthy_env("ALERT_ENABLED", default=False) or _truthy_env("SLACK_ALERT_ENABLED", default=False)
@@ -863,105 +870,6 @@ def _ensure_psycopg() -> None:
         )
 
 
-def _sync_one_page(
-    cfg: Config,
-    sq: SquareClient,
-    *,
-    cursor: Optional[str],
-    conn: Any,
-) -> Tuple[Optional[str], Dict[str, int], int, int, bool]:
-    """
-    Returns:
-      new_cursor, upsert_counts, inventory_updated_rows, images_updated_rows, category_denorm_ran
-    """
-    payload = sq.catalog_search_items(cursor=cursor)
-    objects = payload.get("objects") or []
-    related_objects = payload.get("related_objects") or []
-    new_cursor = payload.get("cursor")
-
-    upsert_counts = {"inserted_count": 0, "updated_count": 0, "total_upserted": 0}
-    inventory_updated = 0
-    images_updated = 0
-    category_denorm_ran = False
-
-    if cfg.dry_run:
-        return new_cursor, upsert_counts, inventory_updated, images_updated, category_denorm_ran
-
-    # Upsert products (from objects)
-    upsert_sql = UPSERT_PRODUCTS_SQL_TEMPLATE.format(products_table=cfg.products_table)
-    with conn.cursor() as cur:
-        cur.execute(upsert_sql, (json.dumps(objects),))
-        row = cur.fetchone()
-        if row:
-            # psycopg returns a tuple; order matches SELECT
-            upsert_counts = {
-                "inserted_count": int(row[0] or 0),
-                "updated_count": int(row[1] or 0),
-                "total_upserted": int(row[2] or 0),
-            }
-
-    # Best-effort run log insert (catalog_sync_runs)
-    try:
-        run_sql = INSERT_RUN_SQL_TEMPLATE.format(runs_table=cfg.catalog_sync_runs_table)
-        with conn.cursor() as cur:
-            cur.execute(
-                run_sql,
-                (
-                    upsert_counts["inserted_count"],
-                    upsert_counts["updated_count"],
-                    upsert_counts["total_upserted"],
-                ),
-            )
-    except Exception:
-        # Table may not exist; keep going.
-        pass
-
-    # Inventory counts refresh for recent variations
-    variation_ids = _extract_variation_ids_from_items(objects)
-    if not variation_ids:
-        # Fallback: mirror original blueprint behavior (last 1000 rows by synced_at)
-        try:
-            ids_sql = SELECT_RECENT_VARIATION_IDS_SQL_TEMPLATE.format(products_table=cfg.products_table)
-            with conn.cursor() as cur:
-                cur.execute(ids_sql)
-                variation_ids = [r[0] for r in (cur.fetchall() or []) if r and r[0]]
-        except Exception:
-            variation_ids = []
-
-    if variation_ids:
-        inventory_updated = _refresh_inventory_counts_for_variations(cfg, sq, conn, variation_ids)
-
-    # Images refresh from related_objects
-    if related_objects:
-        img_sql = UPDATE_IMAGES_SQL_TEMPLATE.format(products_table=cfg.products_table)
-        with conn.cursor() as cur:
-            cur.execute(img_sql, (json.dumps(related_objects),))
-            images_updated = cur.rowcount or 0
-
-    # Best-effort category denormalization (two variants: reporting_category, fallback to category)
-    try:
-        cat_sql = UPDATE_CATEGORY_NAMES_REPORTING_SQL_TEMPLATE.format(
-            products_table=cfg.products_table,
-            categories_table=cfg.categories_table,
-        )
-        with conn.cursor() as cur:
-            cur.execute(cat_sql)
-        category_denorm_ran = True
-    except Exception:
-        try:
-            cat_sql = UPDATE_CATEGORY_NAMES_FALLBACK_SQL_TEMPLATE.format(
-                products_table=cfg.products_table,
-                categories_table=cfg.categories_table,
-            )
-            with conn.cursor() as cur:
-                cur.execute(cat_sql)
-            category_denorm_ran = True
-        except Exception:
-            category_denorm_ran = False
-
-    return new_cursor, upsert_counts, inventory_updated, images_updated, category_denorm_ran
-
-
 def _fetch_catalog_page(sq: SquareClient, *, cursor: Optional[str]) -> Tuple[List[dict], List[dict], Optional[str]]:
     payload = sq.catalog_search_items(cursor=cursor)
     objects = payload.get("objects") or []
@@ -983,8 +891,7 @@ def _apply_catalog_batch(
     Apply one DB batch for the given catalog objects/related_objects.
     Returns: upsert_counts, inventory_updated_rows, images_updated_rows, category_denorm_ran
     """
-    # Reuse the existing logic by temporarily calling the same SQL pieces as _sync_one_page,
-    # but without re-fetching from Square.
+    # Apply catalog objects/related_objects to Postgres without re-fetching from Square.
 
     upsert_counts = {"inserted_count": 0, "updated_count": 0, "total_upserted": 0}
     inventory_updated = 0

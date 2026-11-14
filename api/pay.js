@@ -930,10 +930,13 @@ export async function webHandler(request) {
       })
     }
 
-    // Send Slack alert for payment errors (always critical)
+    // Client card problems stay 4xx (not "needs fix"). Unexpected/server failures → 5xx for Vercel.
+    const httpStatus =
+      error instanceof ApiError && statusCode >= 400 && statusCode < 500 ? statusCode : Math.max(500, Number(statusCode) || 500)
+
     const { sendSlackAlert } = await import('./slackAlerts.js')
     void sendSlackAlert({
-      statusCode,
+      statusCode: httpStatus,
       error: errorMessage,
       endpoint: '/api/pay',
       method: 'POST',
@@ -942,7 +945,7 @@ export async function webHandler(request) {
         squareErrorDetail: error instanceof ApiError ? error.errors?.[0]?.detail : undefined,
       },
       stack: error?.stack,
-      dedupeKey: `pay:${statusCode}:${errorMessage}`,
+      dedupeKey: `pay:${httpStatus}:${errorMessage}`,
     })
 
     return new Response(
@@ -958,7 +961,7 @@ export async function webHandler(request) {
           : undefined
       }, jsonReplacer),
       { 
-        status: statusCode,
+        status: httpStatus,
         headers: { 
           'Content-Type': 'application/json', 
           'Access-Control-Allow-Origin': '*' 
