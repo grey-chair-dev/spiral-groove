@@ -12,7 +12,7 @@ process.env.SGR_SMTP_URL = 'smtps://user:pass@smtp.example.com:465'
 process.env.EMAIL_SUPPRESS_TO = 'test-inbox@example.com'
 
 const { handleInventoryCountUpdated, handleOrderFulfillmentUpdated } = await import('../api/_lib/squareEvents.js')
-const { refreshStaffPicks, createCompleter } = await import('../api/_lib/staffPicks.js')
+const { refreshStaffPicks, createCompleter, resolveLlmProvider } = await import('../api/_lib/staffPicks.js')
 const { sendEmail } = await import('../api/sendEmail.js')
 const { buildFrom } = await import('../api/_lib/mailer.js')
 
@@ -234,15 +234,30 @@ test('staff picks: lock re-check skips swap if another run finished during LLM',
 
 test('staff picks LLM: OpenAI-compatible request, errors surface', async () => {
   let sent
-  const complete = createCompleter({ STAFF_PICKS_LLM_API_KEY: 'k' }, async (url, init) => {
+  const complete = createCompleter({ STAFF_PICKS_LLM_API_KEY: 'k', STAFF_PICKS_LLM_PROVIDER: 'openai' }, async (url, init) => {
     sent = { url, body: JSON.parse(init.body) }
     return new Response(JSON.stringify({ choices: [{ message: { content: ' quote ' } }] }))
   })
   assert.equal(await complete('p'), 'quote')
   assert.equal(sent.url, 'https://api.openai.com/v1/chat/completions')
   assert.equal(sent.body.model, 'gpt-4.1-mini')
-  const bad = createCompleter({ STAFF_PICKS_LLM_API_KEY: 'k' }, async () => new Response('{}', { status: 500 }))
+  const bad = createCompleter({ STAFF_PICKS_LLM_API_KEY: 'k', STAFF_PICKS_LLM_PROVIDER: 'openai' }, async () => new Response('{}', { status: 500 }))
   await assert.rejects(bad('p'), /LLM call failed/)
+})
+
+test('staff picks LLM: Anthropic Messages API when key is sk-ant-', async () => {
+  assert.equal(resolveLlmProvider({ STAFF_PICKS_LLM_API_KEY: 'sk-ant-test' }), 'anthropic')
+  let sent
+  const complete = createCompleter({ STAFF_PICKS_LLM_API_KEY: 'sk-ant-test' }, async (url, init) => {
+    sent = { url, headers: init.headers, body: JSON.parse(init.body) }
+    return new Response(JSON.stringify({ content: [{ type: 'text', text: ' punchy drums. ' }] }))
+  })
+  assert.equal(await complete('p'), 'punchy drums.')
+  assert.equal(sent.url, 'https://api.anthropic.com/v1/messages')
+  assert.equal(sent.headers['x-api-key'], 'sk-ant-test')
+  assert.equal(sent.headers['anthropic-version'], '2023-06-01')
+  assert.equal(sent.body.model, 'claude-haiku-4-5')
+  assert.equal(sent.body.max_tokens, 256)
 })
 
 // ---------- email ----------

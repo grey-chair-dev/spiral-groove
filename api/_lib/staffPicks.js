@@ -13,14 +13,24 @@
  *
  * User: "lets do it" (fix the Staff Picks race).
  *
- * LLM: any OpenAI-compatible chat endpoint.
- *   STAFF_PICKS_LLM_API_KEY (or OPENAI_API_KEY)
- *   STAFF_PICKS_LLM_BASE_URL (default https://api.openai.com/v1)
- *   STAFF_PICKS_LLM_MODEL    (default gpt-4.1-mini, what the Make scenario used)
+ * LLM:
+ *   STAFF_PICKS_LLM_API_KEY (or OPENAI_API_KEY / ANTHROPIC_API_KEY)
+ *   STAFF_PICKS_LLM_PROVIDER  openai | anthropic (default: anthropic if key starts with sk-ant-)
+ *   STAFF_PICKS_LLM_BASE_URL  (openai default https://api.openai.com/v1,
+ *                             anthropic default https://api.anthropic.com)
+ *   STAFF_PICKS_LLM_MODEL     (openai default gpt-4.1-mini; anthropic default claude-haiku-4-5)
  */
 
 /** Stable advisory lock key (hashtext of this string inside Postgres). */
 export const STAFF_PICKS_LOCK_ID = 'spiral_groove.staff_picks'
+
+export function resolveLlmProvider(env = process.env) {
+  const explicit = String(env.STAFF_PICKS_LLM_PROVIDER || '').trim().toLowerCase()
+  if (explicit === 'anthropic' || explicit === 'openai') return explicit
+  const key = env.STAFF_PICKS_LLM_API_KEY || env.ANTHROPIC_API_KEY || env.OPENAI_API_KEY || ''
+  if (String(key).startsWith('sk-ant-')) return 'anthropic'
+  return 'openai'
+}
 
 export function staffPickPrompt(name, category) {
   return `You are Spiral Groove Records staff. Write ONE short “Staff Pick” quote for an album card.
@@ -42,15 +52,52 @@ Output ONLY the quote.`
 }
 
 export function llmConfigured(env = process.env) {
-  return Boolean(env.STAFF_PICKS_LLM_API_KEY || env.OPENAI_API_KEY)
+  return Boolean(env.STAFF_PICKS_LLM_API_KEY || env.ANTHROPIC_API_KEY || env.OPENAI_API_KEY)
 }
 
 export function createCompleter(env = process.env, fetchImpl = fetch) {
-  const base = String(env.STAFF_PICKS_LLM_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '')
-  const model = env.STAFF_PICKS_LLM_MODEL || 'gpt-4.1-mini'
-  const key = env.STAFF_PICKS_LLM_API_KEY || env.OPENAI_API_KEY
+  const provider = resolveLlmProvider(env)
+  const key = env.STAFF_PICKS_LLM_API_KEY || (provider === 'anthropic' ? env.ANTHROPIC_API_KEY : env.OPENAI_API_KEY)
+  const base = String(
+    env.STAFF_PICKS_LLM_BASE_URL ||
+      (provider === 'anthropic' ? 'https://api.anthropic.com' : 'https://api.openai.com/v1'),
+  ).replace(/\/$/, '')
+  const model =
+    env.STAFF_PICKS_LLM_MODEL || (provider === 'anthropic' ? 'claude-haiku-4-5' : 'gpt-4.1-mini')
+
   return async function complete(prompt) {
-    if (!key) throw new Error('STAFF_PICKS_LLM_API_KEY (or OPENAI_API_KEY) is not set')
+    if (!key) throw new Error('STAFF_PICKS_LLM_API_KEY (or ANTHROPIC_API_KEY / OPENAI_API_KEY) is not set')
+
+    if (provider === 'anthropic') {
+      const res = await fetchImpl(`${base}/v1/messages`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 256,
+          temperature: 1,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+        signal: AbortSignal.timeout(30_000),
+      })
+      const body = await res.json().catch(() => ({}))
+      const text = Array.isArray(body?.content)
+        ? body.content
+            .filter((b) => b?.type === 'text' && b?.text)
+            .map((b) => b.text)
+            .join('\n')
+            .trim()
+        : ''
+      if (!res.ok || !text) {
+        throw new Error(`LLM call failed: ${body?.error?.message || body?.error?.type || res.status}`)
+      }
+      return text
+    }
+
     const res = await fetchImpl(`${base}/chat/completions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
