@@ -753,34 +753,3 @@ export async function sendSlackAlert(payload) {
     return { sent: false, reason: 'exception', error: error?.message }
   }
 }
-
-/**
- * Send critical error alert (always sends, no deduplication)
- */
-export async function sendCriticalAlert(payload) {
-  return sendSlackAlert({
-    ...payload,
-    dedupeKey: null, // Disable deduplication for critical alerts
-  })
-}
-
-/**
- * Get error statistics for an endpoint
- */
-export function getErrorStats(endpoint) {
-  const stats = {
-    totalErrors: 0,
-    errorTypes: {},
-    performance: performanceMetrics.get(endpoint) || null,
-  }
-  
-  for (const [fingerprint, record] of errorCounts.entries()) {
-    if (fingerprint.includes(endpoint)) {
-      stats.totalErrors += record.count
-      const errorType = fingerprint.split(':').pop()
-      stats.errorTypes[errorType] = (stats.errorTypes[errorType] || 0) + record.count
-    }
-  }
-  
-  return stats
-}

@@ -1,38 +1,3 @@
-export type FeatureFlags = {
-  enableAbout: boolean
-  enableEvents: boolean
-  enableMaintenancePage: boolean
-  enableComingSoonPage: boolean
-  enableSocialLinks: boolean
-  enablePromoBar: boolean
-  enableNewsletter: boolean
-}
-
-const maintenancePageEnabled =
-  (import.meta.env.VITE_ENABLE_MAINTENANCE_PAGE ?? 'false').toString().toLowerCase() === 'true'
-
-const comingSoonPageEnabled =
-  (import.meta.env.VITE_ENABLE_COMING_SOON_PAGE ?? 'false').toString().toLowerCase() === 'true'
-
-const socialLinksEnabled =
-  (import.meta.env.VITE_ENABLE_SOCIAL_LINKS ?? 'true').toString().toLowerCase() !== 'false'
-
-const promoBarEnabled =
-  (import.meta.env.VITE_ENABLE_PROMO_BAR ?? 'true').toString().toLowerCase() !== 'false'
-
-const newsletterEnabled =
-  (import.meta.env.VITE_ENABLE_NEWSLETTER ?? 'true').toString().toLowerCase() !== 'false'
-
-export const featureFlags: FeatureFlags = {
-  enableAbout: false,
-  enableEvents: true,
-  enableMaintenancePage: maintenancePageEnabled,
-  enableComingSoonPage: comingSoonPageEnabled,
-  enableSocialLinks: socialLinksEnabled,
-  enablePromoBar: promoBarEnabled,
-  enableNewsletter: newsletterEnabled,
-}
-
 export type SiteConfig = {
   appId: string
   brandName: string

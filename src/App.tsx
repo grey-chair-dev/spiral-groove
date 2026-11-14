@@ -10,7 +10,6 @@ import { StorySection } from './components/StorySection';
 import { EventsSection } from './components/EventsSection';
 import { Footer } from './components/Footer';
 import { Chatbot } from './components/Chatbot';
-import { ProductModal } from './components/ProductModal';
 import { Toast } from './components/ui/Toast';
 
 // Lazy load route components for code splitting

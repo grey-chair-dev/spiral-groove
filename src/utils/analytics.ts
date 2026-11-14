@@ -214,12 +214,4 @@ export function trackSignup(method?: string) {
   })
 }
 
-/**
- * Track login
- */
-export function trackLogin(method?: string) {
-  trackEvent('login', {
-    method: method || 'email',
-  })
-}
 
