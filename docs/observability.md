@@ -38,6 +38,17 @@ When Anthropic/OpenAI returns rate-limit, insufficient credits/quota, or bad API
 
 Also: project-wide **Spiral Groove 5xx errors** + team **Default Alert Rule**.
 
+### Catalog sync inventory emails (not 5xx)
+
+After each nightly `/api/catalog-sync-nightly` run (and manual POST):
+
+| Code | When | Action |
+|------|------|--------|
+| `SYNC-INVENTORY-ZERO-STOCK-RATIO` | >50% of `products` at stock 0 (override with `CATALOG_SYNC_ZERO_STOCK_ALERT_RATIO`) | Email alerts@ |
+| `SYNC-INVENTORY-STOCK-MISMATCH` | Neon ≠ Square `IN_STOCK` for ≥ `CATALOG_SYNC_MISMATCH_ALERT_MIN` (default 1) tracked SKUs | Email alerts@ + heal `products` / `albums_cache` to Square |
+
+Untracked Square items (no inventory count returned) are skipped so they are not zeroed.
+
 ## Structured logs (Vercel-aligned)
 
 - One JSON object per `console.*` call (searchable fields).

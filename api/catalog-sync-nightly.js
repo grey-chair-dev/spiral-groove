@@ -29,6 +29,11 @@ const ZERO_STOCK_ALERT_THRESHOLD_RATIO = Math.max(
   0,
   Math.min(1, Number(process.env.CATALOG_SYNC_ZERO_STOCK_ALERT_RATIO || '0.5') || 0.5),
 )
+/** Alert (+ heal) when Neon stock ≠ Square IN_STOCK for this many SKUs after sync. Default 1. */
+const STOCK_MISMATCH_ALERT_MIN = Math.max(
+  0,
+  parseInt(process.env.CATALOG_SYNC_MISMATCH_ALERT_MIN || '1', 10) || 1,
+)
 
 async function ensureStateTable() {
   await query(`
@@ -552,6 +557,150 @@ async function maybeAlertOnZeroStockRatio() {
   return { total, zeros, ratio, thresholdRatio: ZERO_STOCK_ALERT_THRESHOLD_RATIO }
 }
 
+/**
+ * Re-check Neon vs live Square IN_STOCK after sync.
+ * Heals products + albums_cache to Square qty; emails alerts@ when mismatch count ≥ threshold.
+ * (Catches SKUs skipped by paginated sync + cache drift that let OOS items stay buyable.)
+ */
+async function maybeAlertAndHealStockMismatches() {
+  const { rows } = await query(
+    `SELECT p.square_variation_id,
+            p.name,
+            COALESCE(p.stock_count, 0)::int AS products_stock,
+            ac.stock_count::int AS cache_stock
+       FROM products p
+       LEFT JOIN albums_cache ac ON ac.square_variation_id = p.square_variation_id
+      WHERE p.square_variation_id IS NOT NULL`,
+  )
+
+  const ids = rows.map((r) => r.square_variation_id)
+  const squareQty = new Map()
+  const CHUNK = 1000
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const chunk = ids.slice(i, i + CHUNK)
+    const inv = await squareFetchJson('/v2/inventory/counts/batch-retrieve', {
+      method: 'POST',
+      body: {
+        catalog_object_ids: chunk,
+        location_ids: [SQUARE_LOCATION_ID],
+        states: ['IN_STOCK'],
+      },
+    })
+    for (const c of inv.counts || []) {
+      const vid = c?.catalog_object_id
+      if (typeof vid !== 'string' || !vid) continue
+      const qty = Number.isFinite(Number(c.quantity)) ? Math.max(0, parseInt(String(c.quantity), 10)) : 0
+      squareQty.set(vid, qty)
+    }
+    // Do not invent 0 for IDs missing from the response — those are usually
+    // untracked catalog items; treating them as 0 false-alarms and zeros stock.
+  }
+
+  const mismatches = []
+  for (const r of rows) {
+    if (!squareQty.has(r.square_variation_id)) continue
+    const live = squareQty.get(r.square_variation_id)
+    const productsDiff = live !== r.products_stock
+    const cacheDiff = r.cache_stock != null && live !== r.cache_stock
+    if (productsDiff || cacheDiff) {
+      mismatches.push({
+        id: r.square_variation_id,
+        name: r.name,
+        products: r.products_stock,
+        cache: r.cache_stock,
+        square: live,
+      })
+    }
+  }
+
+  let healedProducts = 0
+  let healedCache = 0
+  if (mismatches.length > 0) {
+    const payload = mismatches.map((m) => ({
+      square_variation_id: m.id,
+      quantity: m.square,
+    }))
+    const healProducts = await query(
+      `WITH payload AS (
+         SELECT NULLIF(($1), '')::jsonb AS j
+       ),
+       rows AS (
+         SELECT (c->>'square_variation_id')::text AS square_variation_id,
+                GREATEST(COALESCE(NULLIF(c->>'quantity','')::int, 0), 0) AS quantity
+           FROM payload
+           CROSS JOIN LATERAL jsonb_array_elements(j) AS c
+       )
+       UPDATE products p
+          SET stock_count = r.quantity,
+              updated_at = NOW(),
+              synced_at = NOW()
+         FROM rows r
+        WHERE p.square_variation_id = r.square_variation_id
+          AND COALESCE(p.stock_count, 0) IS DISTINCT FROM r.quantity`,
+      [JSON.stringify(payload)],
+    )
+    healedProducts = Number(healProducts.rowCount || 0)
+
+    const healCache = await query(
+      `WITH payload AS (
+         SELECT NULLIF(($1), '')::jsonb AS j
+       ),
+       rows AS (
+         SELECT (c->>'square_variation_id')::text AS square_variation_id,
+                GREATEST(COALESCE(NULLIF(c->>'quantity','')::int, 0), 0) AS quantity
+           FROM payload
+           CROSS JOIN LATERAL jsonb_array_elements(j) AS c
+       )
+       UPDATE albums_cache ac
+          SET stock_count = r.quantity,
+              updated_at = NOW(),
+              synced_at = NOW()
+         FROM rows r
+        WHERE ac.square_variation_id = r.square_variation_id
+          AND COALESCE(ac.stock_count, 0) IS DISTINCT FROM r.quantity`,
+      [JSON.stringify(payload)],
+    )
+    healedCache = Number(healCache.rowCount || 0)
+  }
+
+  const alerted = mismatches.length >= STOCK_MISMATCH_ALERT_MIN
+  if (alerted) {
+    const today = utcDateStr()
+    const sample = mismatches.slice(0, 15).map((m) => ({
+      name: m.name,
+      products: m.products,
+      cache: m.cache,
+      square: m.square,
+    }))
+    void sendSlackAlert({
+      statusCode: 200,
+      error: `Stock mismatch after sync: ${mismatches.length} SKU(s) Neon ≠ Square (healed products=${healedProducts}, cache=${healedCache})`,
+      endpoint: '/api/catalog-sync-nightly',
+      method: 'POST_SYNC_CHECK',
+      context: {
+        alertCode: 'SYNC-INVENTORY-STOCK-MISMATCH',
+        mismatchCount: mismatches.length,
+        threshold: STOCK_MISMATCH_ALERT_MIN,
+        healedProducts,
+        healedCache,
+        sample,
+      },
+      dedupeKey: `sync:stock_mismatch:${today}`,
+      dedupeTtlMs: 24 * 60 * 60 * 1000,
+    })
+  }
+
+  return {
+    checked: rows.length,
+    mismatchCount: mismatches.length,
+    threshold: STOCK_MISMATCH_ALERT_MIN,
+    alerted,
+    healedProducts,
+    healedCache,
+    sample: mismatches.slice(0, 10),
+  }
+}
+
 export async function webHandler(request) {
   const method = (request.method || 'GET').toUpperCase()
   const userAgent = request.headers.get('user-agent') || ''
@@ -608,6 +757,7 @@ export async function webHandler(request) {
     const cacheResult = await populateAlbumsCache()
 
     const inventoryHealth = await maybeAlertOnZeroStockRatio()
+    const stockMismatch = await maybeAlertAndHealStockMismatches()
 
     const durationMs = Date.now() - startedAt
 
@@ -627,6 +777,7 @@ export async function webHandler(request) {
           imageRowsUpdated: catalog.imageUpdatedRows,
         },
         inventoryHealth,
+        stockMismatch,
         albumsCache: cacheResult,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
