@@ -4,8 +4,8 @@
  * Sends all email-related events to a single webhook endpoint.
  * Supports: newsletter signups, order confirmations, signup confirmations, password resets, order status updates
  * 
- * Configure with:
- *   MAKE_EMAIL_WEBHOOK_URL="https://hook.us2.make.com/...."
+ * Sends directly over SMTP when SGR_SMTP_URL is set (see api/_lib/mailer.js).
+ * Otherwise falls back to the old Make.com webhook (MAKE_EMAIL_WEBHOOK_URL).
  */
 
 import {
@@ -22,6 +22,35 @@ import {
   generateSaleAlertEmail,
   generateMonthlyReportEmail,
 } from './emailTemplates.js'
+import { directMailEnabled, sendMail } from './_lib/mailer.js'
+
+// Make's "Transactional Emails" scenario silently dropped mail to this test inbox; kept for parity.
+const SUPPRESSED_RECIPIENTS = String(process.env.EMAIL_SUPPRESS_TO ?? 'bcohen0424@gmail.com')
+  .split(',')
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean)
+
+/**
+ * Direct send (SGR_SMTP_URL set). Mirrors the Make scenarios it replaces:
+ * - sale_alert → store inbox from general@greychair.io (was "Contact Us" scenario)
+ * - everything else → recipient from spiralgrooverecords@greychair.io (was "Transactional Emails")
+ */
+async function sendDirect({ type, to, subject, html, replyTo }) {
+  try {
+    if (type === 'sale_alert') {
+      await sendMail('projects', { to, subject, html, replyTo })
+    } else {
+      if (SUPPRESSED_RECIPIENTS.includes(String(to || '').trim().toLowerCase())) {
+        return { attempted: false, ok: true, reason: 'suppressed_recipient' }
+      }
+      await sendMail('sgr', { to, subject, html })
+    }
+    return { attempted: true, ok: true, status: 200, statusText: 'sent' }
+  } catch (error) {
+    console.error('[Email] Direct send failed:', { type, to, error: error?.message || error })
+    return { attempted: true, ok: false, reason: 'smtp_error', statusText: error?.message }
+  }
+}
 
 const DEFAULT_DEDUPE_TTL_MS = 5 * 60 * 1000
 const dedupeMap = new Map() // key -> ts
@@ -57,7 +86,8 @@ export async function sendEmail({ type, to, subject, from: fromParam, data = {},
       process.env.MAKE_CONTACT_US_WEBHOOK_URL || process.env.MAKE_CONTACT_INQUIRY_WEBHOOK_URL
     const webhookUrl =
       type === 'sale_alert' && contactWebhookUrl ? contactWebhookUrl : process.env.MAKE_EMAIL_WEBHOOK_URL
-    if (!webhookUrl) {
+    const direct = directMailEnabled()
+    if (!direct && !webhookUrl) {
       console.warn('[Email Webhook] Missing webhook URL for email send', {
         type,
         hasMakeEmailWebhookUrl: !!process.env.MAKE_EMAIL_WEBHOOK_URL,
@@ -147,6 +177,10 @@ export async function sendEmail({ type, to, subject, from: fromParam, data = {},
     }
 
     // Send to webhook
+    if (direct) {
+      return await sendDirect({ type, to, subject: payload.subject, html, replyTo: data?.email })
+    }
+
     if (typeof fetch !== 'function') {
       console.warn('[Email Webhook] fetch() not available; skipping email')
       return { attempted: false, ok: false, reason: 'fetch_unavailable' }

@@ -34,13 +34,18 @@ if (existsSync(envPath)) {
 // Get email from command line or use default
 const testEmail = process.argv[2] || 'tools@greychair.io'
 
-// Check if webhook URL is configured
-if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
-  console.error('❌ Error: MAKE_EMAIL_WEBHOOK_URL is not configured in .env.local')
+const directMail = Boolean(process.env.SGR_SMTP_URL)
+const makeWebhook = process.env.MAKE_EMAIL_WEBHOOK_URL
+if (!directMail && !makeWebhook) {
+  console.error('❌ Error: set SGR_SMTP_URL (preferred) or MAKE_EMAIL_WEBHOOK_URL in .env.local')
   process.exit(1)
 }
 
-console.log(`📧 Testing email webhook: ${process.env.MAKE_EMAIL_WEBHOOK_URL}`)
+console.log(
+  directMail
+    ? `📧 Testing direct SMTP (SGR_SMTP_URL)`
+    : `📧 Testing email webhook: ${makeWebhook}`,
+)
 console.log(`📬 Sending test emails to: ${testEmail}\n`)
 
 // Import database functions and sendEmail
@@ -303,8 +308,8 @@ if (failCount > 0) {
       console.log(`   - ${r.type}: ${r.status}${r.details ? ` (${r.details})` : ''}${r.error ? ` - ${r.error}` : ''}`)
     }
   })
-  console.log('\n💡 Note: HTTP errors (like 410) may indicate the webhook needs configuration.')
-  console.log('   Check your Make.com scenario to ensure all email types are handled.')
+  console.log('\n💡 Note: HTTP errors may mean Make webhook misconfig, or SMTP auth failure.')
+  console.log('   Prefer SGR_SMTP_URL; see docs/square-webhooks.md.')
 } else {
   console.log('\n✨ All test emails sent successfully!')
 }
@@ -318,5 +323,9 @@ if (dbStoredCount < emailTests.length) {
 }
 
 console.log(`\n📬 Check ${testEmail} for the test emails.`)
-console.log(`   Webhook URL: ${process.env.MAKE_EMAIL_WEBHOOK_URL}`)
+console.log(
+  directMail
+    ? '   Delivery: direct SMTP (SGR_SMTP_URL)'
+    : `   Webhook URL: ${process.env.MAKE_EMAIL_WEBHOOK_URL}`,
+)
 

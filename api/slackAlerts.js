@@ -1,21 +1,19 @@
 /**
- * Enhanced Error Alerting System (via Make.com Webhook)
- * 
- * Comprehensive error monitoring with performance tracking, error frequency detection,
- * request context, rate limiting details, error grouping, and more.
- * 
- * Environment Variables:
- *   MAKE_ALERTS_WEBHOOK_URL - Make.com webhook URL for error alerts
- *   ALERT_ENABLED - Set to "true" to enable alerts (default: false in dev)
- *   ALERT_SLOW_QUERY_THRESHOLD_MS - Alert on queries slower than this (default: 1000)
- *   ALERT_SLOW_API_THRESHOLD_MS - Alert on API responses slower than this (default: 2000)
- *   ALERT_ERROR_SPIKE_THRESHOLD - Alert if errors exceed this count in window (default: 10)
- *   ALERT_ERROR_SPIKE_WINDOW_MS - Time window for error spike detection (default: 5 minutes)
- * 
+ * Ops alerts → alerts@greychair.io (email only; no Slack, no Make).
+ *
+ * Also logs structured JSON for Vercel Observability. External uptime still needed
+ * for total outages (see docs/observability.md). Critical APIs must return 5xx.
+ *
+ * Env: SGR_SMTP_URL (or ALERTS_SMTP_URL), ALERT_EMAIL (default alerts@greychair.io)
+ *
  * Usage:
  *   import { sendSlackAlert } from './slackAlerts.js'
  *   await sendSlackAlert({ statusCode: 500, error: 'Database connection failed', endpoint: '/api/products' })
  */
+
+import { directMailEnabled, sendMail } from './_lib/mailer.js'
+
+const ALERT_TO = () => process.env.ALERT_EMAIL || 'alerts@greychair.io'
 
 const DEFAULT_DEDUPE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.ALERT_SLOW_QUERY_THRESHOLD_MS || '1000', 10)
@@ -700,97 +698,71 @@ function formatMakeWebhookPayload(payload) {
  */
 export async function sendSlackAlert(payload) {
   try {
-    // Check if alerts are enabled
-    const alertsEnabled = process.env.ALERT_ENABLED === 'true' || 
-                         process.env.SLACK_ALERT_ENABLED === 'true' ||
-                         (process.env.NODE_ENV === 'production' && process.env.MAKE_ALERTS_WEBHOOK_URL)
-    
-    if (!alertsEnabled) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Alert] Alerts disabled (set ALERT_ENABLED=true to enable)')
-      }
-      return { sent: false, reason: 'alerts_disabled' }
-    }
-
-    // Get webhook URL
-    const webhookUrl = process.env.MAKE_ALERTS_WEBHOOK_URL
-    if (!webhookUrl) {
-      console.warn('[Alert] MAKE_ALERTS_WEBHOOK_URL not configured')
-      return { sent: false, reason: 'missing_webhook_url' }
-    }
-
-    // Track error frequency
     const errorFrequency = trackErrorFrequency(payload)
-    
-    // Detect error spikes
     const errorSpike = detectErrorSpike(payload)
-    
-    // Track performance if response time provided
-    if (payload.responseTime) {
-      trackPerformance(payload.endpoint, payload.responseTime)
-    }
+    if (payload.responseTime) trackPerformance(payload.endpoint, payload.responseTime)
 
-    // Check for slow responses/queries
     const isSlowResponse = payload.responseTime && payload.responseTime > SLOW_API_THRESHOLD_MS
     const isSlowQuery = payload.queryDuration && payload.queryDuration > SLOW_QUERY_THRESHOLD_MS
-    
-    // For slow queries, always alert (even if deduplicated)
-    const shouldAlertSlowQuery = isSlowQuery && !payload.responseTime // Don't double-alert if already alerting on response time
-    
-    // Deduplication (unless it's a slow query or error spike)
+    const shouldAlertSlowQuery = isSlowQuery && !payload.responseTime
+
     const dedupeKey = payload.dedupeKey || `slack:${payload.endpoint}:${payload.statusCode}:${payload.error}`
     const dedupeTtlMs = payload.dedupeTtlMs ?? DEFAULT_DEDUPE_TTL_MS
-    
     if (!shouldSend(dedupeKey, dedupeTtlMs) && !shouldAlertSlowQuery && !errorSpike) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Alert] Skipping duplicate alert:', dedupeKey)
-      }
-      return { sent: false, reason: 'duplicate' }
+      return { sent: false, reason: 'duplicate', channel: 'none' }
     }
 
-    // Format payload for webhook (unbranded, internal use)
-    const webhookPayload = formatMakeWebhookPayload({
+    const severity = getSeverity(payload.statusCode, {
+      responseTime: payload.responseTime,
+      queryDuration: payload.queryDuration,
+      errorSpike,
+    })
+    const timestamp = payload.timestamp || new Date().toISOString()
+    const formatted = formatMakeWebhookPayload({
       ...payload,
-      timestamp: payload.timestamp || new Date().toISOString(),
+      timestamp,
       errorFrequency,
       errorSpike,
       performanceMetrics: payload.endpoint ? performanceMetrics.get(payload.endpoint) : undefined,
     })
 
-    // Send to Make.com webhook
-    if (typeof fetch !== 'function') {
-      console.warn('[Alert] fetch() not available')
-      return { sent: false, reason: 'fetch_unavailable' }
-    }
-
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(webhookPayload),
-    })
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => '')
-      console.error('[Alert] Failed to send:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: text.substring(0, 200),
-      })
-      return { sent: false, reason: 'webhook_error', status: response.status }
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Alert] Sent to webhook:', {
+    // Structured log → Vercel Observability (no Slack).
+    console.error(
+      '[Alert]',
+      JSON.stringify({
+        channel: 'email',
+        to: ALERT_TO(),
+        severity,
         endpoint: payload.endpoint,
+        method: payload.method,
         statusCode: payload.statusCode,
-        severity: getSeverity(payload.statusCode, { responseTime: payload.responseTime, queryDuration: payload.queryDuration, errorSpike }),
-        errorSpike: errorSpike ? `${errorSpike.count} occurrences` : null,
-        slowResponse: isSlowResponse,
-        slowQuery: isSlowQuery,
-      })
+        error: payload.error,
+        summary: payload.summary,
+        slowResponse: Boolean(isSlowResponse),
+        slowQuery: Boolean(isSlowQuery),
+        errorSpike: errorSpike ? { count: errorSpike.count } : null,
+        timestamp,
+      }),
+    )
+
+    if (!directMailEnabled()) {
+      console.warn('[Alert] SGR_SMTP_URL not set; logged only (would email', ALERT_TO() + ')')
+      return { sent: false, reason: 'missing_smtp', channel: 'console' }
     }
 
-    return { sent: true, status: response.status }
+    try {
+      await sendMail('alerts', {
+        to: ALERT_TO(),
+        subject: formatted.title || `Spiral Groove alert (${severity})`,
+        html:
+          formatted.html ||
+          `<pre>${String(JSON.stringify({ ...payload, stack: payload.stack }, null, 2)).replace(/</g, '&lt;')}</pre>`,
+      })
+      return { sent: true, channel: 'email', to: ALERT_TO() }
+    } catch (e) {
+      console.error('[Alert] Email to', ALERT_TO(), 'failed:', e?.message || e)
+      return { sent: false, reason: 'smtp_error', channel: 'email' }
+    }
   } catch (error) {
     console.error('[Alert] Error sending alert:', error?.message || error)
     return { sent: false, reason: 'exception', error: error?.message }
@@ -805,54 +777,6 @@ export async function sendCriticalAlert(payload) {
     ...payload,
     dedupeKey: null, // Disable deduplication for critical alerts
   })
-}
-
-/**
- * Send batch of errors (for rate limiting scenarios)
- */
-export async function sendBatchAlert(errors) {
-  if (!errors || errors.length === 0) return { sent: false, reason: 'no_errors' }
-
-  const webhookUrl = process.env.MAKE_ALERTS_WEBHOOK_URL
-  if (!webhookUrl) return { sent: false, reason: 'missing_webhook_url' }
-
-  const criticalCount = errors.filter(e => getSeverity(e.statusCode) === 'critical').length
-  const warningCount = errors.filter(e => getSeverity(e.statusCode) === 'warning').length
-
-  const payload = {
-    event: 'api.error.batch',
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || 'development',
-    severity: criticalCount > 0 ? 'critical' : 'warning',
-    emoji: criticalCount > 0 ? '🚨' : '⚠️',
-    title: `Batch Error Alert: ${errors.length} errors detected`,
-    summary: `${errors.length} errors - ${criticalCount} critical, ${warningCount} warnings`,
-    details: {
-      totalErrors: errors.length,
-      criticalCount: criticalCount,
-      warningCount: warningCount,
-      errors: errors.slice(0, 10).map((e, i) => ({
-        index: i + 1,
-        method: e.method || 'GET',
-        endpoint: e.endpoint,
-        statusCode: e.statusCode,
-        error: e.error,
-      })),
-    },
-  }
-
-  try {
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-
-    return { sent: response.ok, status: response.status }
-  } catch (error) {
-    console.error('[Alert] Batch alert failed:', error)
-    return { sent: false, reason: 'exception' }
-  }
 }
 
 /**

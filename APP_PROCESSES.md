@@ -34,7 +34,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 ### Orders & Payments
 - **`POST /api/pay`** - Processes Square payment and creates order
 - **`GET /api/orders`** - Fetches orders (with authentication)
-- **`PATCH /api/orders/update`** - Updates order status (Make.com / Square); see **`docs/make-order-status-sync.md`**
+- **`PATCH /api/orders/update`** - Updates order status (Square webhook / ops); see **`docs/square-webhooks.md`**
 - **`GET /api/orders/:id`** - Gets specific order details
 
 ### Events
@@ -68,7 +68,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 - **Trigger**: Automatic on API errors
 - **What it does**:
   - Detects errors, slow queries, and performance issues
-  - Sends alerts to Make.com webhook (`MAKE_ALERTS_WEBHOOK_URL`)
+  - Sends alerts via SMTP (`SGR_SMTP_URL` / `ALERTS_SMTP_URL`) or legacy `MAKE_ALERTS_WEBHOOK_URL`
   - Includes stack traces, context, AI fix prompts, screenshots (frontend errors)
   - Deduplicates alerts to prevent spam
   - Detects error spikes (10+ errors in 5 minutes)
@@ -82,7 +82,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 ### 2. **Email System** (`api/sendEmail.js`)
 - **Trigger**: Various endpoints call this
 - **What it does**:
-  - Sends emails via Make.com webhook (`MAKE_EMAIL_WEBHOOK_URL`)
+  - Sends emails via SMTP (`SGR_SMTP_URL`) or legacy `MAKE_EMAIL_WEBHOOK_URL` (see `docs/square-webhooks.md`)
   - Email types:
     - Newsletter subscription confirmations
     - Order confirmations
@@ -134,9 +134,9 @@ This document lists all processes, cron jobs, API endpoints, and background task
   - Updates `products_cache.stock_count`
   - Updates `last_stocked_at` and `last_adjustment_at`
 
-### Make.com Webhooks
-- **`MAKE_ALERTS_WEBHOOK_URL`** - Receives error alerts
-- **`MAKE_EMAIL_WEBHOOK_URL`** - Receives email send requests
+### Email / alerts (post-Make cutover)
+- **`SGR_SMTP_URL`** - Direct SMTP for customer + inquiry + alert mail (see `docs/square-webhooks.md`)
+- Legacy Make URLs optional until env cleanup: `MAKE_ALERTS_WEBHOOK_URL`, `MAKE_EMAIL_WEBHOOK_URL`
 
 ---
 
@@ -184,8 +184,8 @@ This document lists all processes, cron jobs, API endpoints, and background task
 - **`SQUARE_LOCATION_ID`** - Square location ID
 - **`SQUARE_ENVIRONMENT`** - `production` or `sandbox`
 - **`SGR_DATABASE_URL`** - Neon PostgreSQL connection string
-- **`MAKE_ALERTS_WEBHOOK_URL`** - Make.com alerts webhook
-- **`MAKE_EMAIL_WEBHOOK_URL`** - Make.com email webhook
+- **`SGR_SMTP_URL`** - Direct SMTP (replaces Make email scenarios)
+- **`SQUARE_WEBHOOK_SIGNATURE_KEY`** - Square → `/api/square/webhook`
 - **`WEBHOOK_SECRET`** - Secret for manual API calls
 
 ---

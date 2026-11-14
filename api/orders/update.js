@@ -2,6 +2,19 @@
 import { query } from '../db.js'
 import { withWebHandler } from '../_vercelNodeAdapter.js'
 import { normalizeOrderStatus } from '../orderStatusNormalize.js'
+import { directMailEnabled } from '../_lib/mailer.js'
+import { timingSafeEqual } from 'crypto'
+
+/** True when SMTP or legacy Make email webhook can deliver customer mail. */
+export function emailDeliveryConfigured() {
+  return directMailEnabled() || Boolean(process.env.MAKE_EMAIL_WEBHOOK_URL)
+}
+
+function secretsMatch(a, b) {
+  const ab = Buffer.from(String(a))
+  const bb = Buffer.from(String(b))
+  return ab.length === bb.length && timingSafeEqual(ab, bb)
+}
 
 export const config = {
   runtime: 'nodejs',
@@ -31,7 +44,7 @@ function getOrderStatusUpdateSubject(status, orderNumber) {
  * PATCH /api/orders/update
  * 
  * Updates an order status in the Neon database.
- * Designed to be called by Make.com webhooks when Square order status changes.
+ * Manual/admin use (requires x-webhook-secret). Square status changes arrive via api/square/webhook.js.
  * 
  * Request Body:
  * {
@@ -42,7 +55,7 @@ function getOrderStatusUpdateSubject(status, orderNumber) {
  * }
  *
  * Status values are normalized via orderStatusNormalize.js (Square "Ready" → PREPARED).
- * See docs/make-order-status-sync.md for Make.com scenario setup.
+ * See docs/square-webhooks.md.
  */
 export async function webHandler(request) {
   // Allow PATCH (preferred) and POST (common webhook default)
@@ -60,24 +73,40 @@ export async function webHandler(request) {
     )
   }
 
-  try {
-    // Optional: Add webhook secret validation for security
-    // Uncomment and set WEBHOOK_SECRET in your environment variables
-    const webhookSecret = request.headers.get('x-webhook-secret')
-    if (process.env.WEBHOOK_SECRET && webhookSecret !== process.env.WEBHOOK_SECRET) {
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'Unauthorized. Invalid webhook secret.' 
-        }), 
-        { 
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      )
-    }
+  // This route changes orders and emails customers, so it needs x-webhook-secret = WEBHOOK_SECRET.
+  // Make's "Order Status Updates" scenario calls it without a secret, so during the cutover it stays
+  // open until Square points at api/square/webhook.js (SQUARE_WEBHOOK_SIGNATURE_KEY set); then it
+  // fails closed in production even if WEBHOOK_SECRET is unset.
+  const expectedSecret = process.env.WEBHOOK_SECRET
+  const providedSecret = request.headers.get('x-webhook-secret') || ''
+  const squareHandledHere = Boolean(process.env.SQUARE_WEBHOOK_SIGNATURE_KEY)
+  const mustAuth = Boolean(expectedSecret) || (process.env.NODE_ENV === 'production' && squareHandledHere)
+  if (mustAuth && (!expectedSecret || !secretsMatch(providedSecret, expectedSecret))) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Unauthorized. Invalid webhook secret.' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
 
-    const body = await request.json()
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Body must be JSON.' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+  return updateOrderStatus(body || {})
+}
+
+/**
+ * Updates an order's status and sends the matching customer email.
+ * Shared by PATCH /api/orders/update and the Square webhook (api/square/webhook.js).
+ * Returns a Response (JSON body with `success`, plus email outcomes).
+ */
+export async function updateOrderStatus(body) {
+  try {
     const {
       order_id: orderId,
       square_order_id: squareOrderId,
@@ -232,8 +261,8 @@ export async function webHandler(request) {
       emailSkipReason = 'status_unchanged'
     } else if (!customerEmail) {
       emailSkipReason = 'missing_customer_email'
-    } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
-      emailSkipReason = 'missing_MAKE_EMAIL_WEBHOOK_URL'
+    } else if (!emailDeliveryConfigured()) {
+      emailSkipReason = 'missing_email_delivery'
     }
 
     if (!emailSkipReason) {
@@ -293,7 +322,8 @@ export async function webHandler(request) {
         previousStatus,
         status: normalizedStatus,
         customerEmail: customerEmail ? 'exists' : 'missing',
-        hasWebhook: Boolean(process.env.MAKE_EMAIL_WEBHOOK_URL),
+        hasEmailDelivery: emailDeliveryConfigured(),
+        directMail: directMailEnabled(),
       })
     }
 
@@ -306,8 +336,8 @@ export async function webHandler(request) {
 
       if (!customerEmail) {
         reviewEmailSkipReason = 'missing_customer_email'
-      } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
-        reviewEmailSkipReason = 'missing_MAKE_EMAIL_WEBHOOK_URL'
+      } else if (!emailDeliveryConfigured()) {
+        reviewEmailSkipReason = 'missing_email_delivery'
       } else if (isNoReviewStatus) {
         reviewEmailSkipReason = 'status_excluded'
       } else if (!isComplete) {
@@ -359,8 +389,8 @@ export async function webHandler(request) {
 
       if (!customerEmail) {
         refundEmailSkipReason = 'missing_customer_email'
-      } else if (!process.env.MAKE_EMAIL_WEBHOOK_URL) {
-        refundEmailSkipReason = 'missing_MAKE_EMAIL_WEBHOOK_URL'
+      } else if (!emailDeliveryConfigured()) {
+        refundEmailSkipReason = 'missing_email_delivery'
       } else if (!isCanceled) {
         refundEmailSkipReason = 'not_canceled_status'
       } else if (!forceEmail && wasCanceled) {
