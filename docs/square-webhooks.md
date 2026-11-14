@@ -5,12 +5,10 @@ the site keeps using the old Make webhooks, so this can be merged before the cut
 
 ## Status (2026-11-13)
 
-- Code lives on branch `replace-make-automations` (not yet on production `main`).
-- Make **Transactional Emails** still received traffic through 2026-11-11 → do **not** deactivate
-  Make email scenarios until `SGR_SMTP_URL` is set and smoked after deploy.
-- Make **Usage Cost Backfill** deactivated (no code replacement).
-- Production probes: `POST /api/square/webhook` → 405; `GET /api/staff-picks-weekly` → SPA HTML
-  until this branch is deployed.
+- On production `main`. Email cutover done: Resend via `SGR_SMTP_URL` with
+  `*@greychair.digital` From; Make **Transactional Emails**, **Contact Us**, **Event Inquiries** off.
+- Make **Alerts** + **Usage Cost Backfill** already off.
+- Still on Make: **Inventory Count**, **Order Status Updates**, **Staff Picks** (Square / cron cutover next).
 
 | Was (Make scenario) | Now | Switches on when |
 |---|---|---|
