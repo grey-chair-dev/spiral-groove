@@ -4,7 +4,7 @@ Pages go to **alerts@greychair.io** only — no Slack, no Make.
 
 ## 1. App alerts (email)
 
-`sendSlackAlert()` emails `ALERT_EMAIL` (default `alerts@greychair.io`) via SMTP when `SGR_SMTP_URL` (or `ALERTS_SMTP_URL`) is set. Also writes a structured log for Vercel Observability.
+`sendSlackAlert()` always writes a structured `[Alert] {…}` line to **Vercel → Logs** (search `"[Alert]"`). It emails `ALERT_EMAIL` via `SGR_ALERTS_SMTP_URL` (or `SGR_SMTP_URL`). Deduped repeats still log (`deduped: true`) but skip another email.
 
 Critical paths return **5xx** on real failures so Vercel sees them; card declines stay 4xx.
 

@@ -708,9 +708,7 @@ export async function sendSlackAlert(payload) {
 
     const dedupeKey = payload.dedupeKey || `slack:${payload.endpoint}:${payload.statusCode}:${payload.error}`
     const dedupeTtlMs = payload.dedupeTtlMs ?? DEFAULT_DEDUPE_TTL_MS
-    if (!shouldSend(dedupeKey, dedupeTtlMs) && !shouldAlertSlowQuery && !errorSpike) {
-      return { sent: false, reason: 'duplicate', channel: 'none' }
-    }
+    const isDuplicate = !shouldSend(dedupeKey, dedupeTtlMs) && !shouldAlertSlowQuery && !errorSpike
 
     const severity = getSeverity(payload.statusCode, {
       responseTime: payload.responseTime,
@@ -726,7 +724,7 @@ export async function sendSlackAlert(payload) {
       performanceMetrics: payload.endpoint ? performanceMetrics.get(payload.endpoint) : undefined,
     })
 
-    // Structured log → Vercel Observability (no Slack).
+    // Always log → Vercel Logs / Observability (even when email is deduped).
     console.error(
       '[Alert]',
       JSON.stringify({
@@ -741,12 +739,18 @@ export async function sendSlackAlert(payload) {
         slowResponse: Boolean(isSlowResponse),
         slowQuery: Boolean(isSlowQuery),
         errorSpike: errorSpike ? { count: errorSpike.count } : null,
+        deduped: Boolean(isDuplicate),
         timestamp,
       }),
     )
 
-    if (!directMailEnabled()) {
-      console.warn('[Alert] SGR_SMTP_URL not set; logged only (would email', ALERT_TO() + ')')
+    if (isDuplicate) {
+      return { sent: false, reason: 'duplicate', channel: 'console' }
+    }
+
+    // Prefer alerts SMTP; SGR_SMTP_URL alone still enables the mailer path.
+    if (!directMailEnabled() && !process.env.SGR_ALERTS_SMTP_URL && !process.env.ALERTS_SMTP_URL) {
+      console.warn('[Alert] No SMTP URL set; logged only (would email', ALERT_TO() + ')')
       return { sent: false, reason: 'missing_smtp', channel: 'console' }
     }
 
