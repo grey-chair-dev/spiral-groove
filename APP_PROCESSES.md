@@ -5,7 +5,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 
 ---
 
-## 🕐 Scheduled Cron Jobs (Vercel)
+## Scheduled Cron Jobs (Vercel)
 
 ### 1. **(Removed) Square Products Sync** (`/api/square/sync`)
 - This sync has been removed and is no longer scheduled or callable.
@@ -19,13 +19,28 @@ This document lists all processes, cron jobs, API endpoints, and background task
     - Fetches upcoming events
     - Fetches new records (last 2 weeks)
     - Generates personalized recommendations based on purchase history
-    - Sends HTML email via Make.com webhook
-  - Logs results to Slack
+    - Sends HTML email via SMTP (`SGR_SMTP_URL`)
+  - Ops summary / failures via `sendSlackAlert` (email to alerts@)
 - **Tables Used**: `email_list`, `events`, `products_cache`, `orders`, `order_items`
+
+### 3. **Catalog Sync Nightly** (`/api/catalog-sync-nightly`)
+- **Schedule**: Daily 6:00 AM UTC (`0 6 * * *`)
+- **Purpose**: Square Catalog → Postgres, then rebuild `albums_cache`
+
+### 4. **Monthly Report** (`/api/monthly-report`)
+- **Schedule**: 1st of month 8:00 AM UTC (`0 8 1 * *`)
+
+### 5. **Staff Picks Weekly** (`/api/staff-picks-weekly`)
+- **Schedule**: Mondays 7:45 AM UTC (`45 7 * * 1`)
+- **Purpose**: LLM refresh of staff-pick quotes (replaces Make "Staff Picks")
+
+### 6. **Instagram Events Sync** (`/api/instagram-events-sync`)
+- **Schedule**: Daily 10:40 PM UTC (`40 22 * * *`)
+- **Purpose**: Fetch public Instagram posts via api-anything, insert new events (replaces Make "Events From Instagram")
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Product & Catalog
 - **`GET /api/products`** - Fetches all products from `albums_cache` (or `products_cache` fallback)
@@ -36,6 +51,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 - **`GET /api/orders`** - Fetches orders (with authentication)
 - **`PATCH /api/orders/update`** - Updates order status (Square webhook / ops); see **`docs/square-webhooks.md`**
 - **`GET /api/orders/:id`** - Gets specific order details
+- **`POST /api/square/webhook`** - Square www inventory + order-status events (HMAC)
 
 ### Events
 - **`GET /api/events`** - Fetches upcoming events
@@ -46,6 +62,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 - **`POST /api/newsletter/unsubscribe`** - Unsubscribes user
 - **`POST /api/weekly-newsletter`** - Sends test newsletter to single email
 - **`POST /api/weekly-newsletter-bulk`** - Sends newsletter to all subscribers (cron)
+- **`POST /api/sendEmail`** - Direct transactional email (SMTP)
 
 ### Contact & Forms
 - **`POST /api/contact-inquiry`** - Handles contact form submissions
@@ -53,22 +70,25 @@ This document lists all processes, cron jobs, API endpoints, and background task
 - **`POST /api/forgot-password`** - Password reset request
 
 ### Sync & Admin
-- **`POST /api/inventory/log`** - Logs inventory changes from Square webhooks
+- **`GET/POST /api/catalog-sync-nightly`** - Nightly Square catalog sync
+- **`GET/POST /api/staff-picks-weekly`** - Weekly staff picks refresh
+- **`GET/POST /api/instagram-events-sync`** - Instagram → events
 
 ### Utilities
 - **`GET /api/robots.js`** - Returns robots.txt
-- **`POST /api/webhook/test`** - Test webhook endpoint
-- **`POST /api/notifyWebhook`** - Generic webhook notification handler
+- **`GET /api/health`** - Health check
+
+*(Removed)* `/api/notifyWebhook`, `/api/inventory/log`, `/api/webhook/test` — Make-era relays deleted.
 
 ---
 
-## 🔄 Background Processes
+## Background Processes
 
 ### 1. **Error Alerting System** (`api/slackAlerts.js`)
 - **Trigger**: Automatic on API errors
 - **What it does**:
   - Detects errors, slow queries, and performance issues
-  - Sends alerts via SMTP (`SGR_SMTP_URL` / `ALERTS_SMTP_URL`) or legacy `MAKE_ALERTS_WEBHOOK_URL`
+  - Emails alerts@ via SMTP (`SGR_ALERTS_SMTP_URL` / `ALERTS_SMTP_URL` / `SGR_SMTP_URL`)
   - Includes stack traces, context, AI fix prompts, screenshots (frontend errors)
   - Deduplicates alerts to prevent spam
   - Detects error spikes (10+ errors in 5 minutes)
@@ -79,10 +99,10 @@ This document lists all processes, cron jobs, API endpoints, and background task
   - Frontend errors (with screenshots)
   - Error frequency spikes
 
-### 2. **Email System** (`api/sendEmail.js`)
+### 2. **Email System** (`api/sendEmail.js` + `api/_lib/mailer.js`)
 - **Trigger**: Various endpoints call this
 - **What it does**:
-  - Sends emails via SMTP (`SGR_SMTP_URL`) or legacy `MAKE_EMAIL_WEBHOOK_URL` (see `docs/square-webhooks.md`)
+  - Sends emails via SMTP (`SGR_SMTP_URL`) only (Make email webhooks removed)
   - Email types:
     - Newsletter subscription confirmations
     - Order confirmations
@@ -93,30 +113,15 @@ This document lists all processes, cron jobs, API endpoints, and background task
 - **Templates**: Defined in `api/emailTemplates.js`
 
 ### 3. **Albums Cache Population** (`api/albumsCache.js`)
-- **Trigger**: Run manually / on deploy as needed
+- **Trigger**: Run manually / on deploy as needed (also after nightly catalog sync)
 - **What it does**:
   - Creates `albums_cache` table if missing
   - Populates with only album products (filters out DVDs, etc.)
   - Pre-filters for faster queries
-  - Updates indexes
 
 ---
 
-## 📝 Manual Scripts (npm run)
-
-### Database Management
-- **`npm run db:index-events`** - Adds indexes to `events` table
-- **`npm run db:index-created-at`** - Adds `created_at` indexes to `products_cache` and `albums_cache`
-- **`npm run db:optimize`** - Optimizes database performance (adds missing indexes, updates statistics)
-
-### Sync Jobs
-*(Removed)* Square sync scripts have been deleted.
-
-### Newsletter
-- **`npm run send:weekly-newsletter`** - Sends test weekly newsletter
-
-### Validation
-- **`npm run validate:staff-picks`** - Validates staff picks against products in database
+## NPM Scripts
 
 ### Development
 - **`npm run dev`** - Starts Vite dev server (frontend)
@@ -126,21 +131,20 @@ This document lists all processes, cron jobs, API endpoints, and background task
 
 ---
 
-## 🔗 Webhook Handlers
+## Webhook Handlers
 
 ### Square Webhooks
-- **`POST /api/inventory/log`** - Receives inventory change webhooks from Square
-  - Updates `inventory` table
-  - Updates `products_cache.stock_count`
-  - Updates `last_stocked_at` and `last_adjustment_at`
+- **`POST /api/square/webhook`** - Inventory count + order status updates (see `docs/square-webhooks.md`)
+  - Updates inventory / `albums_cache` stock
+  - Writes order status via `orders/update` path
 
 ### Email / alerts (post-Make cutover)
 - **`SGR_SMTP_URL`** - Direct SMTP for customer + inquiry + alert mail (see `docs/square-webhooks.md`)
-- Legacy Make URLs optional until env cleanup: `MAKE_ALERTS_WEBHOOK_URL`, `MAKE_EMAIL_WEBHOOK_URL`
+- Strip leftover `MAKE_*` vars from Vercel when convenient (no longer read by app code)
 
 ---
 
-## 📊 Database Tables
+## Database Tables
 
 ### Product Tables
 - **`products_cache`** - Main product catalog (populated via Square sync historically; now updated via webhooks/manual processes)
@@ -169,7 +173,7 @@ This document lists all processes, cron jobs, API endpoints, and background task
 
 ---
 
-## 🔐 Authentication & Security
+## Authentication & Security
 
 ### Rate Limiting
 - Implemented in `lib/rate-limit.ts`
@@ -177,7 +181,8 @@ This document lists all processes, cron jobs, API endpoints, and background task
 
 ### Webhook Security
 - **`WEBHOOK_SECRET`** - Required for manual sync triggers (non-cron)
-- **Vercel Cron** - Automatically authenticated via `x-vercel-cron` header
+- **`SQUARE_WEBHOOK_SIGNATURE_KEY`** - Square HMAC on `/api/square/webhook`
+- **Vercel Cron** - Automatically authenticated via `x-vercel-cron` header (or `CRON_SECRET` Bearer when set)
 
 ### Environment Variables
 - **`SQUARE_ACCESS_TOKEN`** - Square API authentication
@@ -190,14 +195,14 @@ This document lists all processes, cron jobs, API endpoints, and background task
 
 ---
 
-## 📈 Monitoring & Logging
+## Monitoring & Logging
 
 ### Sync Logging
 - All sync jobs log to `sync_log` table
 - Includes: status, duration, items processed, metadata
 
 ### Error Logging
-- Errors sent to Make.com webhook
+- Errors emailed to alerts@ via `slackAlerts.js` (SMTP)
 - Includes: stack traces, context, AI fix prompts
 
 ### Performance Monitoring
@@ -206,10 +211,10 @@ This document lists all processes, cron jobs, API endpoints, and background task
 
 ---
 
-## 🎯 Key Workflows
+## Key Workflows
 
 ### Product Sync Workflow
-*(Removed)* Square products sync workflow has been deleted.
+Nightly catalog sync + Square inventory webhooks keep `products_cache` / `albums_cache` current. *(Legacy ad-hoc Square products sync removed.)*
 
 ### Sales Sync Workflow
 *(Removed)* Square sales sync workflow has been deleted.
@@ -221,20 +226,20 @@ This document lists all processes, cron jobs, API endpoints, and background task
    - Fetches upcoming events
    - Fetches new records (last 2 weeks)
    - Generates personalized recommendations
-   - Sends email via Make.com webhook
-4. Logs results to Slack
+   - Sends email via SMTP
+4. Ops summary via `sendSlackAlert` (email)
 
 ### Error Alert Workflow
 1. API error occurs
 2. `slackAlerts.js` captures error details
 3. Generates AI fix prompt
 4. Captures screenshot (if frontend error)
-5. Sends to Make.com webhook
+5. Emails alerts@ via SMTP
 6. Deduplicates to prevent spam
 
 ---
 
-## 🛠️ Maintenance Scripts
+## Maintenance Scripts
 
 Located in `scripts/` directory:
 - **`add-created-at-index.mjs`** - Adds `created_at` indexes
@@ -249,19 +254,23 @@ Located in `scripts/` directory:
 
 ---
 
-## 📅 Schedule Summary
+## Schedule Summary
 
 | Time (UTC) | Day | Process | Endpoint |
 |------------|-----|---------|----------|
+| 6:00 AM | Daily | Catalog sync | `/api/catalog-sync-nightly` |
+| 7:45 AM | Monday | Staff picks | `/api/staff-picks-weekly` |
+| 8:00 AM | 1st | Monthly report | `/api/monthly-report` |
 | 9:00 AM | Friday | Weekly Newsletter | `/api/weekly-newsletter-bulk` |
+| 10:40 PM | Daily | Instagram events | `/api/instagram-events-sync` |
 
 ---
 
-## 🔄 Data Flow
+## Data Flow
 
 ### Product Data Flow
 ```
-Square Catalog API → (removed sync) → products_cache → albums_cache → /api/products → Frontend
+Square Catalog API → catalog-sync-nightly / webhooks → products_cache → albums_cache → /api/products → Frontend
 ```
 
 ### Sales Data Flow
@@ -271,20 +280,22 @@ Square Orders API → (removed sync) → sales_orders + sales_line_items → pro
 
 ### Newsletter Flow
 ```
-email_list → /api/weekly-newsletter-bulk → Make.com Webhook → Email Delivery
+email_list → /api/weekly-newsletter-bulk → SMTP (SGR_SMTP_URL) → Email Delivery
 ```
 
 ---
 
-## 🚨 Error Handling
+## Error Handling
 
-- **API Errors**: Captured by `slackAlerts.js`, sent to Make.com
+- **API Errors**: Captured by `slackAlerts.js`, emailed to alerts@
 - **Database Errors**: Retry logic in `api/db.js` for connection issues
 - **Sync Failures**: Logged to `sync_log` table, errors sent to alerts
 - **Email Failures**: Logged, but don't block newsletter process
 
 ---
 
-## 📝 Notes
+## Notes
 
 - All cron jobs run on Vercel
+- Ported Make scenarios are OFF in Make; leftover `MAKE_*` env cleanup is optional hygiene
+- Google review reply flow still Make-only (`docs/make-google-review-flow.md`)

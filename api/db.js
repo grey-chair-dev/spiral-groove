@@ -36,6 +36,26 @@ function isMaintenanceStatement(text) {
 }
 
 /**
+ * Ad-hoc Node eval / REPL / local scripts should log, not page alerts@.
+ * Production API/cron routes still alert. Opt out globally: ALERT_DB_QUERY_ERRORS=0
+ * Force on even for scripts: ALERT_DB_QUERY_ERRORS=1
+ * @param {unknown} error
+ * @param {string} [callerStack] stack captured at query() entry (not inside this helper)
+ */
+function shouldAlertOnQueryError(error, callerStack = '') {
+  const flag = String(process.env.ALERT_DB_QUERY_ERRORS || '').trim()
+  if (flag === '0' || flag.toLowerCase() === 'false') return false
+  if (flag === '1' || flag.toLowerCase() === 'true') return true
+
+  const stack = `${error?.stack || ''}\n${callerStack || ''}`
+  // node -e / vm / REPL (this alert was [eval1])
+  if (/\[eval\d*\]|node:repl\b|<(?:repl|anonymous)>/.test(stack)) return false
+  // CLI under scripts/ importing api/db.js
+  if (/[/\\]scripts[/\\]/.test(stack)) return false
+  return true
+}
+
+/**
  * Get or create the database connection pool
  * @returns {pg.Pool}
  */
@@ -140,6 +160,8 @@ export async function query(text, params) {
   const pool = getPool()
   const startTotal = Date.now()
   const acquireStart = Date.now()
+  // Capture before await so alert gating sees real caller (eval vs api vs scripts)
+  const callerStack = new Error('db.query.caller').stack || ''
   /** @type {import('pg').PoolClient | null} */
   let client = null
   
@@ -192,24 +214,27 @@ export async function query(text, params) {
     const totalMs = Date.now() - startTotal
     console.error('[DB] Query error', { text: text.substring(0, 50), durationMs: totalMs, error: error.message })
 
-    // Enhanced alert with performance and context
-    const { sendSlackAlert } = await import('./slackAlerts.js')
-    void sendSlackAlert({
-      statusCode: 500,
-      error: error?.message || 'Database query failed',
-      endpoint: 'database',
-      method: 'QUERY',
-      context: {
-        errorName: error?.name,
-        errorCode: error?.code,
-        sql: String(text || '').substring(0, 200),
-        paramCount: params?.length || 0,
-      },
-      queryDuration: totalMs,
-      stack: error?.stack,
-      dedupeKey: `db:${error?.code || ''}:${error?.message || 'unknown'}`,
-    })
-
+    // Skip ops email for eval/REPL/scripts — still throw so the caller sees the failure.
+    if (shouldAlertOnQueryError(error, callerStack)) {
+      const { sendSlackAlert } = await import('./slackAlerts.js')
+      void sendSlackAlert({
+        statusCode: 500,
+        error: error?.message || 'Database query failed',
+        endpoint: 'database',
+        method: 'QUERY',
+        context: {
+          errorName: error?.name,
+          errorCode: error?.code,
+          sql: String(text || '').substring(0, 200),
+          paramCount: params?.length || 0,
+        },
+        queryDuration: totalMs,
+        stack: error?.stack,
+        dedupeKey: `db:${error?.code || ''}:${error?.message || 'unknown'}`,
+      })
+    } else {
+      console.warn('[DB] Query error alert suppressed (ad-hoc/eval/script caller)')
+    }
 
     // If Neon drops connections, retry once with a fresh pool.
     const msg = String(error?.message || '')

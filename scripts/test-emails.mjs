@@ -34,19 +34,13 @@ if (existsSync(envPath)) {
 // Get email from command line or use default
 const testEmail = process.argv[2] || 'tools@greychair.io'
 
-const directMail = Boolean(process.env.SGR_SMTP_URL)
-const makeWebhook = process.env.MAKE_EMAIL_WEBHOOK_URL
-if (!directMail && !makeWebhook) {
-  console.error('❌ Error: set SGR_SMTP_URL (preferred) or MAKE_EMAIL_WEBHOOK_URL in .env.local')
+if (!process.env.SGR_SMTP_URL) {
+  console.error('Error: set SGR_SMTP_URL in .env.local')
   process.exit(1)
 }
 
-console.log(
-  directMail
-    ? `📧 Testing direct SMTP (SGR_SMTP_URL)`
-    : `📧 Testing email webhook: ${makeWebhook}`,
-)
-console.log(`📬 Sending test emails to: ${testEmail}\n`)
+console.log('Testing direct SMTP (SGR_SMTP_URL)')
+console.log(`Sending test emails to: ${testEmail}\n`)
 
 // Import database functions and sendEmail
 const { query } = await import('../api/db.js')
@@ -308,24 +302,19 @@ if (failCount > 0) {
       console.log(`   - ${r.type}: ${r.status}${r.details ? ` (${r.details})` : ''}${r.error ? ` - ${r.error}` : ''}`)
     }
   })
-  console.log('\n💡 Note: HTTP errors may mean Make webhook misconfig, or SMTP auth failure.')
-  console.log('   Prefer SGR_SMTP_URL; see docs/square-webhooks.md.')
+  console.log('\nNote: failures are usually SMTP auth — see docs/square-webhooks.md.')
 } else {
-  console.log('\n✨ All test emails sent successfully!')
+  console.log('\nAll test emails sent successfully!')
 }
 
 // Database summary
 const dbStoredCount = results.filter(r => r.dbStored).length
-console.log(`\n💾 Database Storage:`)
-console.log(`   ✅ Stored in database: ${dbStoredCount}/${emailTests.length}`)
+console.log(`\nDatabase Storage:`)
+console.log(`   Stored in database: ${dbStoredCount}/${emailTests.length}`)
 if (dbStoredCount < emailTests.length) {
-  console.log(`   ⚠️  Some records may not have been stored (check logs above)`)
+  console.log(`   Some records may not have been stored (check logs above)`)
 }
 
-console.log(`\n📬 Check ${testEmail} for the test emails.`)
-console.log(
-  directMail
-    ? '   Delivery: direct SMTP (SGR_SMTP_URL)'
-    : `   Webhook URL: ${process.env.MAKE_EMAIL_WEBHOOK_URL}`,
-)
+console.log(`\nCheck ${testEmail} for the test emails.`)
+console.log('   Delivery: direct SMTP (SGR_SMTP_URL)')
 

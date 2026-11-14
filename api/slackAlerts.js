@@ -548,7 +548,7 @@ function generateAlertHtml(payload) {
 </html>`
 }
 
-function formatMakeWebhookPayload(payload) {
+function formatAlertPayload(payload) {
   const {
     statusCode,
     error,
@@ -603,7 +603,7 @@ function formatMakeWebhookPayload(payload) {
     geminiPrompt,
   })
   
-  // Build structured payload for Make.com
+  // Structured alert payload (email + o11y logs)
   return {
     event: 'api.error',
     timestamp: timestamp || new Date().toISOString(),
@@ -657,7 +657,6 @@ function formatMakeWebhookPayload(payload) {
     // HTML version for email/display
     html: html,
     
-    // Formatted fields for easy display in Make.com
     title: `${emoji} API Error: ${statusCode} ${error || 'Unknown Error'}${errorSpike ? ` (${errorSpike.count}x in ${Math.round(errorSpike.windowMs / 1000 / 60)}min)` : ''}`,
     summary: `${method} ${endpoint} - ${error}${responseTime ? ` (${responseTime}ms)` : ''}`,
     details: {
@@ -675,27 +674,7 @@ function formatMakeWebhookPayload(payload) {
 }
 
 /**
- * Send error alert to Make.com webhook
- * 
- * @param {Object} payload
- * @param {number} payload.statusCode - HTTP status code
- * @param {string} payload.error - Error message
- * @param {string} payload.endpoint - API endpoint
- * @param {string} [payload.method] - HTTP method
- * @param {string} [payload.requestId] - Request ID for tracking
- * @param {string} [payload.userAgent] - User agent
- * @param {string} [payload.ip] - Client IP address
- * @param {string} [payload.timestamp] - ISO timestamp
- * @param {Object} [payload.context] - Additional context
- * @param {string} [payload.stack] - Stack trace
- * @param {number} [payload.responseTime] - API response time in ms
- * @param {number} [payload.queryDuration] - Database query duration in ms
- * @param {Object} [payload.requestBody] - Request body (sanitized)
- * @param {Object} [payload.requestHeaders] - Request headers
- * @param {Object} [payload.queryParams] - Query parameters
- * @param {Object} [payload.rateLimit] - Rate limiting details
- * @param {string} [payload.dedupeKey] - Deduplication key
- * @param {number} [payload.dedupeTtlMs] - Deduplication TTL in ms
+ * Ops alert: structured log + email to alerts@ (SMTP). Name is historical.
  */
 export async function sendSlackAlert(payload) {
   try {
@@ -717,7 +696,7 @@ export async function sendSlackAlert(payload) {
       errorSpike,
     })
     const timestamp = payload.timestamp || new Date().toISOString()
-    const formatted = formatMakeWebhookPayload({
+    const formatted = formatAlertPayload({
       ...payload,
       timestamp,
       errorFrequency,

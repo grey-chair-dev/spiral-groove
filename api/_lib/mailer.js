@@ -49,7 +49,7 @@ function smtpUrl(account) {
   return firstEnv('SGR_SMTP_URL')
 }
 
-/** True once SMTP is set up; until then callers keep posting to the Make webhooks. */
+/** True when SGR_SMTP_URL is set (transactional + inquiry mail). */
 export function directMailEnabled() {
   return Boolean(process.env.SGR_SMTP_URL)
 }

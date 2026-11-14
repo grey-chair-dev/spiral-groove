@@ -6,7 +6,7 @@
  *   node scripts/resend-order-status-email.mjs ORD-XXXXX-XXXX PREPARED
  *   node scripts/resend-order-status-email.mjs ORD-XXXXX-XXXX PREPARED --force
  *
- * Requires .env.local with SGR_DATABASE_URL and SGR_SMTP_URL (or MAKE_EMAIL_WEBHOOK_URL),
+ * Requires .env.local with SGR_DATABASE_URL and SGR_SMTP_URL,
  * OR set ORDERS_UPDATE_URL to hit a deployed /api/orders/update endpoint.
  */
 

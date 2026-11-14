@@ -238,7 +238,7 @@ def _compute_alert_code(stage: str, err: Exception) -> str:
     return "SYNC-UNKNOWN"
 
 
-def _send_make_alert_email(
+def _log_catalog_alert(
     *,
     alert_code: str,
     title: str,
@@ -247,68 +247,16 @@ def _send_make_alert_email(
     stack: Optional[str],
     severity: str,
 ) -> None:
-    """
-    Best-effort webhook to the legacy Make alerts pipeline (optional during cutover).
-    Production alerts prefer Node api/slackAlerts.js via SGR_SMTP_URL.
-    Include the alert code in multiple places for triage.
-    """
-    webhook_url = _get_env("MAKE_ALERTS_WEBHOOK_URL")
-    if not webhook_url:
-        # No Make fallback: Node path owns alerts when SGR_SMTP_URL is set on the site.
-        print(
-            f"[catalog_sync] MAKE_ALERTS_WEBHOOK_URL unset; skip Make alert ({alert_code}). "
-            "Use site SMTP alerts after cutover.",
-            file=sys.stderr,
-        )
-        return
-
-    enabled = _truthy_env("ALERT_ENABLED", default=False) or _truthy_env("SLACK_ALERT_ENABLED", default=False)
-    # If it's configured at all, allow it in local runs; but still keep an opt-in switch.
-    if not enabled and (os.environ.get("NODE_ENV") != "production"):
-        return
-
-    now = dt.datetime.now(dt.timezone.utc).isoformat()
+    """Local/stderr alert only. Production ops email is Node api/slackAlerts.js (SMTP)."""
     safe_context = dict(context or {})
     safe_context["alertCode"] = alert_code
-
-    html = (
-        "<html><body style=\"font-family: ui-sans-serif, system-ui;\">"
-        f"<h2>[{alert_code}] Catalog Sync Alert</h2>"
-        f"<p><strong>Severity:</strong> {severity}</p>"
-        f"<p><strong>Title:</strong> {_truncate(title, 200)}</p>"
-        f"<p><strong>Error:</strong> {_truncate(error, 2000)}</p>"
-        "<h3>Context</h3>"
-        f"<pre>{json.dumps(safe_context, indent=2, sort_keys=True)[:8000]}</pre>"
-        + (f"<h3>Stack</h3><pre>{_truncate(stack, 12000)}</pre>" if stack else "")
-        + f"<p style=\"color:#666;font-size:12px;\">Timestamp: {now}</p>"
-        "</body></html>"
+    print(
+        f"[catalog_sync] [{severity}] [{alert_code}] {title}: {_truncate(error, 500)} "
+        f"context={json.dumps(safe_context, sort_keys=True)[:1500]}",
+        file=sys.stderr,
     )
-
-    payload = {
-        "event": "sync.error",
-        "timestamp": now,
-        "env": os.environ.get("NODE_ENV") or "development",
-        "severity": severity,
-        # Match Make alert shape expectations as closely as possible
-        "statusCode": 500,
-        "method": "SYNC",
-        "endpoint": "scripts/catalog_sync.py",
-        # Put code right up front in the message subject/title
-        "title": f"[{alert_code}] {title}",
-        "summary": f"[{alert_code}] {error}",
-        "error": f"[{alert_code}] {error}",
-        "errorFingerprint": alert_code,
-        "context": safe_context,
-        "stack": stack,
-        "stackTrace": stack,
-        "html": html,
-    }
-
-    try:
-        requests.post(webhook_url, json=payload, timeout=15).raise_for_status()
-    except Exception:
-        # Never fail the sync because alerts couldn't be sent.
-        return
+    if stack:
+        print(f"[catalog_sync] stack: {_truncate(stack, 2000)}", file=sys.stderr)
 
 
 def _rebuild_albums_cache(cfg: Config) -> Dict[str, Any]:
@@ -1144,7 +1092,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if cfg.rebuild_albums_cache and (not cfg.dry_run):
             albums_cache_result = _rebuild_albums_cache(cfg)
             if albums_cache_result.get("attempted") and not albums_cache_result.get("ok"):
-                _send_make_alert_email(
+                _log_catalog_alert(
                     alert_code="SYNC-ALBUMS-CACHE",
                     title="albums_cache rebuild failed (after single-item sync)",
                     error=str(albums_cache_result),
@@ -1294,7 +1242,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         err = sys.exc_info()[1] or Exception("Unknown error")
         stage = "sync.main"
         alert_code = _compute_alert_code(stage, err)
-        _send_make_alert_email(
+        _log_catalog_alert(
             alert_code=alert_code,
             title="Catalog sync failed",
             error=str(err),
@@ -1320,7 +1268,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if cfg.rebuild_albums_cache and (not cfg.dry_run):
         albums_cache_result = _rebuild_albums_cache(cfg)
         if albums_cache_result.get("attempted") and not albums_cache_result.get("ok"):
-            _send_make_alert_email(
+            _log_catalog_alert(
                 alert_code="SYNC-ALBUMS-CACHE",
                 title="albums_cache rebuild failed (after catalog sync)",
                 error=str(albums_cache_result),
