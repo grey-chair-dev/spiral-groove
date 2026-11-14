@@ -5,10 +5,11 @@ the site keeps using the old Make webhooks, so this can be merged before the cut
 
 ## Status (2026-11-13)
 
-- On production `main`. Email cutover done: Resend via `SGR_SMTP_URL` with
-  `*@greychair.digital` From; Make **Transactional Emails**, **Contact Us**, **Event Inquiries** off.
+- On production `main`. Email cutover done; Make email scenarios off.
+- **Staff Picks** cutover done: `STAFF_PICKS_LLM_API_KEY` + Vercel Cron Mon 07:45 UTC;
+  Make **Staff Picks** off (manual POST smoked 2026-11-13).
 - Make **Alerts** + **Usage Cost Backfill** already off.
-- Still on Make: **Inventory Count**, **Order Status Updates**, **Staff Picks** (Square / cron cutover next).
+- Still on Make: **Inventory Count**, **Order Status Updates** (Square cutover next).
 
 | Was (Make scenario) | Now | Switches on when |
 |---|---|---|
