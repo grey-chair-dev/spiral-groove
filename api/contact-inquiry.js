@@ -10,6 +10,7 @@ import { sendContactInquiryEmails } from './_lib/inquiryMail.js'
 import crypto from 'crypto'
 import { withWebHandler } from './_vercelNodeAdapter.js'
 import { sendSlackAlert } from './slackAlerts.js'
+import { logger } from './_lib/logger.js'
 
 function escapeHtml(input) {
   return String(input || '')
@@ -393,6 +394,18 @@ export async function webHandler(request) {
         headers: { 'Content-Type': 'application/json' },
       })
     }
+
+    logger.info('contact_inquiry_sent', {
+      event: 'contact_inquiry_sent',
+      endpoint: '/api/contact-inquiry',
+      requestId,
+      responseTimeMs: Date.now() - startTime,
+      topic: payload.topic || null,
+      sendCopy: Boolean(payload.sendCopy),
+      hasEmail: Boolean(payload.email),
+      hasPhone: Boolean(payload.phone),
+      via: direct ? 'smtp' : 'make_webhook',
+    })
 
     return new Response(html, {
       status: 200,
