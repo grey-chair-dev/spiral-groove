@@ -7,8 +7,28 @@ Pages go to **alerts@greychair.io**. Logs stay in **Vercel Logs / Observability*
 | Pillar | What we use |
 |--------|-------------|
 | **Logs** | Structured JSON via `api/_lib/logger.js` → Vercel Runtime Logs |
-| **Metrics / alerts** | Vercel monitors (Default + Spiral Groove 5xx) + UptimeRobot on `/api/health` |
+| **Metrics / alerts** | Vercel per-route 5xx monitors (below) + project-wide 5xx + UptimeRobot on `/api/health` |
 | **Email** | `sendSlackAlert` → Resend (`SGR_ALERTS_SMTP_URL`) → alerts@ |
+
+## Critical-path Vercel monitors
+
+Built-in `error_anomaly` filters (`statusGroup:5xx AND route:…`), medium+, team-owner notifications:
+
+| Monitor | Route |
+|---------|--------|
+| SGR pay 5xx | `/api/pay` |
+| SGR Square webhook 5xx | `/api/square/webhook` |
+| SGR order status 5xx | `/api/orders/update` |
+| SGR health 5xx | `/api/health` |
+| SGR contact inquiry 5xx | `/api/contact-inquiry` |
+| SGR event inquiry 5xx | `/api/event-inquiry` |
+| SGR products 5xx | `/api/products` |
+| SGR sendEmail 5xx | `/api/sendEmail` |
+| SGR staff picks cron 5xx | `/api/staff-picks-weekly` |
+| SGR newsletter cron 5xx | `/api/weekly-newsletter-bulk` |
+| SGR catalog sync cron 5xx | `/api/catalog-sync-nightly` |
+
+Also: project-wide **Spiral Groove 5xx errors** + team **Default Alert Rule**.
 
 ## Structured logs (Vercel-aligned)
 
