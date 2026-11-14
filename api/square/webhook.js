@@ -7,7 +7,8 @@
  * Env:
  *   SQUARE_WEBHOOK_SIGNATURE_KEY  signature key of the subscription (Square Developer → Webhooks)
  *   SQUARE_WEBHOOK_URL            the exact notification URL registered with Square
- *                                 (default https://spiralgrooverecords.com/api/square/webhook)
+ *                                 (default https://www.spiralgrooverecords.com/api/square/webhook;
+ *                                  apex redirects to www and breaks HMAC)
  *
  * Returns 500 on processing errors so Square retries the delivery.
  * Events of one type are processed one at a time (Postgres advisory lock), as Make did.
@@ -23,7 +24,7 @@ export const config = {
   runtime: 'nodejs',
 }
 
-const DEFAULT_URL = 'https://spiralgrooverecords.com/api/square/webhook'
+const DEFAULT_URL = 'https://www.spiralgrooverecords.com/api/square/webhook'
 
 function json(status, body) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })

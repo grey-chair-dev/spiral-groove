@@ -300,7 +300,7 @@ export async function webHandler(request) {
       .map((id) => (String(id).startsWith('variation-') ? String(id).slice('variation-'.length) : String(id)))
       .filter(Boolean)
     const dbRes = await query(
-      `SELECT square_variation_id, name, price_cents
+      `SELECT square_variation_id, name, price_cents, COALESCE(stock_count, 0)::int AS stock_count
        FROM products
        WHERE square_variation_id = ANY($1::text[])`,
       [variationIds],
@@ -314,18 +314,91 @@ export async function webHandler(request) {
       )
     }
 
+    // Live Square IN_STOCK is source of truth when Square returns a count for the variation.
+    // Missing from the response usually means inventory isn't tracked → fall back to Neon.
+    // Never trust the client cart alone (stale site stock was letting OOS checkouts through).
+    const squareInStock = new Map()
+    if (squareEnv !== 'sandbox' && variationIds.length > 0) {
+      try {
+        const squareBase =
+          process.env.SQUARE_BASE_URL ||
+          (squareEnv === 'sandbox' ? 'https://connect.squareupsandbox.com' : 'https://connect.squareup.com')
+        const invRes = await fetch(`${squareBase}/v2/inventory/counts/batch-retrieve`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'Square-Version': process.env.SQUARE_VERSION || '2025-10-16',
+          },
+          body: JSON.stringify({
+            catalog_object_ids: variationIds,
+            location_ids: [locationId],
+            states: ['IN_STOCK'],
+          }),
+        })
+        const invBody = await invRes.json().catch(() => ({}))
+        if (!invRes.ok) {
+          console.error('[Payment API] Square inventory check failed:', invRes.status, invBody)
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Could not verify inventory. Please try again in a moment.',
+            }),
+            { status: 503, headers: { 'Content-Type': 'application/json' } },
+          )
+        }
+        for (const c of invBody.counts || []) {
+          const vid = c?.catalog_object_id
+          if (typeof vid !== 'string' || !vid) continue
+          const qty = Number.isFinite(Number(c.quantity)) ? Math.max(0, parseInt(String(c.quantity), 10)) : 0
+          squareInStock.set(vid, qty)
+        }
+      } catch (invErr) {
+        console.error('[Payment API] Square inventory check error:', invErr?.message || invErr)
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Could not verify inventory. Please try again in a moment.',
+          }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+    }
+
+    const outOfStock = []
     const canonicalCartItems = requested.map((it) => {
       const variationId = String(it.id).startsWith('variation-') ? String(it.id).slice('variation-'.length) : String(it.id)
       const row = byVariationId.get(variationId)
       const priceCents = Number(row?.price_cents || 0)
+      const qty = Math.min(99, Math.max(1, Math.round(it.quantity)))
+      const neonStock = Math.max(0, Number(row?.stock_count || 0))
+      const available = squareInStock.has(variationId) ? squareInStock.get(variationId) : neonStock
+      if (available < qty) {
+        outOfStock.push({
+          id: it.id,
+          name: String(row?.name || ''),
+          requested: qty,
+          available,
+        })
+      }
       return {
         id: it.id,
         name: String(row?.name || ''),
-        quantity: Math.min(99, Math.max(1, Math.round(it.quantity))),
+        quantity: qty,
         priceCents: Math.max(0, Math.round(priceCents)),
         squareVariationId: variationId || null,
       }
     })
+    if (outOfStock.length > 0) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'One or more items are out of stock.',
+          outOfStock,
+        }),
+        { status: 409, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
 
     // Calculate shipping server-side (source of truth). Pickup = 0. Delivery = fixed fee unless order meets free-shipping threshold.
     const subtotalCents = canonicalCartItems.reduce((sum, it) => sum + it.priceCents * it.quantity, 0)

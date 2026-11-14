@@ -9,7 +9,10 @@ the site keeps using the old Make webhooks, so this can be merged before the cut
 - **Staff Picks** cutover done: `STAFF_PICKS_LLM_API_KEY` + Vercel Cron Mon 07:45 UTC;
   Make **Staff Picks** off (manual POST smoked 2026-11-13).
 - Make **Alerts** + **Usage Cost Backfill** already off.
-- Still on Make: **Inventory Count**, **Order Status Updates** (Square cutover next).
+- **Square** cutover done: one subscription →
+  `https://www.spiralgrooverecords.com/api/square/webhook`
+  (`inventory.count.updated` + `order.fulfillment.updated`); Make Inventory Count +
+  Order Status Updates off. Use **www** (apex 307 breaks HMAC).
 
 | Was (Make scenario) | Now | Switches on when |
 |---|---|---|
@@ -36,7 +39,7 @@ Tests: `npm test`.
 | `EMAIL_SUPPRESS_TO` | Comma list of recipients never sent customer email (default the test inbox Make dropped). |
 | `MAIL_DRY_RUN=1` | Log instead of sending. |
 | `SQUARE_WEBHOOK_SIGNATURE_KEY` | Signature key of the Square subscription below. Also locks `PATCH /api/orders/update` in production. |
-| `SQUARE_WEBHOOK_URL` | Exact URL registered with Square (default `https://spiralgrooverecords.com/api/square/webhook`). |
+| `SQUARE_WEBHOOK_URL` | Exact URL registered with Square (must be **www** — default `https://www.spiralgrooverecords.com/api/square/webhook`). |
 | `WEBHOOK_SECRET` | Needed to call `/api/orders/update` by hand (`x-webhook-secret`) or POST `/api/staff-picks-weekly`. |
 | `STAFF_PICKS_LLM_API_KEY` | OpenAI key (or `OPENAI_API_KEY`). Optional `STAFF_PICKS_LLM_BASE_URL`, `STAFF_PICKS_LLM_MODEL` (default gpt-4.1-mini). |
 | `CRON_SECRET` | Optional; when set, crons must send it (Vercel Cron does this automatically). |
@@ -47,17 +50,12 @@ Tests: `npm test`.
    Submit the contact form with "send me a copy", trigger a test alert, and check a customer email
    (e.g. `node scripts/test-emails.mjs`). Then turn off Make: Transactional Emails, Contact Us,
    Event Inquiries. (Alerts already moved to Vercel Observability — see `docs/observability.md`.)
-2. **Square.** Square Developer → the app → Webhooks → add a subscription:
-   URL `https://spiralgrooverecords.com/api/square/webhook`, events `inventory.count.updated` and
-   `order.fulfillment.updated`, API version as the existing ones. Copy its signature key into
-   `SQUARE_WEBHOOK_SIGNATURE_KEY`, redeploy, then **in the same sitting** disable the two old
-   subscriptions that point at hook.us2.make.com and turn off Make's Inventory Count + Order Status Updates.
-   Send a test event from Square and change a test order's pickup status. From this deploy on,
-   `PATCH /api/orders/update` needs `x-webhook-secret`.
-   **Race:** once `SQUARE_WEBHOOK_SIGNATURE_KEY` is set, Make's HTTP call to `/api/orders/update`
-   gets 401, but Make can still write status via Postgres if the old Square→Make subscription is
-   still on. The site then skips email with `status_unchanged`. Disable old Square→Make hooks
-   before or immediately with the signature-key deploy.
+2. **Square.** Done 2026-11-13. One enabled Square subscription
+   (`wbhk_acb3392f8da74e4dba5c3828068ce342`) →
+   `https://www.spiralgrooverecords.com/api/square/webhook` for
+   `inventory.count.updated` + `order.fulfillment.updated`. Old Order Status Make-pointing
+   subscription disabled. Make **Inventory Count** + **Order Status Updates** deactivated.
+   `PATCH /api/orders/update` needs `x-webhook-secret` in production.
 3. **Staff Picks.** Set `STAFF_PICKS_LLM_API_KEY`, then run once: `curl -X POST -H "x-webhook-secret: $WEBHOOK_SECRET" https://spiralgrooverecords.com/api/staff-picks-weekly`.
    Turn off Make's Staff Picks the same day (the job skips a day that already has picks, but both
    starting at 07:45 could still race).
