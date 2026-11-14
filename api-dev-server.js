@@ -98,6 +98,12 @@ const server = createServer(async (req, res) => {
           } else if (route === 'staff-picks') {
             const module = await importFresh('./api/staff-picks.js')
             handler = module.webHandler ?? module.default
+          } else if (route === 'staff-picks-weekly') {
+            const module = await importFresh('./api/staff-picks-weekly.js')
+            handler = module.webHandler ?? module.default
+          } else if (route === 'square/webhook') {
+            const module = await importFresh('./api/square/webhook.js')
+            handler = module.webHandler ?? module.default
           } else if (route === 'image-proxy') {
             const module = await importFresh('./api/image-proxy.js')
             handler = module.webHandler ?? module.default
