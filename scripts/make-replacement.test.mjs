@@ -113,9 +113,12 @@ test('order: unknown order is skipped, server error is reported (so Square retri
 
 test('webhook: not configured → 503, bad signature → 401, valid signature on an ignored type → 200', async () => {
   const { webHandler } = await import('../api/square/webhook.js')
-  const url = 'https://spiralgrooverecords.com/api/square/webhook'
+  const url = 'https://www.spiralgrooverecords.com/api/square/webhook'
   const body = JSON.stringify({ type: 'catalog.version.updated', event_id: 'e1' })
   const post = (sig) => webHandler(new Request(url, { method: 'POST', body, headers: sig ? { 'x-square-hmacsha256-signature': sig } : {} }))
+  const prevUrl = process.env.SQUARE_WEBHOOK_URL
+  const prevKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
+  process.env.SQUARE_WEBHOOK_URL = url
 
   delete process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
   assert.equal((await post('x')).status, 503)
@@ -126,7 +129,10 @@ test('webhook: not configured → 503, bad signature → 401, valid signature on
   const ok = await post(sig)
   assert.equal(ok.status, 200)
   assert.equal((await ok.json()).ignored, 'catalog.version.updated')
-  delete process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
+  if (prevKey === undefined) delete process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
+  else process.env.SQUARE_WEBHOOK_SIGNATURE_KEY = prevKey
+  if (prevUrl === undefined) delete process.env.SQUARE_WEBHOOK_URL
+  else process.env.SQUARE_WEBHOOK_URL = prevUrl
 })
 
 // ---------- orders/update email delivery gate ----------
@@ -287,7 +293,7 @@ test('staff picks LLM: classifies rate limit and quota failures', async () => {
 
 // ---------- email ----------
 
-test('sendEmail: direct mode sends, suppresses the test inbox, sale alerts use the projects account', async () => {
+test('sendEmail: direct mode sends, suppresses the test inbox, sale alerts send via sgr', async () => {
   const sent = await sendEmail({ type: 'order_status_update', to: 'customer@example.com', data: {}, force: true })
   assert.equal(sent.ok, true)
   assert.equal(sent.attempted, true)

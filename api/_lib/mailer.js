@@ -2,13 +2,13 @@
  * Direct email sending (replaces the Make.com email relay scenarios).
  *
  * Accounts:
- *   sgr       "Spiral Groove Records" <noreply@spiralgrooverecords.com>  customer / transactional
- *   projects  general@greychair.digital                                  inquiries + sale alerts
+ *   sgr       "Spiral Groove Records" <noreply@spiralgrooverecords.com>  customer + inquiries + sale alerts
+ *   projects  general@greychair.digital                                  optional internal / legacy
  *   alerts    alerts@greychair.digital                                   ops alerts
  *
  * Two Resend keys (typical):
- *   SGR_SMTP_URL         spiralgrooverecords.com (transactional)
- *   SGR_ALERTS_SMTP_URL  greychair.digital (alerts + store inquiries)
+ *   SGR_SMTP_URL         spiralgrooverecords.com (transactional + store notify)
+ *   SGR_ALERTS_SMTP_URL  greychair.digital (ops alerts)
  *
  * Callers: api/sendEmail.js, api/_lib/inquiryMail.js, api/slackAlerts.js,
  * api/contact-inquiry.js / event-inquiry.js (via directMailEnabled).

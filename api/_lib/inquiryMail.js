@@ -6,10 +6,11 @@
 import { sendMail } from './mailer.js'
 
 async function sendInquiry({ to, subject, html, replyTo, copy }) {
-  await sendMail('projects', { to, subject, html, replyTo })
+  // Brand as noreply@spiralgrooverecords.com (same Resend domain as order mail).
+  await sendMail('sgr', { to, subject, html, replyTo })
   if (copy?.to) {
     try {
-      await sendMail('projects', { to: copy.to, subject: copy.subject, html: copy.html })
+      await sendMail('sgr', { to: copy.to, subject: copy.subject, html: copy.html })
     } catch (error) {
       console.error('[Inquiry] Customer copy failed:', error?.message || error)
     }

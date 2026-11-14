@@ -32,19 +32,14 @@ const SUPPRESSED_RECIPIENTS = String(process.env.EMAIL_SUPPRESS_TO ?? 'bcohen042
 
 /**
  * Direct send (SGR_SMTP_URL set). Mirrors the Make scenarios it replaces:
- * - sale_alert → store inbox from general@greychair.io (was "Contact Us" scenario)
- * - everything else → recipient from spiralgrooverecords@greychair.io (was "Transactional Emails")
+ * - sale_alert + transactional → noreply@spiralgrooverecords.com (sgr account)
  */
 async function sendDirect({ type, to, subject, html, replyTo }) {
   try {
-    if (type === 'sale_alert') {
-      await sendMail('projects', { to, subject, html, replyTo })
-    } else {
-      if (SUPPRESSED_RECIPIENTS.includes(String(to || '').trim().toLowerCase())) {
-        return { attempted: false, ok: true, reason: 'suppressed_recipient' }
-      }
-      await sendMail('sgr', { to, subject, html })
+    if (type !== 'sale_alert' && SUPPRESSED_RECIPIENTS.includes(String(to || '').trim().toLowerCase())) {
+      return { attempted: false, ok: true, reason: 'suppressed_recipient' }
     }
+    await sendMail('sgr', { to, subject, html, replyTo })
     return { attempted: true, ok: true, status: 200, statusText: 'sent' }
   } catch (error) {
     console.error('[Email] Direct send failed:', { type, to, error: error?.message || error })

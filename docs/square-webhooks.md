@@ -17,7 +17,7 @@ the site keeps using the old Make webhooks, so this can be merged before the cut
 | Was (Make scenario) | Now | Switches on when |
 |---|---|---|
 | Transactional Emails | `api/sendEmail.js` → `api/_lib/mailer.js` (from spiralgrooverecords@greychair.digital) | `SGR_SMTP_URL` set |
-| Contact Us (+ sale alerts) | `api/contact-inquiry.js`, `sendEmail` `sale_alert` → `api/_lib/inquiryMail.js` (from general@greychair.digital) | `SGR_SMTP_URL` set |
+| Contact Us (+ sale alerts) | `api/contact-inquiry.js`, `sendEmail` `sale_alert` → `api/_lib/inquiryMail.js` (from noreply@spiralgrooverecords.com) | `SGR_SMTP_URL` set |
 | Event Inquiries | `api/event-inquiry.js` → `api/_lib/inquiryMail.js` | `SGR_SMTP_URL` set |
 | Alerts - Spiral Groove Records | Vercel Observability + `/api/health` uptime (see `docs/observability.md`); `sendSlackAlert` is log-only | Make Alerts scenario off |
 | Inventory Count | `api/square/webhook.js` → `api/_lib/squareEvents.js` | Square subscription points here |
